@@ -1,0 +1,248 @@
+{
+  "type": "intune",
+  "category": "connector",
+  "connector_category": "endpoint-management",
+  "icon": "intune",
+  "name": "Microsoft Intune",
+  "version": "1.0.0",
+  "description": "Integration with Microsoft Intune for mobile device management, applications, and compliance policies",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": true,
+    "bidirectional": false
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["tenant_id", "client_id", "client_secret"],
+    "properties": {
+      "tenant_id": {
+        "type": "string",
+        "description": "Azure AD tenant ID"
+      },
+      "client_id": {
+        "type": "string",
+        "description": "Azure AD app registration client ID"
+      },
+      "client_secret": {
+        "type": "string",
+        "description": "Azure AD app registration client secret",
+        "format": "password"
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "devices",
+      "name": "Managed Devices",
+      "description": "Mobile and computer devices managed by Intune",
+      "ci_type": "mobile-device",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "compliance_state": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Filter by compliance state",
+            "default": ["compliant", "noncompliant", "inGracePeriod"]
+          },
+          "ownership": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Filter by device ownership",
+            "default": ["company", "personal", "unknown"]
+          },
+          "last_sync_days": {
+            "type": "number",
+            "description": "Include devices synced in the last N days",
+            "default": 30
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 1000,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "name": "deviceName",
+        "operating_system": "operatingSystem",
+        "os_version": "osVersion",
+        "manufacturer": "manufacturer",
+        "model": "model",
+        "serial_number": "serialNumber",
+        "imei": "imei",
+        "meid": "meid",
+        "phone_number": "phoneNumber",
+        "azure_ad_device_id": "azureADDeviceId",
+        "enrolled_date": "enrolledDateTime",
+        "last_sync_date": "lastSyncDateTime",
+        "compliance_state": "complianceState",
+        "compliance_grace_period_expiration": "complianceGracePeriodExpirationDateTime",
+        "management_state": "managementState",
+        "ownership_type": "managedDeviceOwnerType",
+        "device_category": "deviceCategoryDisplayName",
+        "exchange_access_state": "exchangeAccessState",
+        "user_principal_name": "userPrincipalName",
+        "user_display_name": "userDisplayName",
+        "is_encrypted": "isEncrypted",
+        "is_supervised": "isSupervised",
+        "jail_broken": "jailBroken",
+        "total_storage_space_bytes": "totalStorageSpaceInBytes",
+        "free_storage_space_bytes": "freeStorageSpaceInBytes"
+      }
+    },
+    {
+      "id": "applications",
+      "name": "Managed Applications",
+      "description": "Apps deployed and managed through Intune",
+      "ci_type": "application",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "platform": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Filter by platform",
+            "default": ["iOS", "Android", "Windows", "macOS"]
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 500
+      },
+      "field_mappings": {
+        "name": "displayName",
+        "description": "description",
+        "publisher": "publisher",
+        "odata_type": "@odata.type",
+        "created_date": "createdDateTime",
+        "last_modified_date": "lastModifiedDateTime",
+        "is_featured": "isFeatured",
+        "is_assigned": "isAssigned",
+        "large_icon": "largeIcon",
+        "privacy_information_url": "privacyInformationUrl",
+        "information_url": "informationUrl",
+        "owner": "owner",
+        "developer": "developer",
+        "notes": "notes",
+        "bundle_id": "bundleId",
+        "package_id": "packageIdentifier"
+      }
+    },
+    {
+      "id": "compliance_policies",
+      "name": "Compliance Policies",
+      "description": "Device compliance policies and rules",
+      "ci_type": "policy",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "platform_type": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Filter by platform type",
+            "default": ["iOS", "Android", "Windows", "macOS"]
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 100
+      },
+      "field_mappings": {
+        "name": "displayName",
+        "description": "description",
+        "odata_type": "@odata.type",
+        "created_date": "createdDateTime",
+        "last_modified_date": "lastModifiedDateTime",
+        "version": "version",
+        "scheduled_actions_count": "scheduledActionsForRule"
+      }
+    },
+    {
+      "id": "configuration_profiles",
+      "name": "Configuration Profiles",
+      "description": "Device configuration profiles and settings",
+      "ci_type": "configuration",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "platform_type": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Filter by platform type",
+            "default": ["iOS", "Android", "Windows", "macOS"]
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 100
+      },
+      "field_mappings": {
+        "name": "displayName",
+        "description": "description",
+        "odata_type": "@odata.type",
+        "created_date": "createdDateTime",
+        "last_modified_date": "lastModifiedDateTime",
+        "version": "version"
+      }
+    },
+    {
+      "id": "users",
+      "name": "Managed Users",
+      "description": "Users with Intune-managed devices and apps",
+      "ci_type": "user",
+      "enabled_by_default": false,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "has_devices": {
+            "type": "boolean",
+            "description": "Only include users with assigned devices",
+            "default": true
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 500
+      },
+      "field_mappings": {
+        "name": "displayName",
+        "user_principal_name": "userPrincipalName",
+        "mail": "mail",
+        "job_title": "jobTitle",
+        "department": "department",
+        "office_location": "officeLocation",
+        "mobile_phone": "mobilePhone",
+        "business_phones": "businessPhones",
+        "registered_devices_count": "registeredDevices"
+      }
+    },
+    {
+      "id": "relationships",
+      "name": "Device and App Relationships",
+      "description": "Relationships between devices, apps, policies, and users",
+      "ci_type": null,
+      "enabled_by_default": true,
+      "operations": ["extract"],
+      "configuration_schema": {
+        "properties": {}
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 5000,
+        "depends_on": ["devices", "applications", "compliance_policies", "configuration_profiles", "users"]
+      }
+    }
+  ]
+}

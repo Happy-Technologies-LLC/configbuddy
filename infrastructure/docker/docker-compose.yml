@@ -1,0 +1,404 @@
+version: '3.9'
+
+# SECURITY: All sensitive credentials are loaded from environment variables
+# defined in the .env file (see .env.example for required variables).
+# NEVER commit hardcoded passwords, API keys, or secrets to version control.
+
+services:
+  # Neo4j Community Edition - Graph Database
+  neo4j:
+    image: neo4j:5.15-community
+    container_name: cmdb-neo4j
+    ports:
+      - "7474:7474"  # HTTP
+      - "7473:7473"  # HTTPS
+      - "7687:7687"  # Bolt
+    environment:
+      # Credentials loaded from .env file (see .env.example)
+      - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD}
+      - NEO4J_PLUGINS=["apoc"]
+
+      # Memory Configuration (adjust based on deployment tier)
+      # Small: 2G heap, 1G pagecache | Medium: 4G heap, 2G pagecache | Large: 8G heap, 4G pagecache
+      - NEO4J_dbms_memory_heap_initial__size=2G
+      - NEO4J_dbms_memory_heap_max__size=2G
+      - NEO4J_dbms_memory_pagecache_size=1G
+
+      # Transaction Configuration
+      - NEO4J_dbms_transaction_timeout=60s
+      - NEO4J_dbms_transaction_concurrent_maximum=1000
+
+      # Query Performance
+      - NEO4J_dbms_query_cache__size=1000
+      - NEO4J_cypher_min__replan__interval=10s
+
+      # Connection Pool
+      - NEO4J_dbms_connector_bolt_thread__pool__min__size=5
+      - NEO4J_dbms_connector_bolt_thread__pool__max__size=400
+
+      # Security
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*
+      - NEO4J_dbms_security_procedures_allowlist=apoc.*
+      - NEO4J_dbms_security_auth__enabled=true
+
+      # SSL/TLS Configuration (enabled when NEO4J_SSL_ENABLED=true in .env)
+      - NEO4J_dbms_connector_bolt_tls__level=${NEO4J_BOLT_TLS_LEVEL:-OPTIONAL}
+      - NEO4J_dbms_connector_https_enabled=${NEO4J_HTTPS_ENABLED:-false}
+      - NEO4J_dbms_ssl_policy_bolt_enabled=${NEO4J_SSL_ENABLED:-false}
+      - NEO4J_dbms_ssl_policy_https_enabled=${NEO4J_SSL_ENABLED:-false}
+      - NEO4J_dbms_ssl_policy_bolt_base__directory=/ssl
+      - NEO4J_dbms_ssl_policy_bolt_private__key=neo4j.key
+      - NEO4J_dbms_ssl_policy_bolt_public__certificate=neo4j.cert
+      - NEO4J_dbms_ssl_policy_bolt_trusted__dir=/ssl
+      - NEO4J_dbms_ssl_policy_bolt_client__auth=${NEO4J_SSL_CLIENT_AUTH:-NONE}
+      - NEO4J_dbms_ssl_policy_https_base__directory=/ssl
+      - NEO4J_dbms_ssl_policy_https_private__key=neo4j.key
+      - NEO4J_dbms_ssl_policy_https_public__certificate=neo4j.cert
+      - NEO4J_dbms_ssl_policy_https_trusted__dir=/ssl
+      - NEO4J_dbms_ssl_policy_https_client__auth=${NEO4J_SSL_CLIENT_AUTH:-NONE}
+
+      # Logging
+      - NEO4J_dbms_logs_query_enabled=INFO
+      - NEO4J_dbms_logs_query_threshold=5s
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_plugins:/plugins
+      - ./ssl/neo4j:/ssl:ro
+      - ${BACKUP_DIR:-/var/backups/configbuddy}/neo4j:/backups
+    networks:
+      - cmdb_network
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "${NEO4J_PASSWORD}", "RETURN 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # PostgreSQL with TimescaleDB
+  postgres:
+    image: timescale/timescaledb:2.13.0-pg16
+    container_name: cmdb-postgres
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_DB=cmdb
+      - POSTGRES_USER=cmdb_user
+      # Credentials loaded from .env file (see .env.example)
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_INITDB_ARGS=-E UTF8 --locale=en_US.UTF-8
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../../infrastructure/scripts/init-postgres.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./ssl/postgres:/ssl:ro
+      - ${BACKUP_DIR:-/var/backups/configbuddy}/postgres:/backups
+    networks:
+      - cmdb_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cmdb_user -d cmdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    command: >
+      postgres
+      -c shared_preload_libraries=timescaledb
+
+      -c max_connections=200
+      -c superuser_reserved_connections=3
+
+      -c shared_buffers=2GB
+      -c effective_cache_size=6GB
+      -c maintenance_work_mem=512MB
+      -c work_mem=10MB
+
+      -c wal_buffers=16MB
+      -c checkpoint_completion_target=0.9
+      -c checkpoint_timeout=15min
+      -c max_wal_size=4GB
+      -c min_wal_size=1GB
+      -c wal_level=replica
+      -c max_wal_senders=10
+      -c wal_keep_size=1GB
+
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c default_statistics_target=100
+
+      -c log_min_duration_statement=1000
+      -c log_line_prefix='%t [%p]: user=%u,db=%d,app=%a,client=%h '
+      -c log_checkpoints=on
+      -c log_connections=on
+      -c log_disconnections=on
+      -c log_lock_waits=on
+      -c log_temp_files=0
+      -c log_autovacuum_min_duration=0
+
+      -c autovacuum=on
+      -c autovacuum_max_workers=4
+      -c autovacuum_naptime=10s
+      -c autovacuum_vacuum_scale_factor=0.05
+      -c autovacuum_analyze_scale_factor=0.02
+
+      -c ssl=${POSTGRES_SSL_ENABLED:-off}
+      -c ssl_cert_file=/ssl/server.crt
+      -c ssl_key_file=/ssl/server.key
+      -c ssl_ca_file=/ssl/ca.crt
+      -c ssl_ciphers='HIGH:MEDIUM:+3DES:!aNULL'
+      -c ssl_prefer_server_ciphers=on
+      -c ssl_min_protocol_version=TLSv1.2
+
+  # Redis
+  redis:
+    image: redis:7.2-alpine
+    container_name: cmdb-redis
+    ports:
+      - "6379:6379"
+      - "6380:6380"  # TLS port
+    command: >
+      redis-server
+
+      --maxmemory 2gb
+      --maxmemory-policy allkeys-lru
+
+      --appendonly yes
+      --appendfsync everysec
+      --auto-aof-rewrite-percentage 100
+      --auto-aof-rewrite-min-size 64mb
+
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+
+      --hz 10
+      --tcp-backlog 511
+      --timeout 300
+      --tcp-keepalive 300
+
+      --maxclients 10000
+
+      --slowlog-log-slower-than 10000
+      --slowlog-max-len 128
+
+      --tls-port ${REDIS_TLS_PORT:-0}
+      --tls-cert-file /ssl/redis.crt
+      --tls-key-file /ssl/redis.key
+      --tls-ca-cert-file /ssl/ca.crt
+      --tls-auth-clients ${REDIS_TLS_AUTH_CLIENTS:-no}
+    volumes:
+      - redis_data:/data
+      - ./ssl/redis:/ssl:ro
+    networks:
+      - cmdb_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Zookeeper
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: cmdb-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+    networks:
+      - cmdb_network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Kafka
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: cmdb-kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    networks:
+      - cmdb_network
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # API Server
+  api-server:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.api
+    container_name: cmdb-api-server
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - NEO4J_URI=${NEO4J_URI:-bolt://neo4j:7687}
+      - NEO4J_USERNAME=neo4j
+      # All secrets loaded from .env file (see .env.example)
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD}
+      - NEO4J_SSL_ENABLED=${NEO4J_SSL_ENABLED:-false}
+      - NEO4J_ENCRYPTION=${NEO4J_ENCRYPTION:-false}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=cmdb
+      - POSTGRES_USER=cmdb_user
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_SSL_ENABLED=${POSTGRES_SSL_ENABLED:-off}
+      - POSTGRES_SSL_MODE=${POSTGRES_SSL_MODE:-prefer}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_BROKERS=kafka:29092
+      - KAFKA_CLIENT_ID=cmdb-api-server
+      - KAFKA_GROUP_ID=cmdb-api-group
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=7d
+      - BCRYPT_ROUNDS=10
+      - CREDENTIAL_ENCRYPTION_KEY=${ENCRYPTION_KEY}
+    networks:
+      - cmdb_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/v1/cmdb-health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Web UI
+  web-ui:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.web
+    container_name: cmdb-web-ui
+    depends_on:
+      api-server:
+        condition: service_healthy
+    ports:
+      - "80:80"    # HTTP (redirects to HTTPS)
+      - "443:443"  # HTTPS
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl/nginx:/etc/nginx/ssl:ro
+      - ./ssl/certbot:/var/www/certbot:ro
+    networks:
+      - cmdb_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Test SSH Server for Discovery Testing
+  test-ssh-server:
+    build:
+      context: ./infrastructure/docker/test-ssh-server
+      dockerfile: Dockerfile
+    container_name: cmdb-test-ssh
+    ports:
+      - "2222:22"
+    networks:
+      - cmdb_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "22"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Grafana - Observability & Analytics Dashboards
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: cmdb-grafana
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    environment:
+      # Admin credentials (loaded from .env)
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      # Server configuration
+      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-http://localhost:3001}
+      - GF_SERVER_DOMAIN=${GRAFANA_DOMAIN:-localhost}
+      - GF_SERVER_SERVE_FROM_SUB_PATH=false
+      # Database configuration (optional - use Postgres for persistence)
+      - GF_DATABASE_TYPE=postgres
+      - GF_DATABASE_HOST=postgres:5432
+      - GF_DATABASE_NAME=${GRAFANA_DATABASE:-grafana}
+      - GF_DATABASE_USER=${POSTGRES_USER:-cmdb_user}
+      - GF_DATABASE_PASSWORD=${POSTGRES_PASSWORD}
+      - GF_DATABASE_SSL_MODE=${POSTGRES_SSL_MODE:-disable}
+      # Anonymous access (set to true for demo environments)
+      - GF_AUTH_ANONYMOUS_ENABLED=${GRAFANA_ANONYMOUS_ENABLED:-false}
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=${GRAFANA_ANONYMOUS_ROLE:-Viewer}
+      # Disable telemetry
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_ANALYTICS_CHECK_FOR_UPDATES=false
+      # Plugins
+      - GF_INSTALL_PLUGINS=
+      # Provisioning
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+    volumes:
+      # Provisioning configurations
+      - ../../monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ../../monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      # Dashboard JSON files
+      - ../../monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards/cmdb:ro
+      # Persistent storage
+      - grafana_data:/var/lib/grafana
+    networks:
+      - cmdb_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  cmdb_network:
+    driver: bridge
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
+  neo4j_plugins:
+  postgres_data:
+  redis_data:
+  zookeeper_data:
+  kafka_data:
+  grafana_data:

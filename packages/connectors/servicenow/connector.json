@@ -1,0 +1,248 @@
+{
+  "type": "servicenow",
+  "category": "connector",
+  "connector_category": "itsm",
+  "icon": "servicenow",
+  "name": "ServiceNow CMDB",
+  "version": "3.0.0",
+  "description": "Bi-directional integration with ServiceNow CMDB across multiple CI tables",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": true,
+    "bidirectional": true
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["instance_url", "username", "password"],
+    "properties": {
+      "instance_url": {
+        "type": "string",
+        "description": "ServiceNow instance URL (e.g., https://dev12345.service-now.com)"
+      },
+      "username": {
+        "type": "string",
+        "description": "ServiceNow username"
+      },
+      "password": {
+        "type": "string",
+        "description": "ServiceNow password",
+        "format": "password"
+      },
+      "sync_direction": {
+        "type": "string",
+        "enum": ["import", "export", "bidirectional"],
+        "default": "import",
+        "description": "Synchronization direction"
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "servers",
+      "name": "Servers",
+      "description": "Physical and virtual servers from cmdb_ci_server",
+      "ci_type": "server",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load", "sync_to_source"],
+      "configuration_schema": {
+        "properties": {
+          "table": {
+            "type": "string",
+            "default": "cmdb_ci_server"
+          },
+          "query": {
+            "type": "string",
+            "description": "ServiceNow query filter (e.g., operational_status=1)",
+            "default": ""
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 1000,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "name": "name",
+        "serial_number": "serial_number",
+        "asset_tag": "asset_tag",
+        "ip_address": "ip_address",
+        "mac_address": "mac_address",
+        "os": "os.display_value",
+        "os_version": "os_version",
+        "cpu_count": "cpu_count",
+        "ram": "ram",
+        "disk_space": "disk_space",
+        "manufacturer": "manufacturer.display_value",
+        "model": "model_id.display_value",
+        "operational_status": "operational_status",
+        "sys_created_on": "sys_created_on",
+        "sys_updated_on": "sys_updated_on"
+      }
+    },
+    {
+      "id": "virtual_machines",
+      "name": "Virtual Machines",
+      "description": "Virtual machines from cmdb_ci_vm_instance",
+      "ci_type": "virtual-machine",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "table": {
+            "type": "string",
+            "default": "cmdb_ci_vm_instance"
+          },
+          "query": {
+            "type": "string",
+            "description": "ServiceNow query filter",
+            "default": ""
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 1000
+      },
+      "field_mappings": {
+        "name": "name",
+        "vcpus": "vcpus",
+        "memory": "memory",
+        "disk_space": "disk_space",
+        "host_name": "host_name.display_value",
+        "vm_inst_id": "vm_inst_id",
+        "guest_os": "guest_os.display_value",
+        "serial_number": "serial_number",
+        "ip_address": "ip_address",
+        "mac_address": "mac_address"
+      }
+    },
+    {
+      "id": "databases",
+      "name": "Databases",
+      "description": "Database instances from cmdb_ci_db_instance",
+      "ci_type": "database",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "table": {
+            "type": "string",
+            "default": "cmdb_ci_db_instance"
+          },
+          "query": {
+            "type": "string",
+            "description": "ServiceNow query filter",
+            "default": ""
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 500
+      },
+      "field_mappings": {
+        "name": "name",
+        "db_version": "db_version",
+        "db_type": "db_type.display_value",
+        "instance_name": "instance_name",
+        "port": "port",
+        "size_bytes": "size_bytes",
+        "serial_number": "serial_number",
+        "ip_address": "ip_address"
+      }
+    },
+    {
+      "id": "applications",
+      "name": "Applications",
+      "description": "Business applications from cmdb_ci_appl",
+      "ci_type": "application",
+      "enabled_by_default": false,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "table": {
+            "type": "string",
+            "default": "cmdb_ci_appl"
+          },
+          "query": {
+            "type": "string",
+            "description": "ServiceNow query filter",
+            "default": ""
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 500
+      },
+      "field_mappings": {
+        "name": "name",
+        "version": "version",
+        "vendor": "vendor.display_value",
+        "support_group": "support_group.display_value",
+        "business_criticality": "business_criticality.display_value",
+        "serial_number": "serial_number"
+      }
+    },
+    {
+      "id": "network_devices",
+      "name": "Network Devices",
+      "description": "Network equipment from cmdb_ci_netgear",
+      "ci_type": "network-device",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "table": {
+            "type": "string",
+            "default": "cmdb_ci_netgear"
+          },
+          "query": {
+            "type": "string",
+            "description": "ServiceNow query filter",
+            "default": ""
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 500
+      },
+      "field_mappings": {
+        "name": "name",
+        "device_type": "device_type.display_value",
+        "ports": "ports",
+        "firmware_version": "firmware_version",
+        "location": "location.display_value",
+        "serial_number": "serial_number",
+        "ip_address": "ip_address",
+        "mac_address": "mac_address"
+      }
+    },
+    {
+      "id": "relationships",
+      "name": "CI Relationships",
+      "description": "CI relationships from cmdb_rel_ci",
+      "ci_type": null,
+      "enabled_by_default": true,
+      "operations": ["extract"],
+      "configuration_schema": {
+        "properties": {
+          "table": {
+            "type": "string",
+            "default": "cmdb_rel_ci"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 10000,
+        "depends_on": ["servers", "virtual_machines", "databases"]
+      }
+    }
+  ]
+}

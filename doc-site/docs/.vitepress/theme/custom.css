@@ -1,0 +1,310 @@
+/**
+ * ConfigBuddy CMDB Custom Theme
+ *
+ * This file contains custom styling for the ConfigBuddy documentation site.
+ * Colors are based on a modern, professional palette suitable for enterprise software.
+ */
+
+:root {
+  /* Brand Colors */
+  --cb-primary: #0ea5e9;        /* Sky blue - primary brand color */
+  --cb-primary-dark: #0284c7;   /* Darker blue for hover states */
+  --cb-primary-light: #38bdf8;  /* Lighter blue for accents */
+  --cb-secondary: #8b5cf6;      /* Purple - secondary brand color */
+  --cb-accent: #10b981;         /* Green - success/accent color */
+  --cb-warning: #f59e0b;        /* Amber - warning color */
+  --cb-danger: #ef4444;         /* Red - error/danger color */
+
+  /* Override VitePress default colors */
+  --vp-c-brand-1: var(--cb-primary);
+  --vp-c-brand-2: var(--cb-primary-dark);
+  --vp-c-brand-3: var(--cb-primary-light);
+
+  /* Custom semantic colors */
+  --vp-c-tip-1: var(--cb-accent);
+  --vp-c-warning-1: var(--cb-warning);
+  --vp-c-danger-1: var(--cb-danger);
+
+  /* Background colors */
+  --vp-c-bg-soft: #f8fafc;
+  --vp-c-bg-mute: #f1f5f9;
+
+  /* Text colors */
+  --vp-c-text-1: #1e293b;
+  --vp-c-text-2: #475569;
+  --vp-c-text-3: #64748b;
+}
+
+/* Dark mode colors */
+.dark {
+  --vp-c-bg-soft: #1e293b;
+  --vp-c-bg-mute: #0f172a;
+
+  --vp-c-text-1: #f1f5f9;
+  --vp-c-text-2: #cbd5e1;
+  --vp-c-text-3: #94a3b8;
+}
+
+/* Custom home page hero styling */
+.VPHero .name {
+  background: linear-gradient(120deg, var(--cb-primary), var(--cb-secondary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.VPHero .tagline {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Feature cards enhancement */
+.VPFeature {
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+}
+
+.VPFeature:hover {
+  border-color: var(--cb-primary-light);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px -8px rgba(14, 165, 233, 0.3);
+}
+
+.VPFeature .icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+/* Custom button styles */
+.VPButton.brand {
+  background-color: var(--cb-primary);
+  border-color: var(--cb-primary);
+}
+
+.VPButton.brand:hover {
+  background-color: var(--cb-primary-dark);
+  border-color: var(--cb-primary-dark);
+}
+
+.VPButton.alt {
+  border-color: var(--cb-primary);
+  color: var(--cb-primary);
+}
+
+.VPButton.alt:hover {
+  background-color: var(--cb-primary);
+  color: white;
+}
+
+/* Code blocks */
+div[class*='language-'] {
+  border-radius: 8px;
+  margin: 1.5rem 0;
+}
+
+div[class*='language-'] code {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* Inline code */
+:not(pre) > code {
+  background-color: var(--vp-c-bg-mute);
+  padding: 0.25rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-weight: 500;
+  color: var(--cb-primary-dark);
+}
+
+.dark :not(pre) > code {
+  color: var(--cb-primary-light);
+}
+
+/* Custom containers (tip, warning, danger) */
+.custom-block.tip {
+  border-color: var(--cb-accent);
+}
+
+.custom-block.warning {
+  border-color: var(--cb-warning);
+}
+
+.custom-block.danger {
+  border-color: var(--cb-danger);
+}
+
+/* Table styling */
+table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+thead {
+  background-color: var(--vp-c-bg-soft);
+}
+
+tbody tr:hover {
+  background-color: var(--vp-c-bg-soft);
+}
+
+/* Sidebar enhancement */
+.VPSidebar {
+  border-right: 1px solid var(--vp-c-divider);
+}
+
+.VPSidebarItem.level-0.is-active > .item > .indicator {
+  background-color: var(--cb-primary);
+}
+
+.VPSidebarItem.level-0.is-active > .item > .link {
+  color: var(--cb-primary);
+  font-weight: 600;
+}
+
+/* Search box styling - Make it more prominent */
+.VPNavBarSearch {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  padding-left: 0 !important;
+  width: 100% !important;
+  flex-grow: 1 !important;
+}
+
+.VPNavBarSearch:hover {
+  border-color: var(--cb-primary);
+}
+
+/* Increase search input size to match nav elements */
+.VPNavBarSearch .DocSearch-Button {
+  height: 40px !important;
+  padding: 0 16px !important;
+  font-size: 14px !important;
+  width: 100% !important;
+}
+
+.VPNavBarSearch .DocSearch-Button-Placeholder {
+  font-size: 14px !important;
+}
+
+.VPNavBarSearch .DocSearch-Button-Keys {
+  min-width: auto !important;
+}
+
+/* Make search button more visible */
+.DocSearch-Button {
+  background-color: var(--vp-c-bg-soft) !important;
+  border: 1px solid var(--vp-c-divider) !important;
+}
+
+.DocSearch-Button:hover {
+  background-color: var(--vp-c-bg-mute) !important;
+  border-color: var(--cb-primary) !important;
+}
+
+/* Fix search container to use full width */
+.VPNavBarSearch.search,
+.local-search {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Remove weird padding on nav bar search */
+.VPNavBar .search {
+  padding-left: 0 !important;
+  flex-grow: 1 !important;
+  max-width: 512px !important;
+}
+
+/* Footer styling */
+.VPFooter {
+  border-top: 1px solid var(--vp-c-divider);
+  padding: 2rem 0;
+}
+
+/* Logo in nav bar */
+.VPNavBarTitle .logo {
+  height: 32px;
+  width: auto;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .VPHero .name {
+    font-size: 2.5rem !important;
+  }
+
+  .VPHero .tagline {
+    font-size: 1.1rem !important;
+  }
+}
+
+/* Custom badge styles */
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.85em;
+  font-weight: 600;
+  margin-left: 0.5rem;
+}
+
+.badge.tip {
+  background-color: var(--cb-accent);
+  color: white;
+}
+
+.badge.warning {
+  background-color: var(--cb-warning);
+  color: white;
+}
+
+.badge.danger {
+  background-color: var(--cb-danger);
+  color: white;
+}
+
+.badge.info {
+  background-color: var(--cb-primary);
+  color: white;
+}
+
+/* Improve link visibility */
+.vp-doc a {
+  color: var(--cb-primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.vp-doc a:hover {
+  color: var(--cb-primary-dark);
+  text-decoration: underline;
+}
+
+/* Custom admonition boxes */
+.custom-block {
+  border-left-width: 4px;
+  border-radius: 4px;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--vp-c-bg-soft);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--vp-c-divider);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--cb-primary);
+}

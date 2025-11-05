@@ -1,0 +1,15 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "composite": true,
+    "declarationMap": true,
+    "resolveJsonModule": true
+  },
+  "include": ["src/**/*"],
+  "references": [
+    { "path": "../../common" },
+    { "path": "../../integration-framework" }
+  ]
+}

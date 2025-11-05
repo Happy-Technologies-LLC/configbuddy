@@ -1,0 +1,51 @@
+# Production Docker image for Discovery Engine
+# Assumes packages are already built (dist folders exist)
+FROM node:20-alpine
+
+# Install runtime dependencies for network scanning
+RUN apk add --no-cache \
+    dumb-init \
+    nmap \
+    openssh-client \
+    curl
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files and install production dependencies only
+COPY package*.json ./
+COPY packages/common/package.json ./packages/common/
+COPY packages/database/package.json ./packages/database/
+COPY packages/discovery-engine/package.json ./packages/discovery-engine/
+
+RUN npm install --production --workspace=packages/common --workspace=packages/database --workspace=packages/discovery-engine --ignore-scripts
+
+# Copy pre-built dist folders
+COPY --chown=nodejs:nodejs packages/common/dist ./packages/common/dist
+COPY --chown=nodejs:nodejs packages/database/dist ./packages/database/dist
+COPY --chown=nodejs:nodejs packages/discovery-engine/dist ./packages/discovery-engine/dist
+
+# Create directory for SSH keys and configs (before switching user)
+RUN mkdir -p /app/.ssh && \
+    chown -R nodejs:nodejs /app/.ssh && \
+    chmod 700 /app/.ssh
+
+# Switch to non-root user
+USER nodejs
+
+# Set environment variables
+ENV NODE_ENV=production
+
+# Health check - verify process is running
+HEALTHCHECK --interval=60s --timeout=10s --start-period=30s --retries=3 \
+    CMD pgrep -f "node.*discovery-engine" > /dev/null || exit 1
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start the discovery engine
+CMD ["node", "packages/discovery-engine/dist/index.js"]

@@ -1,0 +1,272 @@
+{
+  "type": "okta",
+  "category": "connector",
+  "connector_category": "identity",
+  "icon": "okta",
+  "name": "Okta Identity Management",
+  "version": "1.0.0",
+  "description": "Bi-directional integration with Okta for identity and access management - users, applications, devices, and groups",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": true,
+    "bidirectional": true
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["okta_domain", "api_token"],
+    "properties": {
+      "okta_domain": {
+        "type": "string",
+        "description": "Okta domain (e.g., company.okta.com)"
+      },
+      "api_token": {
+        "type": "string",
+        "description": "Okta API token (generate from Security > API > Tokens)",
+        "format": "password"
+      },
+      "include_deactivated": {
+        "type": "boolean",
+        "default": false,
+        "description": "Include deactivated users and applications in sync"
+      },
+      "sync_direction": {
+        "type": "string",
+        "enum": ["import", "export", "bidirectional"],
+        "default": "import",
+        "description": "Synchronization direction"
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "users",
+      "name": "Users",
+      "description": "User accounts from Okta /api/v1/users",
+      "ci_type": "user",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load", "sync_to_source"],
+      "configuration_schema": {
+        "properties": {
+          "filter": {
+            "type": "string",
+            "description": "Okta filter expression (e.g., status eq \"ACTIVE\")",
+            "default": ""
+          },
+          "search": {
+            "type": "string",
+            "description": "Okta search expression (e.g., profile.lastName eq \"Smith\")",
+            "default": ""
+          },
+          "include_groups": {
+            "type": "boolean",
+            "default": true,
+            "description": "Include user group memberships"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 200,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "id": "id",
+        "name": "profile.displayName",
+        "login": "profile.login",
+        "email": "profile.email",
+        "first_name": "profile.firstName",
+        "last_name": "profile.lastName",
+        "status": "status",
+        "created": "created",
+        "activated": "activated",
+        "last_login": "lastLogin",
+        "last_updated": "lastUpdated",
+        "password_changed": "passwordChanged",
+        "mobile_phone": "profile.mobilePhone",
+        "primary_phone": "profile.primaryPhone",
+        "department": "profile.department",
+        "title": "profile.title",
+        "manager": "profile.manager",
+        "employee_number": "profile.employeeNumber",
+        "cost_center": "profile.costCenter",
+        "organization": "profile.organization",
+        "division": "profile.division",
+        "city": "profile.city",
+        "state": "profile.state",
+        "country": "profile.countryCode"
+      }
+    },
+    {
+      "id": "applications",
+      "name": "Applications",
+      "description": "Integrated applications from Okta /api/v1/apps",
+      "ci_type": "application",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load", "sync_to_source"],
+      "configuration_schema": {
+        "properties": {
+          "filter": {
+            "type": "string",
+            "description": "Okta filter expression (e.g., status eq \"ACTIVE\")",
+            "default": ""
+          },
+          "include_inactive": {
+            "type": "boolean",
+            "default": false,
+            "description": "Include inactive applications"
+          },
+          "include_users": {
+            "type": "boolean",
+            "default": true,
+            "description": "Include application user assignments"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 200,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "id": "id",
+        "name": "label",
+        "app_name": "name",
+        "app_type": "signOnMode",
+        "status": "status",
+        "created": "created",
+        "last_updated": "lastUpdated",
+        "visibility": "visibility.autoSubmitToolbar",
+        "features": "features",
+        "sign_on_mode": "signOnMode",
+        "credentials_scheme": "credentials.scheme",
+        "logo_url": "_links.logo[0].href",
+        "settings": "settings"
+      }
+    },
+    {
+      "id": "devices",
+      "name": "Devices",
+      "description": "Managed devices from Okta /api/v1/devices",
+      "ci_type": "device",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "filter": {
+            "type": "string",
+            "description": "Okta filter expression (e.g., status eq \"ACTIVE\")",
+            "default": ""
+          },
+          "include_unmanaged": {
+            "type": "boolean",
+            "default": false,
+            "description": "Include unmanaged devices"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 200,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "id": "id",
+        "name": "profile.displayName",
+        "device_type": "profile.platform",
+        "os": "profile.platform",
+        "os_version": "profile.osVersion",
+        "manufacturer": "profile.manufacturer",
+        "model": "profile.model",
+        "serial_number": "profile.serialNumber",
+        "imei": "profile.imei",
+        "meid": "profile.meid",
+        "udid": "profile.udid",
+        "status": "status",
+        "created": "created",
+        "last_updated": "lastUpdated",
+        "user_id": "resourceId",
+        "user_display_name": "resourceDisplayName.sensitive",
+        "screen_lock_type": "profile.screenLockType",
+        "secure_hardware_present": "profile.secureHardwarePresent",
+        "sid": "profile.sid"
+      }
+    },
+    {
+      "id": "groups",
+      "name": "Groups",
+      "description": "User groups from Okta /api/v1/groups",
+      "ci_type": "group",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load", "sync_to_source"],
+      "configuration_schema": {
+        "properties": {
+          "filter": {
+            "type": "string",
+            "description": "Okta filter expression (e.g., type eq \"OKTA_GROUP\")",
+            "default": ""
+          },
+          "search": {
+            "type": "string",
+            "description": "Okta search expression for group name",
+            "default": ""
+          },
+          "include_members": {
+            "type": "boolean",
+            "default": true,
+            "description": "Include group member details"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 200,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "id": "id",
+        "name": "profile.name",
+        "description": "profile.description",
+        "type": "type",
+        "created": "created",
+        "last_updated": "lastUpdated",
+        "last_membership_updated": "lastMembershipUpdated",
+        "object_classes": "objectClass"
+      }
+    },
+    {
+      "id": "relationships",
+      "name": "Identity Relationships",
+      "description": "User-to-application, user-to-group, user-to-device relationships",
+      "ci_type": null,
+      "enabled_by_default": true,
+      "operations": ["extract"],
+      "configuration_schema": {
+        "properties": {
+          "include_app_assignments": {
+            "type": "boolean",
+            "default": true,
+            "description": "Extract user-to-application assignments"
+          },
+          "include_group_memberships": {
+            "type": "boolean",
+            "default": true,
+            "description": "Extract user-to-group memberships"
+          },
+          "include_device_ownership": {
+            "type": "boolean",
+            "default": true,
+            "description": "Extract user-to-device ownership"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 1000,
+        "depends_on": ["users", "applications", "devices", "groups"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,250 @@
+# ConfigBuddy Performance Thresholds Configuration
+# Defines target performance metrics for load testing
+
+# API Performance Thresholds
+api:
+  response_times:
+    # p50 (median) - 50% of requests should complete within this time
+    p50: 200ms
+    # p95 - 95% of requests should complete within this time
+    p95: 500ms
+    # p99 - 99% of requests should complete within this time
+    p99: 1000ms
+
+  endpoints:
+    # Individual endpoint thresholds (p95)
+    get_cis: 300ms
+    create_ci: 500ms
+    update_ci: 400ms
+    delete_ci: 300ms
+    search_cis: 600ms
+    get_relationships: 400ms
+
+  throughput:
+    # Minimum requests per second
+    min_rps: 100
+    # Target requests per second
+    target_rps: 500
+    # Maximum requests per second (capacity)
+    max_rps: 1000
+
+  error_rates:
+    # Maximum error rate (percentage)
+    max_error_rate: 1.0
+    # Maximum 5xx error rate
+    max_server_error_rate: 0.5
+
+# GraphQL Performance Thresholds
+graphql:
+  response_times:
+    simple_queries:
+      p95: 300ms
+      p99: 500ms
+    complex_queries:
+      p95: 800ms
+      p99: 1500ms
+    mixed_workload:
+      p95: 500ms
+      p99: 1000ms
+
+  query_complexity:
+    # Maximum average query complexity score
+    max_avg_complexity: 100
+    # Maximum single query complexity
+    max_query_complexity: 500
+
+  error_rates:
+    max_error_rate: 1.0
+
+# Discovery Operations Thresholds
+discovery:
+  job_duration:
+    # Job completion times (percentiles)
+    p50: 30s
+    p95: 120s
+    p99: 300s
+
+  job_success_rate:
+    # Minimum job success rate (percentage)
+    min_success_rate: 95.0
+
+  ci_persistence:
+    # Minimum CIs persisted per second
+    min_rate: 5
+    # Target CIs persisted per second
+    target_rate: 10
+    # Expected CIs persisted per second
+    expected_rate: 20
+
+  concurrency:
+    # Maximum concurrent discovery jobs
+    max_concurrent_jobs: 50
+    # Target concurrent jobs (normal load)
+    target_concurrent_jobs: 20
+
+# Database Performance Thresholds
+database:
+  neo4j:
+    simple_queries:
+      p95: 100ms
+      p99: 200ms
+    complex_queries:
+      p95: 500ms
+      p99: 1000ms
+    pathfinding:
+      p95: 800ms
+      p99: 1500ms
+
+    # Graph metrics
+    max_traversal_depth: 5
+    max_nodes_per_query: 1000
+    max_relationships_per_query: 5000
+
+  postgresql:
+    analytics_queries:
+      p95: 300ms
+      p99: 600ms
+
+    # Row limits
+    max_rows_per_query: 10000
+
+  redis:
+    response_time:
+      p95: 10ms
+      p99: 50ms
+
+    cache_performance:
+      # Minimum cache hit rate (percentage)
+      min_hit_rate: 70.0
+      # Target cache hit rate
+      target_hit_rate: 80.0
+      # Optimal cache hit rate
+      optimal_hit_rate: 90.0
+
+# Resource Utilization Thresholds
+resources:
+  cpu:
+    # Maximum CPU usage (percentage)
+    max_usage: 70.0
+    # Warning threshold
+    warning_threshold: 60.0
+
+  memory:
+    # Maximum memory usage (percentage)
+    max_usage: 80.0
+    # Warning threshold
+    warning_threshold: 70.0
+
+  disk_io:
+    # Maximum disk I/O wait (percentage)
+    max_io_wait: 20.0
+
+  network:
+    # Maximum network bandwidth usage (Mbps)
+    max_bandwidth: 1000
+
+# Load Test Scenarios
+scenarios:
+  smoke:
+    description: "Verify basic functionality"
+    virtual_users: 1
+    duration: 30s
+    ramp_time: 0s
+
+  load:
+    description: "Expected normal traffic"
+    virtual_users: 100
+    duration: 5m
+    ramp_time: 2m
+
+  stress:
+    description: "Beyond expected load"
+    virtual_users: 500
+    duration: 10m
+    ramp_time: 5m
+
+  spike:
+    description: "Sudden traffic surge"
+    virtual_users: 1000
+    duration: 2m
+    ramp_time: 10s
+
+  endurance:
+    description: "Sustained load over time"
+    virtual_users: 100
+    duration: 30m
+    ramp_time: 2m
+
+# Test Data Configuration
+test_data:
+  ci_count: 10000
+  relationship_density: 0.3  # 30% of CIs have relationships
+  avg_relationships_per_ci: 3
+  connector_count: 20
+  discovery_job_count: 100
+
+# Performance Baseline (Production Targets)
+baseline:
+  api:
+    p95_response_time: 200ms
+    min_throughput: 1000  # requests/sec
+    max_error_rate: 0.1   # 0.1%
+
+  graphql:
+    p95_response_time: 500ms
+    max_error_rate: 0.1
+
+  discovery:
+    p95_job_duration: 60s
+    min_success_rate: 98.0
+    min_ci_rate: 50  # CIs/sec
+
+  database:
+    neo4j_p95: 50ms
+    postgres_p95: 100ms
+    redis_p95: 5ms
+    cache_hit_rate: 85.0
+
+  resources:
+    cpu_usage: 50.0
+    memory_usage: 60.0
+
+# Alerting Thresholds (when to alert)
+alerts:
+  critical:
+    api_p95: 1000ms
+    error_rate: 5.0
+    cpu_usage: 90.0
+    memory_usage: 95.0
+    cache_hit_rate: 50.0
+
+  warning:
+    api_p95: 500ms
+    error_rate: 2.0
+    cpu_usage: 70.0
+    memory_usage: 80.0
+    cache_hit_rate: 60.0
+
+# Test Execution Configuration
+execution:
+  # Warmup period before collecting metrics
+  warmup_duration: 30s
+
+  # Cool-down period after test
+  cooldown_duration: 30s
+
+  # Metrics collection interval
+  metrics_interval: 10s
+
+  # Report generation
+  generate_html_report: true
+  generate_json_report: true
+  generate_csv_report: false
+
+# SLA Targets (Service Level Agreements)
+sla:
+  availability: 99.9  # 99.9% uptime
+  api_response_time_p95: 500ms
+  api_response_time_p99: 1000ms
+  max_error_rate: 0.1
+  min_throughput: 1000  # requests/sec

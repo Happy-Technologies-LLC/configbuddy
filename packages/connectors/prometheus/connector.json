@@ -1,0 +1,198 @@
+{
+  "type": "prometheus",
+  "category": "connector",
+  "connector_category": "monitoring",
+  "icon": "prometheus",
+  "name": "Prometheus",
+  "version": "1.0.0",
+  "description": "Integration with Prometheus monitoring system for targets, services, alerts, and metrics",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": false,
+    "bidirectional": false
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["prometheus_url"],
+    "properties": {
+      "prometheus_url": {
+        "type": "string",
+        "description": "Prometheus server URL (e.g., http://prometheus.example.com:9090)"
+      },
+      "basic_auth_username": {
+        "type": "string",
+        "description": "Basic authentication username (optional)"
+      },
+      "basic_auth_password": {
+        "type": "string",
+        "description": "Basic authentication password (optional)",
+        "format": "password"
+      },
+      "timeout_ms": {
+        "type": "number",
+        "description": "Request timeout in milliseconds",
+        "default": 30000
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "targets",
+      "name": "Monitored Targets",
+      "description": "Active targets being scraped by Prometheus (servers, services, exporters)",
+      "ci_type": "server",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "active_only": {
+            "type": "boolean",
+            "description": "Only include active (up) targets",
+            "default": false
+          },
+          "exclude_jobs": {
+            "type": "array",
+            "description": "Job names to exclude",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          }
+        }
+      },
+      "field_mappings": {
+        "name": "labels.instance",
+        "ci_type": "labels.job",
+        "environment": "labels.environment",
+        "status": "health",
+        "attributes.job": "labels.job",
+        "attributes.instance": "labels.instance",
+        "attributes.scrape_pool": "scrapePool",
+        "attributes.scrape_url": "scrapeUrl",
+        "attributes.global_url": "globalUrl",
+        "attributes.health": "health",
+        "attributes.last_scrape": "lastScrape",
+        "attributes.last_scrape_duration_ms": "lastScrapeDuration",
+        "attributes.last_error": "lastError",
+        "attributes.labels": "labels",
+        "attributes.discovered_labels": "discoveredLabels",
+        "attributes.prometheus_status": "status"
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 1000,
+        "rate_limit": 10
+      }
+    },
+    {
+      "id": "services",
+      "name": "Service Discovery",
+      "description": "Services discovered through Prometheus service discovery",
+      "ci_type": "service",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "include_metadata": {
+            "type": "boolean",
+            "description": "Include target metadata",
+            "default": true
+          }
+        }
+      },
+      "field_mappings": {
+        "name": "labels.job",
+        "ci_type": "service",
+        "environment": "labels.environment",
+        "status": "active",
+        "attributes.job": "labels.job",
+        "attributes.namespace": "labels.namespace",
+        "attributes.labels": "labels",
+        "attributes.metric_count": "metrics.length",
+        "attributes.metrics": "metrics"
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 500,
+        "depends_on": ["targets"]
+      }
+    },
+    {
+      "id": "alerts",
+      "name": "Active Alerts",
+      "description": "Currently firing alerts from Prometheus Alertmanager",
+      "ci_type": "alert",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "severity_filter": {
+            "type": "array",
+            "description": "Filter by severity (critical, warning, info)",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          }
+        }
+      },
+      "field_mappings": {
+        "name": "labels.alertname",
+        "ci_type": "alert",
+        "environment": "labels.environment",
+        "status": "state",
+        "attributes.alertname": "labels.alertname",
+        "attributes.severity": "labels.severity",
+        "attributes.state": "state",
+        "attributes.active_at": "activeAt",
+        "attributes.value": "value",
+        "attributes.instance": "labels.instance",
+        "attributes.job": "labels.job",
+        "attributes.summary": "annotations.summary",
+        "attributes.description": "annotations.description",
+        "attributes.labels": "labels",
+        "attributes.annotations": "annotations"
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 500
+      }
+    },
+    {
+      "id": "metrics",
+      "name": "Available Metrics",
+      "description": "All available metrics in Prometheus",
+      "ci_type": "metric",
+      "enabled_by_default": false,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "metric_name_pattern": {
+            "type": "string",
+            "description": "Regex pattern to filter metric names",
+            "default": ".*"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Maximum number of metrics to extract",
+            "default": 1000
+          }
+        }
+      },
+      "field_mappings": {
+        "name": "name",
+        "ci_type": "metric",
+        "environment": "production",
+        "status": "active",
+        "attributes.metric_name": "name"
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 1000
+      }
+    }
+  ]
+}

@@ -1,0 +1,180 @@
+{
+  "id": "hyperv",
+  "category": "connector",
+  "connector_category": "virtualization",
+  "name": "Microsoft Hyper-V",
+  "version": "1.0.0",
+  "type": "hyperv",
+  "description": "Virtualization platform integration for Microsoft Hyper-V - discovers and syncs virtual machines, hosts, virtual switches, and VHD files via PowerShell/WinRM",
+    "provider": "microsoft",
+  "protocol": "winrm",
+  "logo_url": "https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg",
+  "documentation_url": "https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/",
+  "resources": [
+    {
+      "id": "hyperv-vm",
+      "name": "Hyper-V Virtual Machine",
+      "type": "virtual-machine",
+      "description": "Hyper-V virtual machines",
+      "field_mappings": {
+        "name": "Name",
+        "external_id": "Id",
+        "status": "_status_from_state",
+        "state": "State",
+        "cpu_count": "CPUCount",
+        "memory_mb": "MemoryMB",
+        "memory_startup_mb": "MemoryStartupMB",
+        "dynamic_memory_enabled": "DynamicMemoryEnabled",
+        "version": "Version",
+        "generation": "Generation",
+        "uptime_seconds": "UptimeSeconds",
+        "path": "Path",
+        "notes": "Notes",
+        "network_adapters": "_network_adapters_metadata",
+        "ip_addresses": "_ip_addresses_from_adapters",
+        "virtual_hard_disks": "_vhd_metadata",
+        "integration_services_version": "IntegrationServicesVersion",
+        "heartbeat": "Heartbeat"
+      }
+    },
+    {
+      "id": "hyperv-host",
+      "name": "Hyper-V Host",
+      "type": "server",
+      "description": "Hyper-V host servers",
+      "field_mappings": {
+        "name": "Name",
+        "external_id": "HostName",
+        "hostname": "HostName",
+        "fqdn": "FullyQualifiedDomainName",
+        "virtualization_firmware_enabled": "VirtualizationFirmwareEnabled",
+        "hyperv_version": "HyperVVersion",
+        "os_name": "OSName",
+        "os_architecture": "OSArchitecture",
+        "build_number": "BuildNumber",
+        "logical_processor_count": "LogicalProcessorCount",
+        "cpu_name": "CPUName",
+        "cpu_cores": "CPUCores",
+        "memory_capacity_gb": "MemoryCapacityGB",
+        "virtual_switches": "_virtual_switches_metadata",
+        "storage_pools": "_storage_pools_metadata",
+        "is_clustered": "_is_clustered"
+      }
+    },
+    {
+      "id": "hyperv-vswitch",
+      "name": "Hyper-V Virtual Switch",
+      "type": "network-device",
+      "description": "Hyper-V virtual network switches",
+      "field_mappings": {
+        "name": "Name",
+        "external_id": "Id",
+        "switch_type": "SwitchType",
+        "allow_management_os": "AllowManagementOS",
+        "embedded_teaming_enabled": "EmbeddedTeamingEnabled",
+        "iov_enabled": "IovEnabled",
+        "packet_direct_enabled": "PacketDirectEnabled",
+        "bandwidth_reservation_mode": "BandwidthReservationMode",
+        "net_adapter_interface_description": "NetAdapterInterfaceDescription",
+        "extensions": "_extensions_metadata",
+        "connected_adapters": "_connected_adapters_metadata",
+        "num_connected_adapters": "_num_connected_adapters"
+      }
+    },
+    {
+      "id": "hyperv-vhd",
+      "name": "Hyper-V VHD File",
+      "type": "storage",
+      "description": "Hyper-V virtual hard disk files",
+      "field_mappings": {
+        "name": "_vhd_filename",
+        "external_id": "DiskIdentifier",
+        "status": "_status_from_attached",
+        "path": "Path",
+        "vhd_format": "VhdFormat",
+        "vhd_type": "VhdType",
+        "file_size_gb": "_file_size_gb",
+        "size_gb": "_size_gb",
+        "minimum_size_gb": "_minimum_size_gb",
+        "fragmentation_percentage": "FragmentationPercentage",
+        "parent_path": "ParentPath",
+        "is_differencing": "_is_differencing",
+        "attached": "Attached",
+        "disk_number": "DiskNumber",
+        "attached_vms": "AttachedVMs",
+        "num_attached_vms": "_num_attached_vms"
+      }
+    }
+  ],
+  "authentication": {
+    "required": true,
+    "methods": [
+      "winrm"
+    ],
+    "fields": [
+      {
+        "name": "host",
+        "label": "Hyper-V Host",
+        "type": "string",
+        "required": true,
+        "description": "Hyper-V host hostname or IP address"
+      },
+      {
+        "name": "username",
+        "label": "Username",
+        "type": "string",
+        "required": true,
+        "description": "Windows username (domain\\user or user@domain)"
+      },
+      {
+        "name": "password",
+        "label": "Password",
+        "type": "string",
+        "required": true,
+        "sensitive": true,
+        "description": "Windows password"
+      },
+      {
+        "name": "port",
+        "label": "WinRM Port",
+        "type": "number",
+        "required": false,
+        "default": 5985,
+        "description": "WinRM port (5985 for HTTP, 5986 for HTTPS)"
+      },
+      {
+        "name": "transport",
+        "label": "Transport Protocol",
+        "type": "string",
+        "required": false,
+        "default": "http",
+        "description": "WinRM transport protocol (http or https)"
+      }
+    ]
+  },
+  "capabilities": {
+    "discovery": true,
+    "sync": false,
+    "real_time": false,
+    "incremental": false
+  },
+  "rate_limits": {
+    "requests_per_second": 5,
+    "requests_per_minute": 200,
+    "requests_per_hour": 5000
+  },
+  "supported_operations": [
+    "discover_virtual_machines",
+    "discover_hosts",
+    "discover_virtual_switches",
+    "discover_vhd_files"
+  ],
+  "default_schedule": "0 */4 * * *",
+  "tags": [
+    "infrastructure",
+    "microsoft",
+    "hyperv",
+    "virtualization",
+    "windows"
+  ]
+}

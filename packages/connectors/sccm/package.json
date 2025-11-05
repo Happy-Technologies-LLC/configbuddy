@@ -1,0 +1,37 @@
+{
+  "name": "@cmdb/connector-sccm",
+  "version": "1.0.0",
+  "description": "Microsoft SCCM (Configuration Manager) integration connector",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo"
+  },
+  "dependencies": {
+    "@cmdb/common": "file:../../common",
+    "@cmdb/integration-framework": "file:../../integration-framework",
+    "mssql": "^10.0.1"
+  },
+  "devDependencies": {
+    "@types/mssql": "^9.1.4",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "keywords": [
+    "cmdb",
+    "sccm",
+    "configuration-manager",
+    "microsoft",
+    "system-center",
+    "connector",
+    "integration"
+  ],
+  "author": "ConfigBuddy",
+  "license": "MIT"
+}

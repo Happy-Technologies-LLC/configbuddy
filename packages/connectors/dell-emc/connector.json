@@ -1,0 +1,674 @@
+{
+  "type": "dell-emc",
+  "id": "dell-emc-storage",
+  "name": "Dell EMC Storage",
+  "version": "1.0.0",
+  "description": "Dell EMC Storage connector for Unity, PowerStore, and PowerMax storage arrays. Discovers storage arrays, pools, volumes, and connected hosts.",
+  "author": "ConfigBuddy",
+  "category": "connector",
+  "connector_category": "storage",
+  "icon": "dell-emc",
+  "protocol": "rest",
+  "tags": [
+    "dell",
+    "emc",
+    "storage",
+    "unity",
+    "powerstore",
+    "powermax",
+    "san",
+    "enterprise"
+  ],
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": true,
+    "bidirectional": false
+  },
+  "authentication": {
+    "type": "basic",
+    "fields": [
+      {
+        "name": "username",
+        "type": "string",
+        "required": true,
+        "description": "Dell EMC storage array username"
+      },
+      {
+        "name": "password",
+        "type": "password",
+        "required": true,
+        "description": "Dell EMC storage array password"
+      }
+    ]
+  },
+  "configuration": {
+    "schema": {
+      "type": "object",
+      "required": [
+        "management_url",
+        "username",
+        "password",
+        "array_type"
+      ],
+      "properties": {
+        "management_url": {
+          "type": "string",
+          "title": "Management URL",
+          "description": "Dell EMC storage array management URL (e.g., https://array.company.com)",
+          "format": "uri",
+          "examples": [
+            "https://unity.company.com",
+            "https://powerstore.company.com"
+          ]
+        },
+        "username": {
+          "type": "string",
+          "title": "Username",
+          "description": "Dell EMC storage array username with read access",
+          "minLength": 1
+        },
+        "password": {
+          "type": "string",
+          "title": "Password",
+          "description": "Dell EMC storage array password",
+          "format": "password",
+          "minLength": 1
+        },
+        "array_type": {
+          "type": "string",
+          "title": "Array Type",
+          "description": "Dell EMC storage array type",
+          "enum": [
+            "unity",
+            "powerstore",
+            "powermax"
+          ],
+          "default": "unity"
+        },
+        "verify_ssl": {
+          "type": "boolean",
+          "title": "Verify SSL Certificate",
+          "description": "Verify SSL certificate when connecting to storage array",
+          "default": true
+        },
+        "discovery_interval": {
+          "type": "integer",
+          "title": "Discovery Interval (minutes)",
+          "description": "How often to discover storage resources (in minutes)",
+          "minimum": 5,
+          "maximum": 1440,
+          "default": 60
+        },
+        "timeout": {
+          "type": "integer",
+          "title": "Request Timeout (seconds)",
+          "description": "HTTP request timeout in seconds",
+          "minimum": 10,
+          "maximum": 300,
+          "default": 30
+        }
+      }
+    },
+    "ui_schema": {
+      "management_url": {
+        "ui:placeholder": "https://array.company.com"
+      },
+      "username": {
+        "ui:placeholder": "admin"
+      },
+      "password": {
+        "ui:widget": "password"
+      },
+      "array_type": {
+        "ui:widget": "select"
+      },
+      "verify_ssl": {
+        "ui:widget": "checkbox"
+      }
+    }
+  },
+  "resources": [
+    {
+      "name": "storage_arrays",
+      "display_name": "Storage Arrays",
+      "description": "Dell EMC physical storage arrays",
+      "ci_type": "storage",
+      "api_endpoint": "/api/types/system/instances",
+      "id_field": "id",
+      "name_field": "name",
+      "discovery_method": "api",
+      "field_mappings": {
+        "id": {
+          "source_field": "id",
+          "target_field": "external_id",
+          "data_type": "string",
+          "required": true,
+          "description": "Unique identifier for the storage array"
+        },
+        "name": {
+          "source_field": "name",
+          "target_field": "name",
+          "data_type": "string",
+          "required": true,
+          "description": "Storage array name"
+        },
+        "serial_number": {
+          "source_field": "serialNumber",
+          "target_field": "serial_number",
+          "data_type": "string",
+          "required": true,
+          "description": "Storage array serial number"
+        },
+        "model": {
+          "source_field": "model",
+          "target_field": "model",
+          "data_type": "string",
+          "required": true,
+          "description": "Storage array model number"
+        },
+        "version": {
+          "source_field": "softwareVersion",
+          "target_field": "version",
+          "data_type": "string",
+          "required": false,
+          "description": "Storage array firmware/software version"
+        },
+        "location": {
+          "source_field": "location",
+          "target_field": "location",
+          "data_type": "string",
+          "required": false,
+          "description": "Physical location of storage array"
+        },
+        "health_status": {
+          "source_field": "health.value",
+          "target_field": "health_status",
+          "data_type": "string",
+          "required": false,
+          "description": "Overall health status of storage array"
+        },
+        "operational_status": {
+          "source_field": "operationalStatus[0].value",
+          "target_field": "operational_status",
+          "data_type": "string",
+          "required": false,
+          "description": "Operational status of storage array"
+        },
+        "ip_address": {
+          "source_field": "ipAddress",
+          "target_field": "ip_address",
+          "data_type": "string",
+          "required": false,
+          "description": "Management IP address"
+        },
+        "total_capacity_bytes": {
+          "source_field": "sizeTotal",
+          "target_field": "total_capacity_bytes",
+          "data_type": "integer",
+          "required": false,
+          "description": "Total storage capacity in bytes"
+        },
+        "used_capacity_bytes": {
+          "source_field": "sizeUsed",
+          "target_field": "used_capacity_bytes",
+          "data_type": "integer",
+          "required": false,
+          "description": "Used storage capacity in bytes"
+        },
+        "manufacturer": {
+          "source_field": "vendor",
+          "target_field": "manufacturer",
+          "data_type": "string",
+          "required": false,
+          "default": "Dell EMC",
+          "description": "Storage array manufacturer"
+        }
+      },
+      "relationships": [
+        {
+          "type": "CONTAINS",
+          "target_resource": "storage_pools",
+          "description": "Storage array contains storage pools"
+        },
+        {
+          "type": "CONTAINS",
+          "target_resource": "volumes",
+          "description": "Storage array contains volumes"
+        },
+        {
+          "type": "CONNECTED_TO",
+          "target_resource": "hosts",
+          "description": "Storage array is connected to hosts"
+        }
+      ]
+    },
+    {
+      "name": "storage_pools",
+      "display_name": "Storage Pools",
+      "description": "Dell EMC storage pools",
+      "ci_type": "storage",
+      "api_endpoint": "/api/types/pool/instances",
+      "id_field": "id",
+      "name_field": "name",
+      "discovery_method": "api",
+      "field_mappings": {
+        "id": {
+          "source_field": "id",
+          "target_field": "external_id",
+          "data_type": "string",
+          "required": true,
+          "description": "Unique identifier for the storage pool"
+        },
+        "name": {
+          "source_field": "name",
+          "target_field": "name",
+          "data_type": "string",
+          "required": true,
+          "description": "Storage pool name"
+        },
+        "description": {
+          "source_field": "description",
+          "target_field": "description",
+          "data_type": "string",
+          "required": false,
+          "description": "Storage pool description"
+        },
+        "size_bytes": {
+          "source_field": "sizeTotal",
+          "target_field": "size_bytes",
+          "data_type": "integer",
+          "required": true,
+          "description": "Total size of storage pool in bytes"
+        },
+        "used_bytes": {
+          "source_field": "sizeUsed",
+          "target_field": "used_bytes",
+          "data_type": "integer",
+          "required": false,
+          "description": "Used space in storage pool in bytes"
+        },
+        "free_bytes": {
+          "source_field": "sizeFree",
+          "target_field": "free_bytes",
+          "data_type": "integer",
+          "required": false,
+          "description": "Free space in storage pool in bytes"
+        },
+        "subscribed_bytes": {
+          "source_field": "sizeSubscribed",
+          "target_field": "subscribed_bytes",
+          "data_type": "integer",
+          "required": false,
+          "description": "Subscribed (allocated) space in bytes"
+        },
+        "type": {
+          "source_field": "type",
+          "target_field": "pool_type",
+          "data_type": "string",
+          "required": false,
+          "description": "Storage pool type (e.g., traditional, dynamic)"
+        },
+        "state": {
+          "source_field": "state",
+          "target_field": "state",
+          "data_type": "string",
+          "required": false,
+          "description": "Storage pool state"
+        },
+        "health_status": {
+          "source_field": "health.value",
+          "target_field": "health_status",
+          "data_type": "string",
+          "required": false,
+          "description": "Storage pool health status"
+        },
+        "raid_type": {
+          "source_field": "raidType",
+          "target_field": "raid_type",
+          "data_type": "string",
+          "required": false,
+          "description": "RAID type configured for the pool"
+        },
+        "utilization_percent": {
+          "source_field": "poolSpaceHarvestHighThreshold",
+          "target_field": "utilization_percent",
+          "data_type": "number",
+          "required": false,
+          "description": "Storage pool utilization percentage"
+        },
+        "is_fast_cache_enabled": {
+          "source_field": "isFASTCacheEnabled",
+          "target_field": "is_fast_cache_enabled",
+          "data_type": "boolean",
+          "required": false,
+          "description": "Whether FAST Cache is enabled"
+        }
+      },
+      "relationships": [
+        {
+          "type": "BELONGS_TO",
+          "target_resource": "storage_arrays",
+          "description": "Storage pool belongs to storage array"
+        },
+        {
+          "type": "CONTAINS",
+          "target_resource": "volumes",
+          "description": "Storage pool contains volumes"
+        }
+      ]
+    },
+    {
+      "name": "volumes",
+      "display_name": "Storage Volumes",
+      "description": "Dell EMC storage volumes (LUNs)",
+      "ci_type": "storage",
+      "api_endpoint": "/api/types/lun/instances",
+      "id_field": "id",
+      "name_field": "name",
+      "discovery_method": "api",
+      "field_mappings": {
+        "id": {
+          "source_field": "id",
+          "target_field": "external_id",
+          "data_type": "string",
+          "required": true,
+          "description": "Unique identifier for the volume"
+        },
+        "name": {
+          "source_field": "name",
+          "target_field": "name",
+          "data_type": "string",
+          "required": true,
+          "description": "Volume name"
+        },
+        "description": {
+          "source_field": "description",
+          "target_field": "description",
+          "data_type": "string",
+          "required": false,
+          "description": "Volume description"
+        },
+        "size_bytes": {
+          "source_field": "sizeTotal",
+          "target_field": "size_bytes",
+          "data_type": "integer",
+          "required": true,
+          "description": "Volume size in bytes"
+        },
+        "wwn": {
+          "source_field": "wwn",
+          "target_field": "wwn",
+          "data_type": "string",
+          "required": false,
+          "description": "World Wide Name (WWN) of the volume"
+        },
+        "type": {
+          "source_field": "type",
+          "target_field": "volume_type",
+          "data_type": "string",
+          "required": false,
+          "description": "Volume type (e.g., thick, thin)"
+        },
+        "state": {
+          "source_field": "state",
+          "target_field": "state",
+          "data_type": "string",
+          "required": false,
+          "description": "Volume state"
+        },
+        "health_status": {
+          "source_field": "health.value",
+          "target_field": "health_status",
+          "data_type": "string",
+          "required": false,
+          "description": "Volume health status"
+        },
+        "is_thin_enabled": {
+          "source_field": "isThinEnabled",
+          "target_field": "is_thin_enabled",
+          "data_type": "boolean",
+          "required": false,
+          "description": "Whether thin provisioning is enabled"
+        },
+        "is_data_reduction_enabled": {
+          "source_field": "isDataReductionEnabled",
+          "target_field": "is_data_reduction_enabled",
+          "data_type": "boolean",
+          "required": false,
+          "description": "Whether data reduction is enabled"
+        },
+        "is_compression_enabled": {
+          "source_field": "isCompressionEnabled",
+          "target_field": "is_compression_enabled",
+          "data_type": "boolean",
+          "required": false,
+          "description": "Whether compression is enabled"
+        },
+        "tiering_policy": {
+          "source_field": "tieringPolicy",
+          "target_field": "tiering_policy",
+          "data_type": "string",
+          "required": false,
+          "description": "Storage tiering policy"
+        },
+        "pool_id": {
+          "source_field": "pool.id",
+          "target_field": "pool_id",
+          "data_type": "string",
+          "required": false,
+          "description": "ID of the storage pool containing this volume"
+        },
+        "host_access": {
+          "source_field": "hostAccess",
+          "target_field": "host_access",
+          "data_type": "array",
+          "required": false,
+          "description": "List of hosts with access to this volume"
+        },
+        "current_node": {
+          "source_field": "currentNode",
+          "target_field": "current_node",
+          "data_type": "string",
+          "required": false,
+          "description": "Current storage processor node hosting the volume"
+        },
+        "default_node": {
+          "source_field": "defaultNode",
+          "target_field": "default_node",
+          "data_type": "string",
+          "required": false,
+          "description": "Default storage processor node for the volume"
+        }
+      },
+      "relationships": [
+        {
+          "type": "BELONGS_TO",
+          "target_resource": "storage_pools",
+          "description": "Volume belongs to storage pool"
+        },
+        {
+          "type": "BELONGS_TO",
+          "target_resource": "storage_arrays",
+          "description": "Volume belongs to storage array"
+        },
+        {
+          "type": "MOUNTED_BY",
+          "target_resource": "hosts",
+          "description": "Volume is mounted by hosts"
+        }
+      ]
+    },
+    {
+      "name": "hosts",
+      "display_name": "Connected Hosts",
+      "description": "Hosts connected to Dell EMC storage arrays",
+      "ci_type": "server",
+      "api_endpoint": "/api/types/host/instances",
+      "id_field": "id",
+      "name_field": "name",
+      "discovery_method": "api",
+      "field_mappings": {
+        "id": {
+          "source_field": "id",
+          "target_field": "external_id",
+          "data_type": "string",
+          "required": true,
+          "description": "Unique identifier for the host"
+        },
+        "name": {
+          "source_field": "name",
+          "target_field": "name",
+          "data_type": "string",
+          "required": true,
+          "description": "Host name"
+        },
+        "description": {
+          "source_field": "description",
+          "target_field": "description",
+          "data_type": "string",
+          "required": false,
+          "description": "Host description"
+        },
+        "ip_address": {
+          "source_field": "ipAddress",
+          "target_field": "ip_address",
+          "data_type": "string",
+          "required": false,
+          "description": "Host IP address"
+        },
+        "os_type": {
+          "source_field": "osType",
+          "target_field": "os_type",
+          "data_type": "string",
+          "required": false,
+          "description": "Operating system type"
+        },
+        "health_status": {
+          "source_field": "health.value",
+          "target_field": "health_status",
+          "data_type": "string",
+          "required": false,
+          "description": "Host health status"
+        },
+        "type": {
+          "source_field": "type",
+          "target_field": "host_type",
+          "data_type": "string",
+          "required": false,
+          "description": "Host type"
+        },
+        "initiators": {
+          "source_field": "fcHostInitiators",
+          "target_field": "initiators",
+          "data_type": "array",
+          "required": false,
+          "description": "Fibre Channel initiators (WWPNs)"
+        },
+        "iscsi_initiators": {
+          "source_field": "iscsiHostInitiators",
+          "target_field": "iscsi_initiators",
+          "data_type": "array",
+          "required": false,
+          "description": "iSCSI initiators (IQNs)"
+        },
+        "host_luns": {
+          "source_field": "hostLUNs",
+          "target_field": "host_luns",
+          "data_type": "array",
+          "required": false,
+          "description": "List of LUNs accessible to this host"
+        },
+        "last_poll_time": {
+          "source_field": "lastPollTime",
+          "target_field": "last_poll_time",
+          "data_type": "datetime",
+          "required": false,
+          "description": "Last time host was polled"
+        },
+        "registration_type": {
+          "source_field": "registrationType",
+          "target_field": "registration_type",
+          "data_type": "string",
+          "required": false,
+          "description": "Host registration type (manual or auto)"
+        }
+      },
+      "relationships": [
+        {
+          "type": "CONNECTED_TO",
+          "target_resource": "storage_arrays",
+          "description": "Host is connected to storage array"
+        },
+        {
+          "type": "USES",
+          "target_resource": "volumes",
+          "description": "Host uses volumes"
+        }
+      ]
+    }
+  ],
+  "discovery": {
+    "schedule": {
+      "interval": 3600,
+      "unit": "seconds"
+    },
+    "retry_policy": {
+      "max_attempts": 3,
+      "backoff_strategy": "exponential",
+      "initial_delay": 2000,
+      "max_delay": 30000
+    },
+    "rate_limiting": {
+      "requests_per_minute": 60,
+      "concurrent_requests": 5
+    }
+  },
+  "health_check": {
+    "endpoint": "/api/types/system/instances",
+    "method": "GET",
+    "interval": 300,
+    "timeout": 10000,
+    "expected_status": 200
+  },
+  "documentation": {
+    "overview": "The Dell EMC Storage connector discovers storage arrays, pools, volumes, and connected hosts from Dell EMC Unity, PowerStore, and PowerMax storage systems. It uses the Dell EMC REST API to retrieve configuration and health information.",
+    "setup_instructions": [
+      "1. Ensure you have a Dell EMC storage array with REST API access enabled",
+      "2. Create a read-only service account with appropriate permissions",
+      "3. Obtain the management URL for your storage array",
+      "4. Configure the connector with your credentials and array type",
+      "5. Test the connection using the health check endpoint",
+      "6. Run initial discovery to populate your CMDB"
+    ],
+    "required_permissions": [
+      "Read access to system information",
+      "Read access to storage pool configuration",
+      "Read access to volume (LUN) configuration",
+      "Read access to host configuration",
+      "API access enabled on the storage array"
+    ],
+    "supported_versions": [
+      "Dell EMC Unity: 4.x, 5.x",
+      "Dell EMC PowerStore: 1.x, 2.x, 3.x",
+      "Dell EMC PowerMax: 9.x, 10.x"
+    ],
+    "api_reference": "https://developer.dell.com/apis",
+    "troubleshooting": {
+      "connection_failed": "Verify management URL is correct and storage array is reachable. Check firewall rules allow HTTPS traffic.",
+      "authentication_failed": "Verify username and password are correct. Ensure account has API access enabled.",
+      "timeout_errors": "Increase timeout value in configuration. Check network latency to storage array.",
+      "ssl_errors": "If using self-signed certificates, set verify_ssl to false in configuration.",
+      "empty_results": "Verify account has read permissions for all resource types. Check array_type is correct."
+    }
+  },
+  "metadata": {
+    "created_at": "2025-01-15T00:00:00Z",
+    "updated_at": "2025-01-15T00:00:00Z",
+    "license": "MIT",
+    "homepage": "https://github.com/configbuddy/connectors/tree/main/dell-emc",
+    "repository": "https://github.com/configbuddy/connectors",
+    "support_url": "https://github.com/configbuddy/connectors/issues",
+    "minimum_platform_version": "1.0.0"
+  }
+}

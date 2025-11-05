@@ -1,0 +1,49 @@
+# Simple Dockerfile for API Server using pre-built artifacts
+FROM node:20-alpine
+
+# Install runtime dependencies
+RUN apk add --no-cache dumb-init curl
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY packages/common/package.json ./packages/common/
+COPY packages/database/package.json ./packages/database/
+COPY packages/api-server/package.json ./packages/api-server/
+
+# Install production dependencies only
+RUN npm install --workspace=packages/common --workspace=packages/database --workspace=packages/api-server --omit=dev
+
+# Copy pre-built artifacts
+COPY packages/common/dist ./packages/common/dist
+COPY packages/database/dist ./packages/database/dist
+COPY packages/api-server/dist ./packages/api-server/dist
+
+# Change ownership
+RUN chown -R nodejs:nodejs /app
+
+# Switch to non-root user
+USER nodejs
+
+# Expose API port
+EXPOSE 3001
+
+# Set environment variables
+ENV NODE_ENV=production \
+    PORT=3001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:3001/health || exit 1
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start the API server
+CMD ["node", "packages/api-server/dist/index.js"]

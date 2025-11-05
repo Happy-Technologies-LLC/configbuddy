@@ -1,0 +1,268 @@
+{
+  "type": "jamf",
+  "category": "connector",
+  "connector_category": "endpoint-management",
+  "icon": "jamf",
+  "name": "JAMF Pro",
+  "version": "1.0.0",
+  "description": "Integration with JAMF Pro for macOS and iOS device management, applications, and policies",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": true,
+    "bidirectional": false
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["jamf_url", "username", "password"],
+    "properties": {
+      "jamf_url": {
+        "type": "string",
+        "description": "JAMF Pro URL (e.g., https://company.jamfcloud.com)"
+      },
+      "username": {
+        "type": "string",
+        "description": "JAMF Pro API username"
+      },
+      "password": {
+        "type": "string",
+        "description": "JAMF Pro API password",
+        "format": "password"
+      },
+      "use_classic_api": {
+        "type": "boolean",
+        "default": true,
+        "description": "Use Classic API (XML) instead of new API (JSON)"
+      },
+      "computers": {
+        "type": "object",
+        "properties": {
+          "managed_only": {
+            "type": "boolean",
+            "default": true,
+            "description": "Only sync managed computers"
+          },
+          "last_checkin_days": {
+            "type": "number",
+            "default": 30,
+            "description": "Only sync computers that checked in within this many days"
+          }
+        }
+      },
+      "mobile_devices": {
+        "type": "object",
+        "properties": {
+          "supervised_only": {
+            "type": "boolean",
+            "default": false,
+            "description": "Only sync supervised devices"
+          },
+          "managed_only": {
+            "type": "boolean",
+            "default": true,
+            "description": "Only sync managed devices"
+          }
+        }
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "computers",
+      "name": "Computers",
+      "description": "macOS devices (desktops, laptops, servers)",
+      "ci_type": "server",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "managed_only": {
+            "type": "boolean",
+            "default": true,
+            "description": "Only sync managed computers"
+          },
+          "last_checkin_days": {
+            "type": "number",
+            "default": 30,
+            "description": "Only sync computers that checked in within N days"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 100,
+        "rate_limit": 5
+      },
+      "field_mappings": {
+        "name": "general[0].name[0]",
+        "ci_type": "server",
+        "status": "general[0].remote_management[0].managed[0]",
+        "serial_number": "general[0].serial_number[0]",
+        "mac_address": "general[0].mac_address[0]",
+        "udid": "general[0].udid[0]",
+        "model": "hardware[0].model[0]",
+        "model_identifier": "hardware[0].model_identifier[0]",
+        "os": "hardware[0].os_name[0]",
+        "os_version": "hardware[0].os_version[0]",
+        "os_build": "hardware[0].os_build[0]",
+        "processor_type": "hardware[0].processor_type[0]",
+        "processor_speed_mhz": "hardware[0].processor_speed_mhz[0]",
+        "number_processors": "hardware[0].number_processors[0]",
+        "number_cores": "hardware[0].number_cores[0]",
+        "total_ram_mb": "hardware[0].total_ram[0]",
+        "storage_capacity_mb": "hardware[0].storage[0].drive[0].size[0]",
+        "battery_capacity": "hardware[0].battery_capacity[0]",
+        "last_contact_time": "general[0].last_contact_time[0]",
+        "last_contact_time_utc": "general[0].last_contact_time_utc[0]",
+        "ip_address": "general[0].ip_address[0]",
+        "managed": "general[0].remote_management[0].managed[0]",
+        "mdm_capable": "general[0].mdm_capable[0]",
+        "jamf_version": "general[0].jamf_version[0]",
+        "platform": "general[0].platform[0]",
+        "barcode_1": "general[0].barcode_1[0]",
+        "barcode_2": "general[0].barcode_2[0]",
+        "asset_tag": "general[0].asset_tag[0]",
+        "source_id": "general[0].id[0]"
+      }
+    },
+    {
+      "id": "mobile_devices",
+      "name": "Mobile Devices",
+      "description": "iOS and iPadOS devices (iPhones, iPads)",
+      "ci_type": "mobile-device",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "supervised_only": {
+            "type": "boolean",
+            "default": false,
+            "description": "Only sync supervised devices"
+          },
+          "managed_only": {
+            "type": "boolean",
+            "default": true,
+            "description": "Only sync managed devices"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 100,
+        "rate_limit": 5
+      },
+      "field_mappings": {
+        "name": "general[0].name[0]",
+        "ci_type": "mobile-device",
+        "status": "general[0].managed[0]",
+        "serial_number": "general[0].serial_number[0]",
+        "udid": "general[0].udid[0]",
+        "wifi_mac_address": "general[0].wifi_mac_address[0]",
+        "bluetooth_mac_address": "general[0].bluetooth_mac_address[0]",
+        "model": "general[0].model[0]",
+        "model_identifier": "general[0].model_identifier[0]",
+        "model_display": "general[0].model_display[0]",
+        "device_name": "general[0].device_name[0]",
+        "os_type": "general[0].os_type[0]",
+        "os_version": "general[0].os_version[0]",
+        "os_build": "general[0].os_build[0]",
+        "capacity_mb": "mobile_device_information[0].capacity_mb[0]",
+        "available_mb": "mobile_device_information[0].available_mb[0]",
+        "percentage_used": "mobile_device_information[0].percentage_used[0]",
+        "battery_level": "mobile_device_information[0].battery_level[0]",
+        "last_backup_time": "mobile_device_information[0].last_backup_time[0]",
+        "ip_address": "general[0].ip_address[0]",
+        "managed": "general[0].managed[0]",
+        "supervised": "general[0].supervised[0]",
+        "phone_number": "general[0].phone_number[0]",
+        "carrier": "mobile_device_information[0].carrier[0]",
+        "iccid": "mobile_device_information[0].iccid[0]",
+        "imei": "mobile_device_information[0].imei[0]",
+        "last_inventory_update": "general[0].last_inventory_update[0]",
+        "last_inventory_update_utc": "general[0].last_inventory_update_utc[0]",
+        "source_id": "general[0].id[0]"
+      }
+    },
+    {
+      "id": "applications",
+      "name": "Applications",
+      "description": "Installed applications on computers and mobile devices",
+      "ci_type": "application",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "include_mobile_apps": {
+            "type": "boolean",
+            "default": true,
+            "description": "Include applications from mobile devices"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 500,
+        "depends_on": ["computers", "mobile_devices"]
+      },
+      "field_mappings": {
+        "name": "name",
+        "ci_type": "application",
+        "status": "active",
+        "version": "version",
+        "bundle_id": "bundle_id",
+        "path": "path",
+        "size_mb": "size_mb",
+        "install_count": "installed_on.length",
+        "device_types": "installed_on[].device_type",
+        "source_id": "bundle_id"
+      }
+    },
+    {
+      "id": "policies",
+      "name": "Policies",
+      "description": "Management policies for computers",
+      "ci_type": "policy",
+      "enabled_by_default": false,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "enabled_only": {
+            "type": "boolean",
+            "default": true,
+            "description": "Only sync enabled policies"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 50
+      },
+      "field_mappings": {
+        "name": "general[0].name[0]",
+        "ci_type": "policy",
+        "status": "general[0].enabled[0]",
+        "enabled": "general[0].enabled[0]",
+        "frequency": "general[0].frequency[0]",
+        "category": "general[0].category[0].name[0]",
+        "trigger": "general[0].trigger[0]",
+        "trigger_checkin": "general[0].trigger_checkin[0]",
+        "trigger_enrollment_complete": "general[0].trigger_enrollment_complete[0]",
+        "trigger_login": "general[0].trigger_login[0]",
+        "trigger_logout": "general[0].trigger_logout[0]",
+        "trigger_startup": "general[0].trigger_startup[0]",
+        "execution_frequency": "general[0].execution_frequency[0]",
+        "target_drive": "general[0].target_drive[0]",
+        "offline": "general[0].offline[0]",
+        "network_limitations": "general[0].network_limitations[0]",
+        "self_service_enabled": "self_service[0].use_for_self_service[0]",
+        "self_service_display_name": "self_service[0].self_service_display_name[0]",
+        "self_service_description": "self_service[0].self_service_description[0]",
+        "scope_all_computers": "scope[0].all_computers[0]",
+        "scope_computer_count": "scope[0].computers[0].computer.length",
+        "source_id": "general[0].id[0]"
+      }
+    }
+  ]
+}

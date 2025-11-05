@@ -1,0 +1,183 @@
+{
+  "id": "docker",
+  "category": "connector",
+  "connector_category": "virtualization",
+  "name": "Docker",
+  "version": "1.0.0",
+  "type": "docker",
+  "description": "Container platform integration for Docker - discovers and syncs running containers, images, networks, and volumes via Docker Engine API",
+    "provider": "docker",
+  "protocol": "basic",
+  "logo_url": "https://upload.wikimedia.org/wikipedia/commons/4/4e/Docker_%28container_engine%29_logo.svg",
+  "documentation_url": "https://docs.docker.com/",
+  "resources": [
+    {
+      "id": "docker-container",
+      "name": "Docker Container",
+      "type": "container",
+      "description": "Running and stopped Docker containers",
+      "field_mappings": {
+        "name": "Name",
+        "external_id": "Id",
+        "status": "_status_from_state",
+        "image": "Config.Image",
+        "image_id": "Image",
+        "hostname": "Config.Hostname",
+        "ip_addresses": "_ip_addresses_from_networks",
+        "ports": "_ports_from_config",
+        "mounts": "Mounts",
+        "networks": "_networks_metadata",
+        "labels": "Config.Labels",
+        "state": "State.Status",
+        "started_at": "State.StartedAt",
+        "pid": "State.Pid"
+      }
+    },
+    {
+      "id": "docker-image",
+      "name": "Docker Image",
+      "type": "application",
+      "description": "Docker images available on the host",
+      "field_mappings": {
+        "name": "_primary_repo_tag",
+        "external_id": "Id",
+        "repo_tags": "RepoTags",
+        "repo_digests": "RepoDigests",
+        "size_bytes": "Size",
+        "created": "Created",
+        "architecture": "Architecture",
+        "os": "Os",
+        "layers": "RootFS.Layers",
+        "labels": "Config.Labels"
+      }
+    },
+    {
+      "id": "docker-volume",
+      "name": "Docker Volume",
+      "type": "storage",
+      "description": "Docker persistent volumes",
+      "field_mappings": {
+        "name": "Name",
+        "external_id": "Name",
+        "driver": "Driver",
+        "mountpoint": "Mountpoint",
+        "created_at": "CreatedAt",
+        "scope": "Scope",
+        "options": "Options",
+        "labels": "Labels"
+      }
+    },
+    {
+      "id": "docker-network",
+      "name": "Docker Network",
+      "type": "network-device",
+      "description": "Docker virtual networks",
+      "field_mappings": {
+        "name": "Name",
+        "external_id": "Id",
+        "driver": "Driver",
+        "scope": "Scope",
+        "enable_ipv6": "EnableIPv6",
+        "ipam_driver": "IPAM.Driver",
+        "ipam_config": "IPAM.Config",
+        "internal": "Internal",
+        "attachable": "Attachable",
+        "containers": "_containers_metadata",
+        "labels": "Labels"
+      }
+    },
+    {
+      "id": "docker-host",
+      "name": "Docker Host",
+      "type": "server",
+      "description": "Docker daemon host information",
+      "field_mappings": {
+        "name": "Name",
+        "external_id": "ID",
+        "server_version": "ServerVersion",
+        "os_type": "OSType",
+        "operating_system": "OperatingSystem",
+        "architecture": "Architecture",
+        "kernel_version": "KernelVersion",
+        "ncpu": "NCPU",
+        "mem_total": "MemTotal",
+        "containers": "Containers",
+        "containers_running": "ContainersRunning",
+        "images": "Images"
+      }
+    }
+  ],
+  "authentication": {
+    "required": false,
+    "methods": [
+      "basic",
+      "none"
+    ],
+    "fields": [
+      {
+        "name": "host",
+        "label": "Docker Host",
+        "type": "string",
+        "required": true,
+        "default": "/var/run/docker.sock",
+        "description": "Docker socket path or TCP URL (unix:///var/run/docker.sock or tcp://host:2376)"
+      },
+      {
+        "name": "port",
+        "label": "Docker Port",
+        "type": "number",
+        "required": false,
+        "default": 2375,
+        "description": "Docker API port (2375 for HTTP, 2376 for HTTPS)"
+      },
+      {
+        "name": "use_tls",
+        "label": "Use TLS",
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Enable TLS for TCP connections"
+      },
+      {
+        "name": "username",
+        "label": "Username",
+        "type": "string",
+        "required": false,
+        "description": "Username for basic authentication (remote Docker API)"
+      },
+      {
+        "name": "password",
+        "label": "Password",
+        "type": "string",
+        "required": false,
+        "sensitive": true,
+        "description": "Password for basic authentication (remote Docker API)"
+      }
+    ]
+  },
+  "capabilities": {
+    "discovery": true,
+    "sync": false,
+    "real_time": false,
+    "incremental": false
+  },
+  "rate_limits": {
+    "requests_per_second": 50,
+    "requests_per_minute": 2000,
+    "requests_per_hour": 100000
+  },
+  "supported_operations": [
+    "discover_containers",
+    "discover_images",
+    "discover_volumes",
+    "discover_networks",
+    "discover_host"
+  ],
+  "default_schedule": "0 */1 * * *",
+  "tags": [
+    "infrastructure",
+    "docker",
+    "containers",
+    "virtualization"
+  ]
+}

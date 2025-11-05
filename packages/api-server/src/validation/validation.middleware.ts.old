@@ -1,0 +1,144 @@
+/**
+ * Input Validation Middleware
+ * Validates and sanitizes request data using Joi
+ */
+
+import { Request, Response, NextFunction } from 'express';
+import Joi from 'joi';
+import type { ConfigSchema } from '@cmdb/common';
+
+export type ValidationSource = 'body' | 'query' | 'params' | 'headers';
+
+export interface ValidationOptions {
+  stripUnknown?: boolean;
+  abortEarly?: boolean;
+}
+
+export class ValidationMiddleware {
+  private config: ConfigSchema['validation'];
+
+  constructor(config: ConfigSchema['validation']) {
+    this.config = config;
+  }
+
+  /**
+   * Validate request data against Joi schema
+   */
+  validate(schema: Joi.ObjectSchema, source: ValidationSource = 'body') {
+    return (req: any, res: any, next: any) => {
+      const data = this.getDataFromSource(req, source);
+
+      const options: Joi.ValidationOptions = {
+        stripUnknown: this.config.stripUnknown,
+        abortEarly: this.config.abortEarly,
+      };
+
+      const { error, value } = schema.validate(data, options);
+
+      if (error) {
+        const errors = error.details.map((detail) => ({
+          field: detail.path.join('.'),
+          message: detail.message,
+          type: detail.type,
+        }));
+
+        return res.status(400).json({
+          error: 'Validation Error',
+          message: 'Request validation failed',
+          errors,
+        });
+      }
+
+      // Sanitize input if enabled
+      const sanitizedValue = this.config.sanitizeInput ? this.sanitize(value) : value;
+
+      // Replace request data with validated and sanitized value
+      this.setDataToSource(req, source, sanitizedValue);
+
+      next();
+    };
+  }
+
+  /**
+   * Get data from request based on source
+   */
+  private getDataFromSource(req: Request, source: ValidationSource): any {
+    switch (source) {
+      case 'body':
+        return req.body;
+      case 'query':
+        return req.query;
+      case 'params':
+        return req.params;
+      case 'headers':
+        return req.headers;
+      default:
+        return {};
+    }
+  }
+
+  /**
+   * Set data to request based on source
+   */
+  private setDataToSource(req: Request, source: ValidationSource, data: any): void {
+    switch (source) {
+      case 'body':
+        req.body = data;
+        break;
+      case 'query':
+        req.query = data;
+        break;
+      case 'params':
+        req.params = data;
+        break;
+      case 'headers':
+        // Don't modify headers
+        break;
+    }
+  }
+
+  /**
+   * Sanitize input to prevent XSS
+   */
+  private sanitize(data: any): any {
+    if (typeof data === 'string') {
+      return this.sanitizeString(data);
+    }
+
+    if (Array.isArray(data)) {
+      return data.map((item) => this.sanitize(item));
+    }
+
+    if (data && typeof data === 'object') {
+      const sanitized: any = {};
+      for (const [key, value] of Object.entries(data)) {
+        sanitized[key] = this.sanitize(value);
+      }
+      return sanitized;
+    }
+
+    return data;
+  }
+
+  /**
+   * Sanitize string to prevent XSS
+   */
+  private sanitizeString(str: string): string {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;')
+      .replace(/\//g, '&#x2F;');
+  }
+}
+
+/**
+ * Create validation middleware instance
+ */
+export function createValidationMiddleware(
+  config: ConfigSchema['validation']
+): ValidationMiddleware {
+  return new ValidationMiddleware(config);
+}

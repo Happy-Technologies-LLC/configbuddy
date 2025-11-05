@@ -1,0 +1,13 @@
+# Monitoring Documentation
+
+This directory structure is reserved for future monitoring documentation.
+
+## Planned Content
+
+- `/alerting/` - Alert rules and notification configuration
+- `/dashboards/` - Grafana dashboard definitions
+- `/observability/` - Tracing, logging, and metrics guides
+
+For now, see:
+- `/doc-site/docs/operations/` for operational monitoring
+- `/infrastructure/monitoring/` for Prometheus/Grafana configs

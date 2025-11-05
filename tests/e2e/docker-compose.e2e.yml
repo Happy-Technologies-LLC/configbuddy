@@ -1,0 +1,194 @@
+version: '3.9'
+
+# E2E Test Environment
+# Isolated Docker Compose setup for end-to-end testing
+# Uses separate ports and volumes to avoid conflicts with development environment
+
+services:
+  # Neo4j - Graph Database (E2E Test Instance)
+  neo4j-e2e:
+    image: neo4j:5.15-community
+    container_name: cmdb-neo4j-e2e
+    ports:
+      - "7475:7474"  # HTTP (offset by 1 to avoid dev conflicts)
+      - "7688:7687"  # Bolt (offset by 1)
+    environment:
+      - NEO4J_AUTH=neo4j/test_password
+      - NEO4J_PLUGINS=["apoc"]
+      - NEO4J_dbms_memory_heap_initial__size=256m
+      - NEO4J_dbms_memory_heap_max__size=512m
+      - NEO4J_dbms_memory_pagecache_size=256m
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*
+      - NEO4J_dbms_security_procedures_allowlist=apoc.*
+    volumes:
+      - neo4j_e2e_data:/data
+    networks:
+      - cmdb_e2e_network
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "test_password", "RETURN 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+
+  # PostgreSQL - Data Mart (E2E Test Instance)
+  postgres-e2e:
+    image: timescale/timescaledb:2.13.0-pg16
+    container_name: cmdb-postgres-e2e
+    ports:
+      - "5433:5432"  # Offset by 1 to avoid dev conflicts
+    environment:
+      - POSTGRES_DB=cmdb_test
+      - POSTGRES_USER=test_user
+      - POSTGRES_PASSWORD=test_password
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_e2e_data:/var/lib/postgresql/data
+      - ../../infrastructure/scripts/init-postgres.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - cmdb_e2e_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d cmdb_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    command: >
+      postgres
+      -c shared_preload_libraries=timescaledb
+      -c max_connections=100
+
+  # Redis - Cache and Queue (E2E Test Instance)
+  redis-e2e:
+    image: redis:7.2-alpine
+    container_name: cmdb-redis-e2e
+    ports:
+      - "6380:6379"  # Offset by 1
+    command: >
+      redis-server
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    networks:
+      - cmdb_e2e_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  # API Server (E2E Test Instance)
+  api-server-e2e:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.api
+    container_name: cmdb-api-e2e
+    depends_on:
+      neo4j-e2e:
+        condition: service_healthy
+      postgres-e2e:
+        condition: service_healthy
+      redis-e2e:
+        condition: service_healthy
+    ports:
+      - "3001:3000"  # Expose on 3001 for E2E tests
+    environment:
+      - NODE_ENV=test
+      - PORT=3000
+      - NEO4J_URI=bolt://neo4j-e2e:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=test_password
+      - POSTGRES_HOST=postgres-e2e
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=cmdb_test
+      - POSTGRES_USER=test_user
+      - POSTGRES_PASSWORD=test_password
+      - REDIS_HOST=redis-e2e
+      - REDIS_PORT=6379
+      - LOG_LEVEL=info
+    networks:
+      - cmdb_e2e_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+
+  # Discovery Engine (E2E Test Instance)
+  discovery-engine-e2e:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.discovery
+    container_name: cmdb-discovery-e2e
+    depends_on:
+      neo4j-e2e:
+        condition: service_healthy
+      redis-e2e:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=test
+      - NEO4J_URI=bolt://neo4j-e2e:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=test_password
+      - REDIS_HOST=redis-e2e
+      - REDIS_PORT=6379
+      - LOG_LEVEL=info
+      # Mock cloud credentials for testing
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test_access_key
+      - AWS_SECRET_ACCESS_KEY=test_secret_key
+    networks:
+      - cmdb_e2e_network
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "node"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+
+  # ETL Processor (E2E Test Instance)
+  etl-processor-e2e:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile.etl
+    container_name: cmdb-etl-e2e
+    depends_on:
+      neo4j-e2e:
+        condition: service_healthy
+      postgres-e2e:
+        condition: service_healthy
+      redis-e2e:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=test
+      - NEO4J_URI=bolt://neo4j-e2e:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=test_password
+      - POSTGRES_HOST=postgres-e2e
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=cmdb_test
+      - POSTGRES_USER=test_user
+      - POSTGRES_PASSWORD=test_password
+      - REDIS_HOST=redis-e2e
+      - REDIS_PORT=6379
+      - LOG_LEVEL=info
+    networks:
+      - cmdb_e2e_network
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "node"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+
+networks:
+  cmdb_e2e_network:
+    driver: bridge
+    name: cmdb_e2e_network
+
+volumes:
+  neo4j_e2e_data:
+    name: cmdb_neo4j_e2e_data
+  postgres_e2e_data:
+    name: cmdb_postgres_e2e_data

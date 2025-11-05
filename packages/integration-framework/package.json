@@ -1,0 +1,29 @@
+{
+  "name": "@cmdb/integration-framework",
+  "version": "2.0.0",
+  "description": "Integration connector framework for external system integrations",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo"
+  },
+  "dependencies": {
+    "@cmdb/common": "file:../common",
+    "@cmdb/database": "file:../database",
+    "node-cron": "^3.0.2",
+    "yaml": "^2.3.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.0.0",
+    "@types/node-cron": "^3.0.7",
+    "jest": "^29.5.0",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.0.0"
+  }
+}

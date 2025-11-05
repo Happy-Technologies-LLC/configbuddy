@@ -1,0 +1,676 @@
+{
+  "type": "nutanix",
+  "id": "nutanix",
+  "name": "Nutanix",
+  "description": "Discovers and manages infrastructure from Nutanix Prism Central and Prism Element, including clusters, hosts, virtual machines, and storage containers",
+  "version": "1.0.0",
+  "author": "ConfigBuddy",
+  "category": "connector",
+  "connector_category": "virtualization",
+  "icon": "nutanix",
+  "tags": ["hyperconverged", "virtualization", "storage", "compute", "hci"],
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": true,
+    "bidirectional": true
+  },
+  "authentication": {
+    "type": "basic",
+    "fields": [
+      {
+        "name": "prism_url",
+        "label": "Prism URL",
+        "type": "string",
+        "required": true,
+        "description": "Nutanix Prism Central or Prism Element URL (e.g., https://prism.example.com:9440)",
+        "placeholder": "https://prism.example.com:9440"
+      },
+      {
+        "name": "username",
+        "label": "Username",
+        "type": "string",
+        "required": true,
+        "description": "Nutanix administrator username"
+      },
+      {
+        "name": "password",
+        "label": "Password",
+        "type": "password",
+        "required": true,
+        "description": "Nutanix administrator password"
+      },
+      {
+        "name": "prism_type",
+        "label": "Prism Type",
+        "type": "select",
+        "required": true,
+        "default": "central",
+        "options": [
+          {
+            "label": "Prism Central (Multi-cluster)",
+            "value": "central"
+          },
+          {
+            "label": "Prism Element (Single cluster)",
+            "value": "element"
+          }
+        ],
+        "description": "Select Prism Central for multi-cluster management or Prism Element for single cluster"
+      }
+    ]
+  },
+  "configuration": {
+    "polling_interval": 3600,
+    "timeout": 300,
+    "max_retries": 3,
+    "rate_limit": {
+      "requests_per_second": 10,
+      "burst": 20
+    }
+  },
+  "resources": [
+    {
+      "type": "clusters",
+      "name": "Nutanix Clusters",
+      "description": "Nutanix cluster configurations and resource capacity",
+      "api_endpoint": "/api/nutanix/v3/clusters/list",
+      "api_method": "POST",
+      "id_field": "metadata.uuid",
+      "name_field": "spec.name",
+      "incremental_field": "metadata.last_update_time",
+      "field_mappings": [
+        {
+          "source": "metadata.uuid",
+          "target": "sys_id",
+          "type": "string",
+          "description": "Unique cluster identifier"
+        },
+        {
+          "source": "spec.name",
+          "target": "name",
+          "type": "string",
+          "description": "Cluster name"
+        },
+        {
+          "source": "status.resources.config.cluster_arch",
+          "target": "cluster_architecture",
+          "type": "string",
+          "description": "Cluster architecture (X86_64, etc.)"
+        },
+        {
+          "source": "status.resources.config.build.version",
+          "target": "version",
+          "type": "string",
+          "description": "AOS version"
+        },
+        {
+          "source": "status.resources.nodes.hypervisor_server_list",
+          "target": "nodes",
+          "type": "array",
+          "transform": "count",
+          "description": "Number of nodes in cluster"
+        },
+        {
+          "source": "status.resources.config.timezone",
+          "target": "timezone",
+          "type": "string",
+          "description": "Cluster timezone"
+        },
+        {
+          "source": "status.resources.network.external_ip",
+          "target": "cluster_vip",
+          "type": "string",
+          "description": "Cluster virtual IP address"
+        },
+        {
+          "source": "status.resources.analysis.vm_efficiency_map.bully_vm_num",
+          "target": "total_vms",
+          "type": "number",
+          "description": "Total number of VMs"
+        },
+        {
+          "source": "status.resources.config.redundancy_factor",
+          "target": "redundancy_factor",
+          "type": "number",
+          "description": "Data redundancy factor (RF)"
+        },
+        {
+          "source": "status.resources.capacity.storage_capacity_bytes",
+          "target": "storage_capacity_bytes",
+          "type": "number",
+          "description": "Total storage capacity in bytes"
+        },
+        {
+          "source": "status.resources.capacity.memory_capacity_bytes",
+          "target": "memory_capacity_bytes",
+          "type": "number",
+          "description": "Total memory capacity in bytes"
+        },
+        {
+          "source": "status.resources.capacity.cpu_capacity_hz",
+          "target": "cpu_capacity_hz",
+          "type": "number",
+          "description": "Total CPU capacity in Hz"
+        },
+        {
+          "source": "status.resources.config.encryption_status",
+          "target": "encryption_enabled",
+          "type": "boolean",
+          "description": "Whether encryption is enabled"
+        },
+        {
+          "source": "metadata.creation_time",
+          "target": "created_at",
+          "type": "timestamp",
+          "description": "Cluster creation timestamp"
+        },
+        {
+          "source": "metadata.last_update_time",
+          "target": "updated_at",
+          "type": "timestamp",
+          "description": "Last update timestamp"
+        }
+      ],
+      "relationships": [
+        {
+          "type": "CONTAINS",
+          "target_resource": "hosts",
+          "description": "Cluster contains physical hosts"
+        },
+        {
+          "type": "MANAGES",
+          "target_resource": "virtual_machines",
+          "description": "Cluster manages virtual machines"
+        },
+        {
+          "type": "PROVIDES",
+          "target_resource": "storage_containers",
+          "description": "Cluster provides storage containers"
+        }
+      ]
+    },
+    {
+      "type": "hosts",
+      "name": "Nutanix Hosts",
+      "description": "Physical servers (nodes) in Nutanix clusters",
+      "api_endpoint": "/api/nutanix/v3/hosts/list",
+      "api_method": "POST",
+      "id_field": "metadata.uuid",
+      "name_field": "status.name",
+      "incremental_field": "metadata.last_update_time",
+      "field_mappings": [
+        {
+          "source": "metadata.uuid",
+          "target": "sys_id",
+          "type": "string",
+          "description": "Unique host identifier"
+        },
+        {
+          "source": "status.name",
+          "target": "name",
+          "type": "string",
+          "description": "Host name"
+        },
+        {
+          "source": "status.cluster_reference.uuid",
+          "target": "cluster_id",
+          "type": "string",
+          "description": "Parent cluster UUID"
+        },
+        {
+          "source": "status.resources.serial_number",
+          "target": "serial_number",
+          "type": "string",
+          "description": "Hardware serial number"
+        },
+        {
+          "source": "status.resources.block.block_model",
+          "target": "model",
+          "type": "string",
+          "description": "Hardware model"
+        },
+        {
+          "source": "status.resources.hypervisor.type",
+          "target": "hypervisor_type",
+          "type": "string",
+          "description": "Hypervisor type (AHV, ESXi, Hyper-V)"
+        },
+        {
+          "source": "status.resources.hypervisor.version",
+          "target": "hypervisor_version",
+          "type": "string",
+          "description": "Hypervisor version"
+        },
+        {
+          "source": "status.resources.hypervisor.num_vms",
+          "target": "vm_count",
+          "type": "number",
+          "description": "Number of VMs on host"
+        },
+        {
+          "source": "status.resources.num_cpu_sockets",
+          "target": "cpu_sockets",
+          "type": "number",
+          "description": "Number of CPU sockets"
+        },
+        {
+          "source": "status.resources.num_cpu_cores",
+          "target": "cpu_cores",
+          "type": "number",
+          "description": "Total number of CPU cores"
+        },
+        {
+          "source": "status.resources.cpu_frequency_in_hz",
+          "target": "cpu_frequency_hz",
+          "type": "number",
+          "description": "CPU frequency in Hz"
+        },
+        {
+          "source": "status.resources.cpu_capacity_in_hz",
+          "target": "cpu_capacity_hz",
+          "type": "number",
+          "description": "Total CPU capacity in Hz"
+        },
+        {
+          "source": "status.resources.memory_capacity_in_bytes",
+          "target": "memory_bytes",
+          "type": "number",
+          "description": "Total memory capacity in bytes"
+        },
+        {
+          "source": "status.resources.controller_vm.ip",
+          "target": "cvm_ip",
+          "type": "string",
+          "description": "Controller VM IP address"
+        },
+        {
+          "source": "status.resources.host_nics_id_list",
+          "target": "network_adapters",
+          "type": "array",
+          "description": "List of network adapter UUIDs"
+        },
+        {
+          "source": "status.resources.gpu_list",
+          "target": "gpus",
+          "type": "array",
+          "description": "List of GPU devices"
+        },
+        {
+          "source": "status.state",
+          "target": "state",
+          "type": "string",
+          "description": "Host state (NORMAL, ENTERING_MAINTENANCE, etc.)"
+        },
+        {
+          "source": "status.resources.ipmi.ip",
+          "target": "ipmi_address",
+          "type": "string",
+          "description": "IPMI/BMC IP address"
+        },
+        {
+          "source": "metadata.creation_time",
+          "target": "created_at",
+          "type": "timestamp",
+          "description": "Host creation timestamp"
+        },
+        {
+          "source": "metadata.last_update_time",
+          "target": "updated_at",
+          "type": "timestamp",
+          "description": "Last update timestamp"
+        }
+      ],
+      "relationships": [
+        {
+          "type": "MEMBER_OF",
+          "target_resource": "clusters",
+          "description": "Host is member of cluster"
+        },
+        {
+          "type": "RUNS",
+          "target_resource": "virtual_machines",
+          "description": "Host runs virtual machines"
+        }
+      ]
+    },
+    {
+      "type": "virtual_machines",
+      "name": "Nutanix Virtual Machines",
+      "description": "Virtual machines managed by Nutanix AHV or ESXi",
+      "api_endpoint": "/api/nutanix/v3/vms/list",
+      "api_method": "POST",
+      "id_field": "metadata.uuid",
+      "name_field": "spec.name",
+      "incremental_field": "metadata.last_update_time",
+      "field_mappings": [
+        {
+          "source": "metadata.uuid",
+          "target": "sys_id",
+          "type": "string",
+          "description": "Unique VM identifier"
+        },
+        {
+          "source": "spec.name",
+          "target": "name",
+          "type": "string",
+          "description": "Virtual machine name"
+        },
+        {
+          "source": "spec.description",
+          "target": "description",
+          "type": "string",
+          "description": "VM description"
+        },
+        {
+          "source": "spec.cluster_reference.uuid",
+          "target": "cluster_id",
+          "type": "string",
+          "description": "Parent cluster UUID"
+        },
+        {
+          "source": "status.resources.host_reference.uuid",
+          "target": "host_id",
+          "type": "string",
+          "description": "Current host UUID"
+        },
+        {
+          "source": "spec.resources.num_sockets",
+          "target": "cpu_sockets",
+          "type": "number",
+          "description": "Number of virtual CPU sockets"
+        },
+        {
+          "source": "spec.resources.num_vcpus_per_socket",
+          "target": "vcpus_per_socket",
+          "type": "number",
+          "description": "vCPUs per socket"
+        },
+        {
+          "source": "spec.resources.num_vcpus_per_socket",
+          "target": "vcpus",
+          "type": "number",
+          "transform": "multiply_by_sockets",
+          "description": "Total vCPUs"
+        },
+        {
+          "source": "spec.resources.memory_size_mib",
+          "target": "memory_mib",
+          "type": "number",
+          "description": "Memory in MiB"
+        },
+        {
+          "source": "spec.resources.memory_size_mib",
+          "target": "memory_bytes",
+          "type": "number",
+          "transform": "mib_to_bytes",
+          "description": "Memory in bytes"
+        },
+        {
+          "source": "spec.resources.disk_list",
+          "target": "disks",
+          "type": "array",
+          "description": "List of virtual disks"
+        },
+        {
+          "source": "spec.resources.disk_list",
+          "target": "disk_capacity_bytes",
+          "type": "number",
+          "transform": "sum_disk_capacity",
+          "description": "Total disk capacity in bytes"
+        },
+        {
+          "source": "spec.resources.nic_list",
+          "target": "network_interfaces",
+          "type": "array",
+          "description": "List of network interfaces"
+        },
+        {
+          "source": "status.resources.nic_list[0].ip_endpoint_list[0].ip",
+          "target": "ip_address",
+          "type": "string",
+          "description": "Primary IP address"
+        },
+        {
+          "source": "status.resources.power_state",
+          "target": "power_state",
+          "type": "string",
+          "description": "Power state (ON, OFF)"
+        },
+        {
+          "source": "status.resources.hypervisor_type",
+          "target": "hypervisor_type",
+          "type": "string",
+          "description": "Hypervisor type (AHV, ESXi)"
+        },
+        {
+          "source": "status.resources.guest_os_id",
+          "target": "guest_os",
+          "type": "string",
+          "description": "Guest operating system"
+        },
+        {
+          "source": "status.resources.gpu_list",
+          "target": "gpus",
+          "type": "array",
+          "description": "Assigned GPU devices"
+        },
+        {
+          "source": "status.resources.protection_type",
+          "target": "protection_enabled",
+          "type": "boolean",
+          "description": "Whether VM is protected by DR"
+        },
+        {
+          "source": "spec.resources.boot_config.boot_device_order_list",
+          "target": "boot_order",
+          "type": "array",
+          "description": "Boot device order"
+        },
+        {
+          "source": "spec.resources.hardware_clock_timezone",
+          "target": "timezone",
+          "type": "string",
+          "description": "Hardware clock timezone"
+        },
+        {
+          "source": "metadata.categories",
+          "target": "categories",
+          "type": "object",
+          "description": "Category assignments"
+        },
+        {
+          "source": "metadata.creation_time",
+          "target": "created_at",
+          "type": "timestamp",
+          "description": "VM creation timestamp"
+        },
+        {
+          "source": "metadata.last_update_time",
+          "target": "updated_at",
+          "type": "timestamp",
+          "description": "Last update timestamp"
+        }
+      ],
+      "relationships": [
+        {
+          "type": "HOSTED_ON",
+          "target_resource": "hosts",
+          "description": "VM is hosted on physical host"
+        },
+        {
+          "type": "MANAGED_BY",
+          "target_resource": "clusters",
+          "description": "VM is managed by cluster"
+        },
+        {
+          "type": "USES",
+          "target_resource": "storage_containers",
+          "description": "VM uses storage from containers"
+        }
+      ]
+    },
+    {
+      "type": "storage_containers",
+      "name": "Nutanix Storage Containers",
+      "description": "Storage containers for VM and file storage",
+      "api_endpoint": "/api/nutanix/v3/storage_containers/list",
+      "api_method": "POST",
+      "id_field": "metadata.uuid",
+      "name_field": "spec.name",
+      "incremental_field": "metadata.last_update_time",
+      "field_mappings": [
+        {
+          "source": "metadata.uuid",
+          "target": "sys_id",
+          "type": "string",
+          "description": "Unique storage container identifier"
+        },
+        {
+          "source": "spec.name",
+          "target": "name",
+          "type": "string",
+          "description": "Storage container name"
+        },
+        {
+          "source": "status.cluster_reference.uuid",
+          "target": "cluster_id",
+          "type": "string",
+          "description": "Parent cluster UUID"
+        },
+        {
+          "source": "status.resources.replication_factor",
+          "target": "replication_factor",
+          "type": "number",
+          "description": "Data replication factor"
+        },
+        {
+          "source": "status.resources.max_capacity",
+          "target": "max_capacity_bytes",
+          "type": "number",
+          "description": "Maximum capacity in bytes"
+        },
+        {
+          "source": "status.resources.logical_explicit_reserved",
+          "target": "reserved_bytes",
+          "type": "number",
+          "description": "Reserved capacity in bytes"
+        },
+        {
+          "source": "status.resources.usage_stats.storage.user_usage_bytes",
+          "target": "user_usage_bytes",
+          "type": "number",
+          "description": "User data usage in bytes"
+        },
+        {
+          "source": "status.resources.usage_stats.storage.total_usage_bytes",
+          "target": "total_usage_bytes",
+          "type": "number",
+          "description": "Total usage in bytes"
+        },
+        {
+          "source": "status.resources.usage_stats.storage.user_capacity_bytes",
+          "target": "user_capacity_bytes",
+          "type": "number",
+          "description": "User capacity in bytes"
+        },
+        {
+          "source": "spec.resources.compression_enabled",
+          "target": "compression_enabled",
+          "type": "boolean",
+          "description": "Whether compression is enabled"
+        },
+        {
+          "source": "spec.resources.compression_delay_in_secs",
+          "target": "compression_delay_seconds",
+          "type": "number",
+          "description": "Compression delay in seconds"
+        },
+        {
+          "source": "spec.resources.erasure_code",
+          "target": "erasure_code_enabled",
+          "type": "boolean",
+          "description": "Whether erasure coding is enabled"
+        },
+        {
+          "source": "spec.resources.on_disk_dedup",
+          "target": "deduplication_enabled",
+          "type": "boolean",
+          "description": "Whether deduplication is enabled"
+        },
+        {
+          "source": "spec.resources.cache_deduplication",
+          "target": "cache_dedup_enabled",
+          "type": "boolean",
+          "description": "Whether cache deduplication is enabled"
+        },
+        {
+          "source": "status.resources.is_nutanix_default_container",
+          "target": "is_default",
+          "type": "boolean",
+          "description": "Whether this is the default container"
+        },
+        {
+          "source": "status.resources.advertised_capacity",
+          "target": "advertised_capacity_bytes",
+          "type": "number",
+          "description": "Advertised capacity in bytes"
+        },
+        {
+          "source": "status.resources.nfs_whitelist",
+          "target": "nfs_whitelist",
+          "type": "array",
+          "description": "NFS client whitelist"
+        },
+        {
+          "source": "metadata.creation_time",
+          "target": "created_at",
+          "type": "timestamp",
+          "description": "Container creation timestamp"
+        },
+        {
+          "source": "metadata.last_update_time",
+          "target": "updated_at",
+          "type": "timestamp",
+          "description": "Last update timestamp"
+        }
+      ],
+      "relationships": [
+        {
+          "type": "PROVIDED_BY",
+          "target_resource": "clusters",
+          "description": "Storage container is provided by cluster"
+        },
+        {
+          "type": "STORES",
+          "target_resource": "virtual_machines",
+          "description": "Storage container stores VM data"
+        }
+      ]
+    }
+  ],
+  "healthcheck": {
+    "endpoint": "/api/nutanix/v3/clusters/list",
+    "method": "POST",
+    "expected_status": 200,
+    "timeout": 30
+  },
+  "documentation": {
+    "setup_guide": "https://portal.nutanix.com/page/documents/details?targetId=Prism-Central-Guide",
+    "api_reference": "https://www.nutanix.dev/api_references/prism-central-v3/",
+    "permissions_required": [
+      "Prism Admin or Prism Viewer role",
+      "Access to Prism Central (port 9440) or Prism Element",
+      "API access enabled in cluster configuration"
+    ],
+    "notes": [
+      "Supports both Prism Central (multi-cluster) and Prism Element (single cluster)",
+      "Prism Central recommended for environments with multiple clusters",
+      "API v3 uses POST method with empty body for list operations",
+      "Incremental discovery based on metadata.last_update_time",
+      "Bidirectional capability allows VM power operations and configuration changes",
+      "Rate limiting recommended to avoid API throttling",
+      "HTTPS/TLS required - self-signed certificates may need verification disabled"
+    ]
+  }
+}

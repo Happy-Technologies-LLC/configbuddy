@@ -1,0 +1,156 @@
+.settings-page {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.settings-header {
+  margin-bottom: 2rem;
+}
+
+.settings-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 0.5rem 0;
+}
+
+.settings-header p {
+  font-size: 1rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.settings-container {
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  gap: 2rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.settings-sidebar {
+  background: #f9fafb;
+  padding: 1.5rem 0;
+  border-right: 1px solid #e5e7eb;
+}
+
+.settings-tabs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.settings-tab {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  background: none;
+  border: none;
+  border-left: 3px solid transparent;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.settings-tab:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.settings-tab.active {
+  background: white;
+  color: #2563eb;
+  border-left-color: #2563eb;
+}
+
+.settings-tab-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-tab-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.settings-content {
+  padding: 2rem;
+}
+
+.settings-content-header {
+  margin-bottom: 2rem;
+}
+
+.settings-content-header h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.settings-content-body {
+  /* Content styling handled by individual components */
+}
+
+/* Responsive design */
+@media (max-width: 1024px) {
+  .settings-container {
+    grid-template-columns: 200px 1fr;
+    gap: 1rem;
+  }
+
+  .settings-content {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .settings-page {
+    padding: 1rem;
+  }
+
+  .settings-container {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-sidebar {
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 1rem 0;
+  }
+
+  .settings-tabs {
+    display: flex;
+    overflow-x: auto;
+  }
+
+  .settings-tab {
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.75rem 1rem;
+    white-space: nowrap;
+  }
+
+  .settings-tab-label {
+    font-size: 0.75rem;
+  }
+
+  .settings-content {
+    padding: 1rem;
+  }
+
+  .settings-content-header h2 {
+    font-size: 1.25rem;
+  }
+}

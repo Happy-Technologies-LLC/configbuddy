@@ -1,0 +1,45 @@
+{
+  "type": "jira",
+  "name": "Jira Asset Management",
+  "version": "2.0.0",
+  "description": "Integration with Jira for asset tracking and project-CI relationships",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "category": "connector",
+  "connector_category": "ticketing",
+  "icon": "jira",
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": false,
+    "bidirectional": false
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["instance_url", "email", "api_token"],
+    "properties": {
+      "instance_url": {
+        "type": "string",
+        "description": "Jira instance URL (e.g., https://mycompany.atlassian.net)"
+      },
+      "email": {
+        "type": "string",
+        "description": "Jira account email"
+      },
+      "api_token": {
+        "type": "string",
+        "description": "Jira API token",
+        "format": "password"
+      },
+      "asset_schema_id": {
+        "type": "string",
+        "description": "Assets schema ID (optional, for Jira Assets/Insight)"
+      },
+      "jql_filter": {
+        "type": "string",
+        "description": "JQL filter for asset issues (optional)",
+        "default": "project = IT AND type = Asset"
+      }
+    }
+  }
+}

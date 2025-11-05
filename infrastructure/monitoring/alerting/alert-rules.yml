@@ -1,0 +1,297 @@
+# Prometheus Alerting Rules for CMDB Platform
+# These rules define conditions that trigger alerts for critical system issues
+
+groups:
+  # Application Performance Alerts
+  - name: application_performance
+    interval: 30s
+    rules:
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(cmdb_http_requests_total{status_code=~"5.."}[5m]))
+          /
+          sum(rate(cmdb_http_requests_total[5m])) * 100 > 5
+        for: 5m
+        labels:
+          severity: critical
+          component: api-server
+        annotations:
+          summary: "High HTTP error rate detected"
+          description: "Error rate is {{ $value | humanize }}% (threshold: 5%)"
+          runbook: "https://docs.cmdb.internal/runbooks/high-error-rate"
+
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.95,
+            rate(cmdb_http_request_duration_seconds_bucket[5m])
+          ) > 1
+        for: 5m
+        labels:
+          severity: warning
+          component: api-server
+        annotations:
+          summary: "High HTTP request latency detected"
+          description: "P95 latency is {{ $value | humanize }}s (threshold: 1s)"
+          runbook: "https://docs.cmdb.internal/runbooks/high-latency"
+
+      - alert: VeryHighLatency
+        expr: |
+          histogram_quantile(0.95,
+            rate(cmdb_http_request_duration_seconds_bucket[5m])
+          ) > 5
+        for: 2m
+        labels:
+          severity: critical
+          component: api-server
+        annotations:
+          summary: "Very high HTTP request latency detected"
+          description: "P95 latency is {{ $value | humanize }}s (threshold: 5s)"
+          runbook: "https://docs.cmdb.internal/runbooks/very-high-latency"
+
+  # Database Health Alerts
+  - name: database_health
+    interval: 30s
+    rules:
+      - alert: DatabaseConnectionFailures
+        expr: |
+          sum(rate(cmdb_database_errors_total{error_type="connection"}[5m])) > 0
+        for: 2m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Database connection failures detected"
+          description: "{{ $labels.database }} has {{ $value | humanize }} connection failures/sec"
+          runbook: "https://docs.cmdb.internal/runbooks/db-connection-failures"
+
+      - alert: HighDatabaseQueryLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum by (database, le) (rate(cmdb_database_query_duration_seconds_bucket[5m]))
+          ) > 1
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High database query latency"
+          description: "{{ $labels.database }} P95 query latency is {{ $value | humanize }}s"
+          runbook: "https://docs.cmdb.internal/runbooks/high-db-latency"
+
+      - alert: DatabaseConnectionPoolExhausted
+        expr: |
+          cmdb_database_connection_pool_size{state="idle"} == 0
+          and
+          cmdb_database_connection_pool_size{state="active"} >= cmdb_database_connection_pool_size{state="total"}
+        for: 2m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Database connection pool exhausted"
+          description: "{{ $labels.database }} connection pool has no idle connections"
+          runbook: "https://docs.cmdb.internal/runbooks/connection-pool-exhausted"
+
+  # Queue Health Alerts
+  - name: queue_health
+    interval: 30s
+    rules:
+      - alert: QueueBacklog
+        expr: |
+          cmdb_queue_jobs_waiting > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: queue
+        annotations:
+          summary: "Large queue backlog detected"
+          description: "Queue {{ $labels.queue }} has {{ $value }} jobs waiting (threshold: 1000)"
+          runbook: "https://docs.cmdb.internal/runbooks/queue-backlog"
+
+      - alert: CriticalQueueBacklog
+        expr: |
+          cmdb_queue_jobs_waiting > 10000
+        for: 2m
+        labels:
+          severity: critical
+          component: queue
+        annotations:
+          summary: "Critical queue backlog detected"
+          description: "Queue {{ $labels.queue }} has {{ $value }} jobs waiting (threshold: 10000)"
+          runbook: "https://docs.cmdb.internal/runbooks/critical-queue-backlog"
+
+      - alert: HighJobFailureRate
+        expr: |
+          sum by (queue) (rate(cmdb_queue_jobs_total{status="failed"}[5m]))
+          /
+          sum by (queue) (rate(cmdb_queue_jobs_total[5m])) * 100 > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: queue
+        annotations:
+          summary: "High job failure rate"
+          description: "Queue {{ $labels.queue }} has {{ $value | humanize }}% failure rate"
+          runbook: "https://docs.cmdb.internal/runbooks/high-job-failure-rate"
+
+      - alert: NoActiveWorkers
+        expr: |
+          cmdb_queue_workers_active == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: queue
+        annotations:
+          summary: "No active workers for queue"
+          description: "Queue {{ $labels.queue }} has no active workers"
+          runbook: "https://docs.cmdb.internal/runbooks/no-active-workers"
+
+  # Discovery Operations Alerts
+  - name: discovery_operations
+    interval: 1m
+    rules:
+      - alert: DiscoveryJobFailures
+        expr: |
+          sum by (provider) (rate(cmdb_discovery_jobs_total{status="failure"}[1h])) > 3
+        for: 5m
+        labels:
+          severity: warning
+          component: discovery
+        annotations:
+          summary: "Multiple discovery job failures"
+          description: "Provider {{ $labels.provider }} has {{ $value | humanize }} failures in the last hour"
+          runbook: "https://docs.cmdb.internal/runbooks/discovery-job-failures"
+
+      - alert: DiscoveryRateLimitHits
+        expr: |
+          sum by (provider) (rate(cmdb_discovery_rate_limit_hits_total[5m])) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+          component: discovery
+        annotations:
+          summary: "Discovery hitting rate limits"
+          description: "Provider {{ $labels.provider }} is hitting rate limits"
+          runbook: "https://docs.cmdb.internal/runbooks/discovery-rate-limits"
+
+  # ETL Operations Alerts
+  - name: etl_operations
+    interval: 1m
+    rules:
+      - alert: ETLSyncLag
+        expr: |
+          cmdb_etl_sync_lag_seconds / 60 > 60
+        for: 5m
+        labels:
+          severity: warning
+          component: etl
+        annotations:
+          summary: "ETL sync lag detected"
+          description: "ETL job {{ $labels.job_type }} is {{ $value | humanize }} minutes behind"
+          runbook: "https://docs.cmdb.internal/runbooks/etl-sync-lag"
+
+      - alert: CriticalETLSyncLag
+        expr: |
+          cmdb_etl_sync_lag_seconds / 60 > 180
+        for: 2m
+        labels:
+          severity: critical
+          component: etl
+        annotations:
+          summary: "Critical ETL sync lag"
+          description: "ETL job {{ $labels.job_type }} is {{ $value | humanize }} minutes behind (threshold: 180m)"
+          runbook: "https://docs.cmdb.internal/runbooks/critical-etl-sync-lag"
+
+      - alert: LowDataQualityScore
+        expr: |
+          avg(cmdb_data_quality_score) < 0.7
+        for: 10m
+        labels:
+          severity: warning
+          component: etl
+        annotations:
+          summary: "Low data quality score"
+          description: "Average data quality score is {{ $value | humanize }} (threshold: 0.7)"
+          runbook: "https://docs.cmdb.internal/runbooks/low-data-quality"
+
+  # System Resource Alerts
+  - name: system_resources
+    interval: 30s
+    rules:
+      - alert: HighMemoryUsage
+        expr: |
+          (cmdb_system_memory_bytes{type="used"}
+          /
+          cmdb_system_memory_bytes{type="total"}) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value | humanize }}% (threshold: 90%)"
+          runbook: "https://docs.cmdb.internal/runbooks/high-memory-usage"
+
+      - alert: LowDiskSpace
+        expr: |
+          (1 - (node_filesystem_free_bytes / node_filesystem_size_bytes)) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "Low disk space"
+          description: "Disk usage is {{ $value | humanize }}% (threshold: 90%)"
+          runbook: "https://docs.cmdb.internal/runbooks/low-disk-space"
+
+      - alert: HighEventLoopLag
+        expr: |
+          cmdb_event_loop_lag_seconds * 1000 > 100
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High event loop lag"
+          description: "Event loop lag is {{ $value | humanize }}ms (threshold: 100ms)"
+          runbook: "https://docs.cmdb.internal/runbooks/high-event-loop-lag"
+
+      - alert: HighCPUUsage
+        expr: |
+          cmdb_cpu_usage_percent > 85
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value | humanize }}% (threshold: 85%)"
+          runbook: "https://docs.cmdb.internal/runbooks/high-cpu-usage"
+
+  # Service Health Alerts
+  - name: service_health
+    interval: 30s
+    rules:
+      - alert: ServiceDown
+        expr: |
+          up == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "Service is down"
+          description: "Service {{ $labels.job }} is not responding to health checks"
+          runbook: "https://docs.cmdb.internal/runbooks/service-down"
+
+      - alert: HealthCheckFailing
+        expr: |
+          probe_success == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "Health check failing"
+          description: "Health check for {{ $labels.instance }} is failing"
+          runbook: "https://docs.cmdb.internal/runbooks/health-check-failing"

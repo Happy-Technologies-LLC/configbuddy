@@ -1,0 +1,281 @@
+{
+  "type": "prisma-cloud",
+  "category": "connector",
+  "connector_category": "security",
+  "icon": "prisma-cloud",
+  "name": "Palo Alto Prisma Cloud",
+  "version": "1.0.0",
+  "description": "Multi-cloud security posture management platform - discovers cloud assets, vulnerabilities, and compliance findings across AWS, Azure, and GCP",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": true,
+    "bidirectional": false
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["api_url", "access_key", "secret_key"],
+    "properties": {
+      "api_url": {
+        "type": "string",
+        "description": "Prisma Cloud API URL (e.g., https://api.prismacloud.io or https://api2.prismacloud.io)"
+      },
+      "access_key": {
+        "type": "string",
+        "description": "Prisma Cloud Access Key ID"
+      },
+      "secret_key": {
+        "type": "string",
+        "description": "Prisma Cloud Secret Key",
+        "format": "password"
+      },
+      "cloud_types": {
+        "type": "string",
+        "description": "Filter by cloud types (comma-separated: aws,azure,gcp,alibaba_cloud,oci)",
+        "default": ""
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "cloud_accounts",
+      "name": "Cloud Accounts",
+      "description": "Connected cloud accounts monitored by Prisma Cloud",
+      "ci_type": "cloud-resource",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "status_filter": {
+            "type": "string",
+            "enum": ["enabled", "disabled", "all"],
+            "default": "enabled",
+            "description": "Filter accounts by status"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 100,
+        "rate_limit": 5
+      },
+      "field_mappings": {
+        "name": "name",
+        "account_id": "accountId",
+        "cloud_type": "cloudType",
+        "account_type": "accountType",
+        "status": "enabled",
+        "deployment_type": "deploymentType",
+        "last_modified_by": "lastModifiedBy",
+        "last_modified_ts": "lastModifiedTs",
+        "protection_mode": "protectionMode",
+        "ingestion_mode": "ingestionMode",
+        "account_group_ids": "groupIds",
+        "features": "features",
+        "parent_id": "parentId"
+      }
+    },
+    {
+      "id": "assets",
+      "name": "Cloud Assets",
+      "description": "Cloud resources discovered across monitored accounts with security posture and risk grade",
+      "ci_type": "cloud-resource",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "asset_types": {
+            "type": "string",
+            "description": "Filter by asset types (e.g., VM,Storage,Network,Database)",
+            "default": ""
+          },
+          "risk_grades": {
+            "type": "string",
+            "description": "Filter by risk grades (comma-separated: A,B,C,D,F)",
+            "default": ""
+          },
+          "time_range": {
+            "type": "string",
+            "enum": ["to_now", "last_7_days", "last_30_days"],
+            "default": "to_now",
+            "description": "Time range for asset discovery"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 1000,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "name": "name",
+        "resource_id": "id",
+        "resource_type": "resourceType",
+        "cloud_type": "cloudType",
+        "account_id": "accountId",
+        "account_name": "accountName",
+        "region": "regionId",
+        "region_name": "regionName",
+        "service": "service",
+        "risk_grade": "riskGrade",
+        "findings_count": "findingsCount",
+        "passed_rules": "passedRules",
+        "failed_rules": "failedRules",
+        "has_alert": "hasAlert",
+        "has_network_exposure": "hasNetwork",
+        "has_external_exposure": "hasExternal",
+        "has_external_findings": "hasExternalFinding",
+        "has_external_integration": "hasExternalIntegration",
+        "alert_count": "alertRules",
+        "tags": "tags",
+        "created_ts": "insertTs",
+        "last_updated": "lastModified",
+        "vulnerability_score": "vulnerabilityScore",
+        "compliance_standards": "complianceStandard"
+      }
+    },
+    {
+      "id": "vulnerabilities",
+      "name": "Asset Vulnerabilities",
+      "description": "CVE vulnerabilities discovered in cloud assets including packages and images",
+      "ci_type": null,
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "severity_filter": {
+            "type": "string",
+            "enum": ["critical", "high", "medium", "low", "all"],
+            "default": "all",
+            "description": "Filter vulnerabilities by severity"
+          },
+          "cve_status": {
+            "type": "string",
+            "enum": ["open", "fixed", "all"],
+            "default": "open",
+            "description": "Filter by CVE fix status"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 5000,
+        "rate_limit": 10,
+        "depends_on": ["assets"]
+      },
+      "field_mappings": {
+        "cve_id": "cveId",
+        "severity": "severity",
+        "cvss_score": "cvss",
+        "risk_factors": "riskFactors",
+        "asset_name": "entityName",
+        "asset_id": "entityId",
+        "asset_type": "entityType",
+        "package_name": "packageName",
+        "package_version": "packageVersion",
+        "current_version": "currentVersion",
+        "fixed_version": "fixVersion",
+        "vendor_status": "vendorStatus",
+        "discovered_date": "discoveredDate",
+        "published_date": "publishedDate",
+        "description": "description",
+        "attack_vector": "attackVector",
+        "attack_complexity": "attackComplexity",
+        "exploitable": "exploitable",
+        "has_fix": "hasFix",
+        "cloud_type": "cloudProvider",
+        "account_id": "accountId",
+        "region": "region"
+      }
+    },
+    {
+      "id": "compliance",
+      "name": "Compliance Findings",
+      "description": "Compliance policy violations and security findings across cloud accounts",
+      "ci_type": null,
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "compliance_standards": {
+            "type": "string",
+            "description": "Filter by standards (e.g., PCI DSS,HIPAA,CIS,GDPR,SOC 2)",
+            "default": ""
+          },
+          "policy_severity": {
+            "type": "string",
+            "enum": ["critical", "high", "medium", "low", "informational", "all"],
+            "default": "all",
+            "description": "Filter by policy severity"
+          },
+          "status_filter": {
+            "type": "string",
+            "enum": ["open", "resolved", "dismissed", "snoozed", "all"],
+            "default": "open",
+            "description": "Filter findings by status"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 2000,
+        "rate_limit": 10,
+        "depends_on": ["assets"]
+      },
+      "field_mappings": {
+        "alert_id": "id",
+        "policy_name": "policy.name",
+        "policy_id": "policy.policyId",
+        "policy_type": "policy.policyType",
+        "policy_severity": "policy.severity",
+        "policy_description": "policy.description",
+        "compliance_standard": "policy.complianceMetadata.standardName",
+        "compliance_requirement": "policy.complianceMetadata.requirementName",
+        "compliance_section": "policy.complianceMetadata.sectionId",
+        "status": "status",
+        "reason": "reason",
+        "asset_name": "resource.name",
+        "asset_id": "resource.id",
+        "asset_type": "resource.resourceType",
+        "cloud_type": "resource.cloudType",
+        "account_id": "resource.accountId",
+        "account_name": "resource.account",
+        "region": "resource.regionId",
+        "resource_api_name": "resource.resourceApiName",
+        "resource_config": "resource.data",
+        "first_seen": "firstSeen",
+        "last_seen": "lastSeen",
+        "last_updated": "lastUpdated",
+        "alert_time": "alertTime",
+        "triggered_by": "triggeredBy",
+        "risk_rating": "riskDetail.rating",
+        "risk_score": "riskDetail.score",
+        "remediation": "policy.remediation"
+      }
+    },
+    {
+      "id": "relationships",
+      "name": "Asset Relationships",
+      "description": "Relationships between cloud accounts, assets, vulnerabilities, and compliance findings",
+      "ci_type": null,
+      "enabled_by_default": true,
+      "operations": ["extract"],
+      "configuration_schema": {
+        "properties": {
+          "include_network_topology": {
+            "type": "boolean",
+            "default": false,
+            "description": "Include network connectivity relationships"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 10000,
+        "depends_on": ["cloud_accounts", "assets", "vulnerabilities", "compliance"]
+      }
+    }
+  ]
+}

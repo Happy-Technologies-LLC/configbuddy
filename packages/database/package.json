@@ -1,0 +1,22 @@
+{
+  "name": "@cmdb/database",
+  "version": "1.0.0",
+  "description": "Database clients and connections for CMDB platform",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@cmdb/common": "*",
+    "neo4j-driver": "^5.0.0",
+    "pg": "^8.0.0",
+    "ioredis": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}

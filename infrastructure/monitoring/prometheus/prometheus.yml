@@ -1,0 +1,248 @@
+# Prometheus Configuration
+# Main configuration file for Prometheus server
+
+global:
+  # How frequently to scrape targets
+  scrape_interval: 15s
+
+  # How long until a scrape request times out
+  scrape_timeout: 10s
+
+  # How frequently to evaluate rules
+  evaluation_interval: 15s
+
+  # External labels to attach to any time series or alerts
+  external_labels:
+    cluster: 'cmdb-production'
+    environment: '${ENVIRONMENT:-production}'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - 'alertmanager:9093'
+      timeout: 10s
+
+# Load alerting rules
+rule_files:
+  - '/etc/prometheus/rules/*.yml'
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets:
+          - 'localhost:9090'
+        labels:
+          service: 'prometheus'
+
+  # CMDB API Server
+  - job_name: 'cmdb-api-server'
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - 'api-server:3000'
+        labels:
+          service: 'api-server'
+          component: 'api'
+    # Service discovery for multiple API server instances
+    dns_sd_configs:
+      - names:
+          - 'api-server.cmdb.svc.cluster.local'
+        type: 'A'
+        port: 3000
+        refresh_interval: 30s
+
+  # CMDB Discovery Engine
+  - job_name: 'cmdb-discovery-engine'
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    static_configs:
+      - targets:
+          - 'discovery-engine:3001'
+        labels:
+          service: 'discovery-engine'
+          component: 'discovery'
+    dns_sd_configs:
+      - names:
+          - 'discovery-engine.cmdb.svc.cluster.local'
+        type: 'A'
+        port: 3001
+        refresh_interval: 30s
+
+  # CMDB ETL Processor
+  - job_name: 'cmdb-etl-processor'
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    static_configs:
+      - targets:
+          - 'etl-processor:3002'
+        labels:
+          service: 'etl-processor'
+          component: 'etl'
+    dns_sd_configs:
+      - names:
+          - 'etl-processor.cmdb.svc.cluster.local'
+        type: 'A'
+        port: 3002
+        refresh_interval: 30s
+
+  # CMDB Discovery Agents
+  - job_name: 'cmdb-agents'
+    metrics_path: '/metrics'
+    scrape_interval: 60s
+    static_configs:
+      - targets:
+          - 'agent-1:3003'
+          - 'agent-2:3003'
+        labels:
+          service: 'agent'
+          component: 'discovery'
+    # File-based service discovery for dynamic agents
+    file_sd_configs:
+      - files:
+          - '/etc/prometheus/sd/agents.json'
+        refresh_interval: 60s
+
+  # Neo4j Monitoring
+  - job_name: 'neo4j'
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    static_configs:
+      - targets:
+          - 'neo4j:2004'
+        labels:
+          service: 'neo4j'
+          component: 'database'
+
+  # PostgreSQL Exporter
+  - job_name: 'postgres'
+    static_configs:
+      - targets:
+          - 'postgres-exporter:9187'
+        labels:
+          service: 'postgres'
+          component: 'database'
+
+  # Redis Exporter
+  - job_name: 'redis'
+    static_configs:
+      - targets:
+          - 'redis-exporter:9121'
+        labels:
+          service: 'redis'
+          component: 'cache'
+
+  # Node Exporter (system metrics)
+  - job_name: 'node-exporter'
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - 'node-exporter:9100'
+        labels:
+          service: 'node-exporter'
+          component: 'system'
+    dns_sd_configs:
+      - names:
+          - 'node-exporter.monitoring.svc.cluster.local'
+        type: 'A'
+        port: 9100
+        refresh_interval: 30s
+
+  # Blackbox Exporter (health check probes)
+  - job_name: 'blackbox'
+    metrics_path: '/probe'
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - 'http://api-server:3000/health'
+          - 'http://api-server:3000/ready'
+          - 'http://discovery-engine:3001/health'
+          - 'http://etl-processor:3002/health'
+        labels:
+          component: 'health-check'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+# Recording rules for aggregations
+# These pre-compute frequently used queries
+recording_rules:
+  - name: 'api_aggregations'
+    interval: 30s
+    rules:
+      # Overall request rate
+      - record: job:cmdb_http_requests:rate5m
+        expr: sum(rate(cmdb_http_requests_total[5m]))
+
+      # Error rate percentage
+      - record: job:cmdb_http_error_rate:rate5m
+        expr: |
+          sum(rate(cmdb_http_requests_total{status_code=~"5.."}[5m]))
+          /
+          sum(rate(cmdb_http_requests_total[5m])) * 100
+
+      # P95 latency
+      - record: job:cmdb_http_request_duration:p95
+        expr: histogram_quantile(0.95, rate(cmdb_http_request_duration_seconds_bucket[5m]))
+
+  - name: 'discovery_aggregations'
+    interval: 1m
+    rules:
+      # CIs discovered per provider
+      - record: provider:cmdb_cis_discovered:rate5m
+        expr: sum by (provider) (rate(cmdb_cis_discovered_total[5m]))
+
+      # Discovery success rate
+      - record: provider:cmdb_discovery_success_rate:rate5m
+        expr: |
+          sum by (provider) (rate(cmdb_discovery_jobs_total{status="success"}[5m]))
+          /
+          sum by (provider) (rate(cmdb_discovery_jobs_total[5m])) * 100
+
+  - name: 'etl_aggregations'
+    interval: 1m
+    rules:
+      # ETL throughput
+      - record: job_type:cmdb_etl_throughput:rate5m
+        expr: sum by (job_type) (rate(cmdb_etl_records_processed_total[5m]))
+
+      # ETL success rate
+      - record: job_type:cmdb_etl_success_rate:rate5m
+        expr: |
+          sum by (job_type) (rate(cmdb_etl_jobs_total{status="success"}[5m]))
+          /
+          sum by (job_type) (rate(cmdb_etl_jobs_total[5m])) * 100
+
+# Remote write configuration (for long-term storage)
+remote_write:
+  - url: '${REMOTE_WRITE_URL}'
+    queue_config:
+      capacity: 10000
+      max_shards: 50
+      min_shards: 1
+      max_samples_per_send: 5000
+      batch_send_deadline: 5s
+      min_backoff: 30ms
+      max_backoff: 100ms
+    # Optional: write only specific metrics to remote storage
+    write_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'cmdb_.*'
+        action: keep
+
+# Storage configuration
+storage:
+  tsdb:
+    # Retention period
+    retention.time: 30d
+    # Retention size
+    retention.size: 50GB

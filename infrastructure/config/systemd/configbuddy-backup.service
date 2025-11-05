@@ -1,0 +1,55 @@
+[Unit]
+Description=ConfigBuddy Database Backup Service
+Documentation=https://github.com/configbuddy/configbuddy
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+
+# Environment variables (can also be loaded from /etc/configbuddy/backup.env)
+EnvironmentFile=-/etc/configbuddy/backup.env
+
+# Default environment variables if not set in EnvironmentFile
+Environment="BACKUP_DIR=/var/backups/configbuddy"
+Environment="BACKUP_LOG_DIR=/var/log/configbuddy/backups"
+Environment="BACKUP_RETENTION_DAILY=7"
+Environment="BACKUP_RETENTION_WEEKLY=4"
+Environment="BACKUP_RETENTION_MONTHLY=12"
+Environment="BACKUP_UPLOAD_ENABLED=false"
+Environment="BACKUP_NOTIFICATION_ENABLED=false"
+Environment="POSTGRES_HOST=localhost"
+Environment="POSTGRES_PORT=5432"
+Environment="POSTGRES_DATABASE=cmdb"
+Environment="POSTGRES_USER=cmdb_user"
+Environment="NEO4J_CONTAINER=cmdb-neo4j"
+Environment="NEO4J_DATABASE=cmdb"
+Environment="NEO4J_USERNAME=neo4j"
+
+# Working directory
+WorkingDirectory=/opt/configbuddy/infrastructure/scripts
+
+# Execute backup script
+ExecStart=/opt/configbuddy/infrastructure/scripts/backup-all.sh
+
+# Logging
+StandardOutput=append:/var/log/configbuddy/backups/backup.log
+StandardError=append:/var/log/configbuddy/backups/backup-error.log
+
+# Restart policy
+Restart=no
+
+# Security settings
+# Run with minimal privileges
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Resource limits
+CPUQuota=50%
+MemoryLimit=2G
+TasksMax=50
+
+[Install]
+WantedBy=multi-user.target

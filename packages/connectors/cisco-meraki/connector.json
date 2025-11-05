@@ -1,0 +1,201 @@
+{
+  "type": "cisco_meraki",
+  "category": "connector",
+  "connector_category": "network",
+  "icon": "cisco-meraki",
+  "name": "Cisco Meraki Dashboard",
+  "version": "1.0.0",
+  "description": "Multi-resource integration with Cisco Meraki Dashboard API for network infrastructure discovery",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": false,
+    "bidirectional": false
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["api_key"],
+    "properties": {
+      "api_key": {
+        "type": "string",
+        "description": "Cisco Meraki Dashboard API key",
+        "format": "password"
+      },
+      "base_url": {
+        "type": "string",
+        "description": "Meraki Dashboard API base URL",
+        "default": "https://api.meraki.com/api/v1"
+      },
+      "organization_ids": {
+        "type": "array",
+        "description": "Specific organization IDs to discover (leave empty for all)",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "organizations",
+      "name": "Organizations",
+      "description": "Meraki organizations from /organizations endpoint",
+      "ci_type": "organization",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "include_licensing": {
+            "type": "boolean",
+            "description": "Include licensing information",
+            "default": false
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 100,
+        "rate_limit": 5
+      },
+      "field_mappings": {
+        "name": "name",
+        "url": "url",
+        "api_enabled": "api.enabled",
+        "licensing_model": "licensing.model",
+        "cloud_region": "cloud.region.name"
+      }
+    },
+    {
+      "id": "networks",
+      "name": "Networks",
+      "description": "Networks per organization from /organizations/{orgId}/networks endpoint",
+      "ci_type": "network",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "include_config_templates": {
+            "type": "boolean",
+            "description": "Include configuration template networks",
+            "default": true
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 1000,
+        "rate_limit": 5,
+        "depends_on": ["organizations"]
+      },
+      "field_mappings": {
+        "name": "name",
+        "organization_id": "organizationId",
+        "product_types": "productTypes",
+        "time_zone": "timeZone",
+        "tags": "tags",
+        "url": "url",
+        "notes": "notes",
+        "is_config_template": "isBoundToConfigTemplate",
+        "enrollment_string": "enrollmentString"
+      }
+    },
+    {
+      "id": "devices",
+      "name": "Devices",
+      "description": "Network devices from /networks/{networkId}/devices endpoint",
+      "ci_type": "network-device",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "include_offline": {
+            "type": "boolean",
+            "description": "Include offline devices",
+            "default": true
+          },
+          "device_types": {
+            "type": "array",
+            "description": "Filter by device types (wireless, switch, appliance, camera, cellularGateway, sensor)",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 1000,
+        "rate_limit": 5,
+        "depends_on": ["networks"]
+      },
+      "field_mappings": {
+        "name": "name",
+        "serial_number": "serial",
+        "mac_address": "mac",
+        "network_id": "networkId",
+        "model": "model",
+        "product_type": "productType",
+        "firmware": "firmware",
+        "address": "address",
+        "latitude": "lat",
+        "longitude": "lng",
+        "notes": "notes",
+        "tags": "tags",
+        "floor_plan_id": "floorPlanId",
+        "lan_ip": "lanIp"
+      }
+    },
+    {
+      "id": "clients",
+      "name": "Clients",
+      "description": "Connected clients from /networks/{networkId}/clients endpoint",
+      "ci_type": "endpoint",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "timespan": {
+            "type": "integer",
+            "description": "Timespan in seconds to query (max 2592000 = 30 days)",
+            "default": 86400
+          },
+          "per_page": {
+            "type": "integer",
+            "description": "Number of clients per page",
+            "default": 1000
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 1000,
+        "rate_limit": 5,
+        "depends_on": ["networks"]
+      },
+      "field_mappings": {
+        "name": "description",
+        "mac_address": "mac",
+        "ip": "ip",
+        "ip6": "ip6",
+        "user": "user",
+        "vlan": "vlan",
+        "named_vlan": "namedVlan",
+        "switchport": "switchport",
+        "device_type_prediction": "deviceTypePrediction",
+        "recent_device_serial": "recentDeviceSerial",
+        "recent_device_name": "recentDeviceName",
+        "recent_device_mac": "recentDeviceMac",
+        "os": "os",
+        "manufacturer": "manufacturer",
+        "status": "status",
+        "notes": "notes",
+        "sm_installed": "smInstalled",
+        "adaptive_policy_group": "adaptivePolicyGroup"
+      }
+    }
+  ]
+}

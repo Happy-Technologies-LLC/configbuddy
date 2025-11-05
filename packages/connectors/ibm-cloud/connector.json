@@ -1,0 +1,246 @@
+{
+  "type": "ibm-cloud",
+  "category": "connector",
+  "connector_category": "cloud",
+  "icon": "ibm-cloud",
+  "name": "IBM Cloud",
+  "version": "1.0.0",
+  "description": "Discover and manage IBM Cloud infrastructure including virtual servers, databases, storage, and networking",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": true,
+    "bidirectional": false
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["api_key", "region"],
+    "properties": {
+      "api_key": {
+        "type": "string",
+        "description": "IBM Cloud API key",
+        "format": "password"
+      },
+      "region": {
+        "type": "string",
+        "description": "IBM Cloud region (e.g., us-south, us-east, eu-de, jp-tok)",
+        "default": "us-south"
+      },
+      "resource_group_id": {
+        "type": "string",
+        "description": "Specific resource group ID (optional - discovers all if not specified)"
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "virtual_servers",
+      "name": "Virtual Server Instances",
+      "description": "IBM Cloud Virtual Server Instances (VSI) from VPC and Classic infrastructure",
+      "ci_type": "virtual-machine",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "instance_types": {
+            "type": "array",
+            "description": "Filter by instance types (e.g., cx2-2x4, mx2-4x32)",
+            "default": []
+          },
+          "status_filter": {
+            "type": "array",
+            "enum": ["running", "starting", "stopping", "stopped", "restarting", "pending", "failed"],
+            "description": "Filter by instance status",
+            "default": ["running", "starting", "stopped"]
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 100,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "name": "name",
+        "instance_id": "id",
+        "vcpus": "vcpu.count",
+        "memory_gb": "memory",
+        "image": "image.name",
+        "status": "status",
+        "ip_address": "primary_network_interface.primary_ipv4_address",
+        "zone": "zone.name",
+        "vpc_id": "vpc.id",
+        "vpc_name": "vpc.name",
+        "profile": "profile.name",
+        "boot_volume_id": "boot_volume_attachment.volume.id",
+        "created_at": "created_at",
+        "crn": "crn",
+        "resource_group": "resource_group.name",
+        "resource_group_id": "resource_group.id"
+      }
+    },
+    {
+      "id": "databases",
+      "name": "Database Instances",
+      "description": "IBM Cloud Database instances (Db2, PostgreSQL, MongoDB, Redis, Elasticsearch, etcd)",
+      "ci_type": "database",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "db_types": {
+            "type": "array",
+            "enum": ["postgresql", "mongodb", "redis", "elasticsearch", "etcd", "mysql", "enterprisedb", "messages-for-rabbitmq"],
+            "description": "Filter by database types",
+            "default": []
+          },
+          "status_filter": {
+            "type": "array",
+            "enum": ["active", "provisioning", "failed", "inactive", "removed"],
+            "description": "Filter by database status",
+            "default": ["active", "provisioning"]
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 50,
+        "rate_limit": 5
+      },
+      "field_mappings": {
+        "name": "name",
+        "service_id": "id",
+        "db_type": "type",
+        "version": "version",
+        "storage_gb": "groups[0].disk.allocation_mb",
+        "status": "state",
+        "region": "location",
+        "endpoint": "groups[0].members[0].endpoints.public.hosts[0].hostname",
+        "port": "groups[0].members[0].endpoints.public.hosts[0].port",
+        "memory_mb": "groups[0].memory.allocation_mb",
+        "cpu_count": "groups[0].cpu.allocation_count",
+        "created_at": "created_at",
+        "crn": "id",
+        "resource_group": "resource_group_name",
+        "backup_enabled": "backup_enabled",
+        "backup_location": "backup_location"
+      }
+    },
+    {
+      "id": "storage_volumes",
+      "name": "Block Storage Volumes",
+      "description": "IBM Cloud VPC Block Storage volumes",
+      "ci_type": "storage",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "profile_types": {
+            "type": "array",
+            "enum": ["general-purpose", "5iops-tier", "10iops-tier", "custom"],
+            "description": "Filter by volume profile types",
+            "default": []
+          },
+          "status_filter": {
+            "type": "array",
+            "enum": ["available", "pending", "in-use", "failed", "pending_deletion"],
+            "description": "Filter by volume status",
+            "default": ["available", "in-use"]
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 100,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "name": "name",
+        "volume_id": "id",
+        "capacity_gb": "capacity",
+        "iops": "iops",
+        "status": "status",
+        "zone": "zone.name",
+        "profile": "profile.name",
+        "encryption": "encryption",
+        "encryption_key": "encryption_key.crn",
+        "created_at": "created_at",
+        "crn": "crn",
+        "resource_group": "resource_group.name",
+        "resource_group_id": "resource_group.id",
+        "attachments": "volume_attachments",
+        "attached_instance": "volume_attachments[0].instance.name"
+      }
+    },
+    {
+      "id": "vpc_networks",
+      "name": "VPC Networks",
+      "description": "IBM Cloud Virtual Private Cloud (VPC) networks and subnets",
+      "ci_type": "network-device",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "status_filter": {
+            "type": "array",
+            "enum": ["available", "pending", "failed", "deleting"],
+            "description": "Filter by VPC status",
+            "default": ["available"]
+          },
+          "include_subnets": {
+            "type": "boolean",
+            "description": "Include subnet details for each VPC",
+            "default": true
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 50,
+        "rate_limit": 5
+      },
+      "field_mappings": {
+        "name": "name",
+        "vpc_id": "id",
+        "cidr_block": "default_network_acl.subnets[0].ipv4_cidr_block",
+        "status": "status",
+        "region": "resource_group.name",
+        "classic_access": "classic_access",
+        "default_network_acl": "default_network_acl.name",
+        "default_security_group": "default_security_group.name",
+        "default_routing_table": "default_routing_table.name",
+        "created_at": "created_at",
+        "crn": "crn",
+        "resource_group": "resource_group.name",
+        "resource_group_id": "resource_group.id",
+        "dns_resolver": "dns.resolver.servers",
+        "subnet_count": "subnets.length"
+      }
+    },
+    {
+      "id": "relationships",
+      "name": "Resource Relationships",
+      "description": "Relationships between IBM Cloud resources (VPC->Subnet, Instance->Volume, etc.)",
+      "ci_type": null,
+      "enabled_by_default": true,
+      "operations": ["extract"],
+      "configuration_schema": {
+        "properties": {
+          "relationship_types": {
+            "type": "array",
+            "enum": ["HOSTS", "USES", "CONNECTS_TO", "CONTAINS", "ATTACHED_TO"],
+            "description": "Types of relationships to extract",
+            "default": ["HOSTS", "USES", "CONNECTS_TO", "CONTAINS", "ATTACHED_TO"]
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 1000,
+        "depends_on": ["virtual_servers", "databases", "storage_volumes", "vpc_networks"]
+      }
+    }
+  ]
+}

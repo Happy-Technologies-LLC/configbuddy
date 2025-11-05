@@ -1,0 +1,306 @@
+{
+  "type": "crowdstrike",
+  "category": "connector",
+  "connector_category": "security",
+  "icon": "crowdstrike",
+  "name": "CrowdStrike Falcon",
+  "version": "1.0.0",
+  "description": "Real-time threat intelligence and endpoint protection integration with CrowdStrike Falcon",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": true,
+    "bidirectional": false
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["client_id", "client_secret", "base_url"],
+    "properties": {
+      "client_id": {
+        "type": "string",
+        "description": "CrowdStrike Falcon API client ID"
+      },
+      "client_secret": {
+        "type": "string",
+        "description": "CrowdStrike Falcon API client secret",
+        "format": "password"
+      },
+      "base_url": {
+        "type": "string",
+        "description": "CrowdStrike API base URL (e.g., https://api.crowdstrike.com)",
+        "default": "https://api.crowdstrike.com"
+      },
+      "devices": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["normal", "containment_pending", "contained", "lift_containment_pending"]
+            },
+            "default": ["normal", "containment_pending", "contained"],
+            "description": "Device status filter"
+          },
+          "platform": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["Windows", "Mac", "Linux"]
+            },
+            "default": ["Windows", "Mac", "Linux"],
+            "description": "Platform filter"
+          }
+        }
+      },
+      "detections": {
+        "type": "object",
+        "properties": {
+          "severity": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["critical", "high", "medium", "low", "informational"]
+            },
+            "default": ["critical", "high", "medium", "low"],
+            "description": "Detection severity filter"
+          },
+          "status": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["new", "in_progress", "true_positive", "false_positive", "ignored", "closed", "reopened"]
+            },
+            "default": ["new", "in_progress", "reopened"],
+            "description": "Detection status filter"
+          }
+        }
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "devices",
+      "name": "Falcon Devices",
+      "description": "Protected endpoints (servers, workstations, virtual machines) with Falcon agent installed",
+      "ci_type": "server",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "status_filter": {
+            "type": "array",
+            "description": "Device status filter",
+            "default": ["normal", "containment_pending", "contained"]
+          },
+          "platform_filter": {
+            "type": "array",
+            "description": "Platform filter (Windows, Mac, Linux)",
+            "default": ["Windows", "Mac", "Linux"]
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 500,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "name": "hostname",
+        "status": "status",
+        "attributes.platform": "platform_name",
+        "attributes.os_version": "os_version",
+        "attributes.mac_address": "mac_address",
+        "attributes.local_ip": "local_ip",
+        "attributes.external_ip": "external_ip",
+        "attributes.agent_version": "agent_version",
+        "attributes.last_seen": "last_seen",
+        "attributes.first_seen": "first_seen",
+        "attributes.product_type": "product_type_desc",
+        "attributes.service_provider": "service_provider",
+        "attributes.service_provider_account_id": "service_provider_account_id",
+        "attributes.manufacturer": "system_manufacturer",
+        "attributes.model": "system_product_name",
+        "attributes.serial_number": "serial_number",
+        "attributes.tags": "tags",
+        "identifiers.external_id": "device_id",
+        "identifiers.serial_number": "serial_number",
+        "identifiers.mac_address": "mac_address",
+        "identifiers.ip_address": "local_ip",
+        "identifiers.hostname": "hostname",
+        "identifiers.custom_identifiers.crowdstrike_device_id": "device_id",
+        "identifiers.custom_identifiers.agent_version": "agent_version",
+        "source_id": "device_id"
+      }
+    },
+    {
+      "id": "detections",
+      "name": "Threat Detections",
+      "description": "Security threat detections and alerts from Falcon EDR",
+      "ci_type": "detection",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "severity_filter": {
+            "type": "array",
+            "description": "Detection severity filter",
+            "default": ["critical", "high", "medium", "low"]
+          },
+          "status_filter": {
+            "type": "array",
+            "description": "Detection status filter",
+            "default": ["new", "in_progress", "reopened"]
+          },
+          "days_back": {
+            "type": "number",
+            "description": "Number of days to look back for detections",
+            "default": 7
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 1000,
+        "rate_limit": 10,
+        "depends_on": ["devices"]
+      },
+      "field_mappings": {
+        "name": "detection_id",
+        "status": "status",
+        "attributes.severity": "max_severity",
+        "attributes.severity_score": "max_severity",
+        "attributes.confidence": "max_confidence",
+        "attributes.tactic": "tactic",
+        "attributes.technique": "technique",
+        "attributes.device_id": "device.device_id",
+        "attributes.hostname": "device.hostname",
+        "attributes.created_timestamp": "created_timestamp",
+        "attributes.last_behavior": "last_behavior",
+        "attributes.behaviors_count": "behaviors",
+        "identifiers.external_id": "detection_id",
+        "identifiers.custom_identifiers.crowdstrike_detection_id": "detection_id",
+        "identifiers.custom_identifiers.device_id": "device.device_id",
+        "source_id": "detection_id",
+        "confidence_score": "max_confidence"
+      }
+    },
+    {
+      "id": "vulnerabilities",
+      "name": "Software Vulnerabilities",
+      "description": "CVE vulnerabilities discovered by Falcon Spotlight",
+      "ci_type": "vulnerability",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "severity_filter": {
+            "type": "array",
+            "description": "Vulnerability severity filter",
+            "default": ["critical", "high", "medium"]
+          },
+          "exploit_status_filter": {
+            "type": "array",
+            "description": "Exploit status filter",
+            "default": ["EXPLOITED_IN_THE_WILD", "WEAPONIZED", "PUBLIC_POC"]
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 500,
+        "rate_limit": 5,
+        "depends_on": ["devices"]
+      },
+      "field_mappings": {
+        "name": "cve.id",
+        "status": "status",
+        "attributes.cve_id": "cve.id",
+        "attributes.description": "cve.description",
+        "attributes.severity": "cve.severity",
+        "attributes.base_score": "cve.base_score",
+        "attributes.exploit_status": "cve.exploit_status",
+        "attributes.exploit_rating": "cve.exprt_rating",
+        "attributes.device_id": "aid",
+        "attributes.affected_software": "apps",
+        "attributes.created_timestamp": "created_timestamp",
+        "attributes.updated_timestamp": "updated_timestamp",
+        "identifiers.external_id": "id",
+        "identifiers.custom_identifiers.cve_id": "cve.id",
+        "identifiers.custom_identifiers.device_id": "aid",
+        "source_id": "id"
+      }
+    },
+    {
+      "id": "incidents",
+      "name": "Security Incidents",
+      "description": "Security incidents containing related detections",
+      "ci_type": "incident",
+      "enabled_by_default": false,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "status_filter": {
+            "type": "array",
+            "description": "Incident status filter",
+            "default": ["new", "in_progress", "reopened"]
+          },
+          "severity_filter": {
+            "type": "array",
+            "description": "Incident severity filter",
+            "default": ["critical", "high", "medium"]
+          },
+          "days_back": {
+            "type": "number",
+            "description": "Number of days to look back for incidents",
+            "default": 30
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 100,
+        "rate_limit": 5,
+        "depends_on": ["detections"]
+      },
+      "field_mappings": {
+        "name": "name",
+        "status": "status",
+        "attributes.description": "description",
+        "attributes.assigned_to": "assigned_to",
+        "attributes.assigned_to_name": "assigned_to_name",
+        "attributes.severity": "severity",
+        "attributes.severity_score": "severity",
+        "attributes.tactics": "tactics",
+        "attributes.techniques": "techniques",
+        "attributes.hosts": "hosts",
+        "attributes.created": "created",
+        "attributes.modified": "modified_timestamp",
+        "attributes.start": "start",
+        "attributes.end": "end",
+        "identifiers.external_id": "incident_id",
+        "identifiers.custom_identifiers.crowdstrike_incident_id": "incident_id",
+        "source_id": "incident_id"
+      }
+    },
+    {
+      "id": "relationships",
+      "name": "Security Relationships",
+      "description": "Relationships between detections, vulnerabilities, incidents, and devices",
+      "ci_type": null,
+      "enabled_by_default": true,
+      "operations": ["extract"],
+      "configuration_schema": {
+        "properties": {}
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 10000,
+        "depends_on": ["devices", "detections", "vulnerabilities", "incidents"]
+      },
+      "field_mappings": {}
+    }
+  ]
+}

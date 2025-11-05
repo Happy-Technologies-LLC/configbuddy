@@ -1,0 +1,244 @@
+{
+  "type": "openshift",
+  "category": "connector",
+  "connector_category": "container-orchestration",
+  "icon": "openshift",
+  "name": "Red Hat OpenShift",
+  "version": "1.0.0",
+  "description": "Enterprise Kubernetes platform for managing clusters, projects, and containerized applications",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": true,
+    "bidirectional": true
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["api_url"],
+    "properties": {
+      "api_url": {
+        "type": "string",
+        "description": "OpenShift API server URL (e.g., https://api.openshift.example.com:6443)"
+      },
+      "token": {
+        "type": "string",
+        "description": "Service account token for authentication",
+        "format": "password"
+      },
+      "username": {
+        "type": "string",
+        "description": "Username for basic authentication (optional, if not using token)"
+      },
+      "password": {
+        "type": "string",
+        "description": "Password for basic authentication (optional, if not using token)",
+        "format": "password"
+      },
+      "verify_ssl": {
+        "type": "boolean",
+        "default": true,
+        "description": "Enable SSL certificate verification"
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "clusters",
+      "name": "OpenShift Clusters",
+      "description": "OpenShift cluster infrastructure and metadata",
+      "ci_type": "container-platform",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "include_metrics": {
+            "type": "boolean",
+            "default": true,
+            "description": "Include cluster-level metrics (CPU, memory, pod count)"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 100,
+        "rate_limit": 5
+      },
+      "field_mappings": {
+        "name": "metadata.name",
+        "version": "status.desired.version",
+        "api_url": "status.apiServerURL",
+        "node_count": "status.nodeCount",
+        "status": "status.conditions[?type=='Available'].status",
+        "cluster_id": "spec.clusterID",
+        "platform": "status.platform",
+        "infrastructure_name": "status.infrastructureName",
+        "created_at": "metadata.creationTimestamp",
+        "updated_at": "metadata.resourceVersion"
+      }
+    },
+    {
+      "id": "nodes",
+      "name": "Cluster Nodes",
+      "description": "Physical or virtual nodes in the OpenShift cluster",
+      "ci_type": "server",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "node_selector": {
+            "type": "string",
+            "description": "Kubernetes label selector to filter nodes (e.g., node-role.kubernetes.io/worker=)",
+            "default": ""
+          },
+          "include_taints": {
+            "type": "boolean",
+            "default": true,
+            "description": "Include node taints and tolerations"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 500,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "name": "metadata.name",
+        "node_type": "metadata.labels['node-role.kubernetes.io/worker']",
+        "cpu": "status.capacity.cpu",
+        "memory": "status.capacity.memory",
+        "pods": "status.capacity.pods",
+        "os": "status.nodeInfo.osImage",
+        "kernel_version": "status.nodeInfo.kernelVersion",
+        "kubelet_version": "status.nodeInfo.kubeletVersion",
+        "container_runtime": "status.nodeInfo.containerRuntimeVersion",
+        "ip_address": "status.addresses[?type=='InternalIP'].address",
+        "hostname": "status.addresses[?type=='Hostname'].address",
+        "architecture": "status.nodeInfo.architecture",
+        "machine_id": "status.nodeInfo.machineID",
+        "status": "status.conditions[?type=='Ready'].status",
+        "created_at": "metadata.creationTimestamp",
+        "labels": "metadata.labels",
+        "taints": "spec.taints"
+      }
+    },
+    {
+      "id": "projects",
+      "name": "Projects (Namespaces)",
+      "description": "OpenShift projects and Kubernetes namespaces for organizing resources",
+      "ci_type": "container-namespace",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load", "sync_to_source"],
+      "configuration_schema": {
+        "properties": {
+          "exclude_system": {
+            "type": "boolean",
+            "default": true,
+            "description": "Exclude system namespaces (openshift-*, kube-*, default)"
+          },
+          "label_selector": {
+            "type": "string",
+            "description": "Kubernetes label selector to filter projects",
+            "default": ""
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 1000,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "name": "metadata.name",
+        "display_name": "metadata.annotations['openshift.io/display-name']",
+        "description": "metadata.annotations['openshift.io/description']",
+        "requester": "metadata.annotations['openshift.io/requester']",
+        "status": "status.phase",
+        "node_selector": "metadata.annotations['openshift.io/node-selector']",
+        "sa_annotations": "metadata.annotations['openshift.io/sa.scc.mcs']",
+        "uid": "metadata.uid",
+        "created_at": "metadata.creationTimestamp",
+        "labels": "metadata.labels",
+        "finalizers": "metadata.finalizers"
+      }
+    },
+    {
+      "id": "deployments",
+      "name": "Application Deployments",
+      "description": "Kubernetes Deployments managing containerized applications",
+      "ci_type": "application",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load", "sync_to_source"],
+      "configuration_schema": {
+        "properties": {
+          "namespace_filter": {
+            "type": "string",
+            "description": "Comma-separated list of namespaces to include (empty = all)",
+            "default": ""
+          },
+          "label_selector": {
+            "type": "string",
+            "description": "Kubernetes label selector to filter deployments",
+            "default": ""
+          },
+          "include_replicas": {
+            "type": "boolean",
+            "default": true,
+            "description": "Include replica set and pod details"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 500,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "name": "metadata.name",
+        "namespace": "metadata.namespace",
+        "replicas": "spec.replicas",
+        "replicas_available": "status.availableReplicas",
+        "replicas_ready": "status.readyReplicas",
+        "replicas_updated": "status.updatedReplicas",
+        "image": "spec.template.spec.containers[0].image",
+        "container_name": "spec.template.spec.containers[0].name",
+        "strategy": "spec.strategy.type",
+        "revision": "metadata.annotations['deployment.kubernetes.io/revision']",
+        "status": "status.conditions[?type=='Available'].status",
+        "selector": "spec.selector.matchLabels",
+        "created_at": "metadata.creationTimestamp",
+        "updated_at": "metadata.resourceVersion",
+        "labels": "metadata.labels",
+        "annotations": "metadata.annotations"
+      }
+    },
+    {
+      "id": "relationships",
+      "name": "Resource Relationships",
+      "description": "Relationships between OpenShift resources (node-to-cluster, pod-to-node, deployment-to-project)",
+      "ci_type": null,
+      "enabled_by_default": true,
+      "operations": ["extract"],
+      "configuration_schema": {
+        "properties": {
+          "relationship_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["HOSTS", "RUNS_ON", "BELONGS_TO", "MANAGES", "DEPENDS_ON"]
+            },
+            "default": ["HOSTS", "RUNS_ON", "BELONGS_TO", "MANAGES"],
+            "description": "Types of relationships to extract"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 10000,
+        "depends_on": ["clusters", "nodes", "projects", "deployments"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,214 @@
+{
+  "id": "proxmox",
+  "category": "connector",
+  "connector_category": "virtualization",
+  "name": "Proxmox VE",
+  "version": "1.0.0",
+  "type": "proxmox",
+  "description": "Virtualization platform integration for Proxmox VE - discovers and syncs QEMU VMs, LXC containers, cluster nodes, storage pools, and virtual networks via Proxmox API",
+    "provider": "proxmox",
+  "protocol": "proxmox",
+  "logo_url": "https://www.proxmox.com/images/proxmox/Proxmox_logo_standard_hex_400px.png",
+  "documentation_url": "https://pve.proxmox.com/pve-docs/",
+  "resources": [
+    {
+      "id": "proxmox-vm",
+      "name": "Proxmox QEMU VM",
+      "type": "virtual-machine",
+      "description": "Proxmox QEMU/KVM virtual machines",
+      "field_mappings": {
+        "name": "config.name",
+        "external_id": "_external_id",
+        "vmid": "vmid",
+        "node": "node",
+        "status": "_status_from_state",
+        "is_template": "config.template",
+        "cpu_sockets": "config.sockets",
+        "cpu_cores": "config.cores",
+        "cpu_total": "_cpu_total",
+        "memory_mb": "config.memory",
+        "os_type": "config.ostype",
+        "guest_agent_enabled": "_guest_agent_enabled",
+        "network_adapters": "_network_adapters_metadata",
+        "ip_addresses": "_ip_addresses_from_interfaces",
+        "disks": "_disks_metadata",
+        "tags": "_tags_array",
+        "description": "config.description",
+        "ha_managed": "_ha_managed",
+        "uptime": "uptime"
+      }
+    },
+    {
+      "id": "proxmox-lxc",
+      "name": "Proxmox LXC Container",
+      "type": "container",
+      "description": "Proxmox LXC containers",
+      "field_mappings": {
+        "name": "config.hostname",
+        "external_id": "_external_id",
+        "vmid": "vmid",
+        "node": "node",
+        "status": "_status_from_state",
+        "is_template": "config.template",
+        "cpu_cores": "config.cores",
+        "memory_mb": "config.memory",
+        "swap_mb": "config.swap",
+        "hostname": "config.hostname",
+        "os_type": "config.ostype",
+        "arch": "config.arch",
+        "rootfs": "config.rootfs",
+        "unprivileged": "config.unprivileged",
+        "network_config": "_network_config_metadata",
+        "tags": "_tags_array",
+        "description": "config.description",
+        "ha_managed": "_ha_managed",
+        "uptime": "uptime"
+      }
+    },
+    {
+      "id": "proxmox-node",
+      "name": "Proxmox Node",
+      "type": "server",
+      "description": "Proxmox cluster nodes",
+      "field_mappings": {
+        "name": "node",
+        "external_id": "node",
+        "status": "_status_from_state",
+        "pve_version": "version",
+        "pve_release": "release",
+        "cpu_count": "maxcpu",
+        "cpu_usage": "cpu",
+        "memory_bytes": "maxmem",
+        "memory_used_bytes": "mem",
+        "disk_bytes": "maxdisk",
+        "disk_used_bytes": "disk",
+        "uptime": "uptime",
+        "kernel_version": "kversion",
+        "loadavg": "loadavg"
+      }
+    },
+    {
+      "id": "proxmox-storage",
+      "name": "Proxmox Storage",
+      "type": "storage",
+      "description": "Proxmox storage pools",
+      "field_mappings": {
+        "name": "storage_id",
+        "external_id": "_external_id",
+        "node": "node",
+        "status": "_status_from_active",
+        "type": "type",
+        "content_types": "_content_types_array",
+        "active": "active",
+        "enabled": "enabled",
+        "shared": "shared",
+        "total_bytes": "total_bytes",
+        "used_bytes": "used_bytes",
+        "available_bytes": "available_bytes",
+        "usage_percent": "usage_percent"
+      }
+    },
+    {
+      "id": "proxmox-network",
+      "name": "Proxmox Network",
+      "type": "network-device",
+      "description": "Proxmox virtual networks and bridges",
+      "field_mappings": {
+        "name": "_network_name",
+        "external_id": "_external_id",
+        "iface": "iface",
+        "node": "node",
+        "status": "_status_from_active",
+        "type": "type",
+        "active": "active",
+        "autostart": "autostart",
+        "address": "address",
+        "netmask": "netmask",
+        "gateway": "gateway",
+        "bridge_ports": "bridge_ports",
+        "bridge_vlan_aware": "bridge_vlan_aware",
+        "vlan_id": "vlan_id",
+        "bond_mode": "bond_mode"
+      }
+    }
+  ],
+  "authentication": {
+    "required": true,
+    "methods": [
+      "proxmox"
+    ],
+    "fields": [
+      {
+        "name": "api_url",
+        "label": "Proxmox API URL",
+        "type": "string",
+        "required": true,
+        "description": "Proxmox VE API URL (e.g., https://proxmox.example.com:8006)"
+      },
+      {
+        "name": "username",
+        "label": "Username",
+        "type": "string",
+        "required": true,
+        "description": "Proxmox username with realm (e.g., root@pam or user@pve)"
+      },
+      {
+        "name": "password",
+        "label": "Password",
+        "type": "string",
+        "required": false,
+        "sensitive": true,
+        "description": "Proxmox password (for ticket-based auth)"
+      },
+      {
+        "name": "token_id",
+        "label": "API Token ID",
+        "type": "string",
+        "required": false,
+        "description": "API token identifier (for token-based auth)"
+      },
+      {
+        "name": "token_secret",
+        "label": "API Token Secret",
+        "type": "string",
+        "required": false,
+        "sensitive": true,
+        "description": "API token secret (for token-based auth)"
+      },
+      {
+        "name": "verify_ssl",
+        "label": "Verify SSL",
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Verify SSL certificate"
+      }
+    ]
+  },
+  "capabilities": {
+    "discovery": true,
+    "sync": false,
+    "real_time": false,
+    "incremental": false
+  },
+  "rate_limits": {
+    "requests_per_second": 10,
+    "requests_per_minute": 500,
+    "requests_per_hour": 10000
+  },
+  "supported_operations": [
+    "discover_virtual_machines",
+    "discover_containers",
+    "discover_nodes",
+    "discover_storage",
+    "discover_networks"
+  ],
+  "default_schedule": "0 */3 * * *",
+  "tags": [
+    "infrastructure",
+    "proxmox",
+    "virtualization",
+    "containers",
+    "open-source"
+  ]
+}

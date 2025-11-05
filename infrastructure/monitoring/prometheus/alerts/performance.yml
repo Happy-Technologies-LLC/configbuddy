@@ -1,0 +1,234 @@
+groups:
+  - name: performance_alerts
+    interval: 30s
+    rules:
+      # API Response Time
+      - alert: APIResponseTimeSlow
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="api-server"}[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+          component: api-server
+          runbook: performance-degradation
+        annotations:
+          summary: "API response time degraded"
+          description: "95th percentile API response time is {{ $value }}s on {{ $labels.instance }}"
+          impact: "Users experiencing slow API responses"
+          action: "Check database query performance, CPU usage, and application logs"
+
+      - alert: APIResponseTimeCritical
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="api-server"}[5m])) > 3
+        for: 2m
+        labels:
+          severity: critical
+          component: api-server
+          runbook: performance-degradation
+        annotations:
+          summary: "API response time critically slow"
+          description: "95th percentile API response time is {{ $value }}s on {{ $labels.instance }}"
+          impact: "API nearly unusable. User experience severely degraded."
+          action: "Immediate investigation required. Check for database issues, resource exhaustion."
+
+      # GraphQL Query Performance
+      - alert: GraphQLQuerySlow
+        expr: histogram_quantile(0.95, rate(graphql_query_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          component: api-server
+          runbook: performance-degradation
+        annotations:
+          summary: "GraphQL queries running slow"
+          description: "95th percentile GraphQL query time is {{ $value }}s"
+          impact: "Dashboard and UI performance degraded"
+          action: "Check for expensive queries, missing indexes, or N+1 query problems"
+
+      # Database Query Performance
+      - alert: DatabaseQuerySlow
+        expr: histogram_quantile(0.95, rate(database_query_duration_seconds_bucket[5m])) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          component: database
+          runbook: performance-degradation
+        annotations:
+          summary: "Database queries running slow"
+          description: "95th percentile database query time is {{ $value }}s for {{ $labels.database }}"
+          impact: "Application performance degraded"
+          action: "Check slow query logs, analyze execution plans, consider adding indexes"
+
+      - alert: Neo4jQuerySlow
+        expr: histogram_quantile(0.95, rate(neo4j_query_duration_seconds_bucket[5m])) > 1
+        for: 10m
+        labels:
+          severity: warning
+          component: neo4j
+          runbook: performance-degradation
+        annotations:
+          summary: "Neo4j queries running slow"
+          description: "95th percentile Neo4j query time is {{ $value }}s"
+          impact: "CI queries and relationship traversals degraded"
+          action: "Check query plans, consider adding indexes on frequently queried properties"
+
+      # CPU Usage
+      - alert: HighCPUUsage
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: infrastructure
+          runbook: performance-degradation
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+          impact: "System performance degraded. May lead to timeouts."
+          action: "Check for runaway processes, scale horizontally, or optimize CPU-intensive operations"
+
+      - alert: CriticalCPUUsage
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 95
+        for: 2m
+        labels:
+          severity: critical
+          component: infrastructure
+          runbook: performance-degradation
+        annotations:
+          summary: "Critical CPU usage"
+          description: "CPU usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+          impact: "System may become unresponsive. Immediate action required."
+          action: "Identify and kill runaway processes or add compute capacity immediately"
+
+      # Memory Usage
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          component: infrastructure
+          runbook: high-memory-usage
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+          impact: "System may start swapping. Performance will degrade."
+          action: "Check for memory leaks, restart services if necessary, or scale up"
+
+      - alert: CriticalMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.95
+        for: 2m
+        labels:
+          severity: critical
+          component: infrastructure
+          runbook: high-memory-usage
+        annotations:
+          summary: "Critical memory usage"
+          description: "Memory usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+          impact: "OOM killer may terminate processes. System instability imminent."
+          action: "Immediate action: identify memory-hungry processes, restart services, add capacity"
+
+      # Disk Usage
+      - alert: HighDiskUsage
+        expr: (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|fuse.lxcfs"} / node_filesystem_size_bytes{fstype!~"tmpfs|fuse.lxcfs"})) > 0.80
+        for: 5m
+        labels:
+          severity: warning
+          component: infrastructure
+          runbook: performance-degradation
+        annotations:
+          summary: "High disk usage detected"
+          description: "Disk usage is {{ $value | humanizePercentage }} on {{ $labels.instance }} ({{ $labels.mountpoint }})"
+          impact: "Disk may fill up. Writes may start failing."
+          action: "Clean up old logs, archives, or temp files. Consider expanding storage."
+
+      - alert: CriticalDiskUsage
+        expr: (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|fuse.lxcfs"} / node_filesystem_size_bytes{fstype!~"tmpfs|fuse.lxcfs"})) > 0.90
+        for: 2m
+        labels:
+          severity: critical
+          component: infrastructure
+          runbook: performance-degradation
+        annotations:
+          summary: "Critical disk usage"
+          description: "Disk usage is {{ $value | humanizePercentage }} on {{ $labels.instance }} ({{ $labels.mountpoint }})"
+          impact: "Disk nearly full. Database writes and logs will fail."
+          action: "Immediate cleanup required. Delete unnecessary files or expand storage now."
+
+      # Disk I/O
+      - alert: HighDiskIOWait
+        expr: rate(node_cpu_seconds_total{mode="iowait"}[5m]) > 0.3
+        for: 10m
+        labels:
+          severity: warning
+          component: infrastructure
+          runbook: performance-degradation
+        annotations:
+          summary: "High disk I/O wait time"
+          description: "I/O wait is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+          impact: "Disk bottleneck affecting application performance"
+          action: "Check disk utilization, optimize queries, or move to faster storage"
+
+      # Network Performance
+      - alert: HighNetworkErrors
+        expr: rate(node_network_receive_errs_total[5m]) + rate(node_network_transmit_errs_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: infrastructure
+          runbook: performance-degradation
+        annotations:
+          summary: "High network error rate"
+          description: "Network errors at {{ $value }} errors/sec on {{ $labels.instance }} ({{ $labels.device }})"
+          impact: "Network connectivity issues. Packet loss possible."
+          action: "Check network hardware, cables, and switch configuration"
+
+      # Container Resource Limits
+      - alert: ContainerCPUThrottling
+        expr: rate(container_cpu_cfs_throttled_seconds_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: kubernetes
+          runbook: performance-degradation
+        annotations:
+          summary: "Container CPU throttling detected"
+          description: "Container {{ $labels.container }} is being CPU throttled {{ $value | humanizePercentage }}"
+          impact: "Application performance degraded due to CPU limits"
+          action: "Increase CPU limits or optimize CPU usage"
+
+      - alert: ContainerMemoryNearLimit
+        expr: container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: kubernetes
+          runbook: high-memory-usage
+        annotations:
+          summary: "Container near memory limit"
+          description: "Container {{ $labels.container }} using {{ $value | humanizePercentage }} of memory limit"
+          impact: "Container may be OOM killed"
+          action: "Increase memory limits or investigate memory leak"
+
+      # API Error Rate
+      - alert: HighAPIErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          component: api-server
+          runbook: performance-degradation
+        annotations:
+          summary: "High API error rate"
+          description: "API error rate is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+          impact: "Users experiencing frequent errors"
+          action: "Check application logs for error patterns and fix underlying issues"
+
+      - alert: CriticalAPIErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.20
+        for: 2m
+        labels:
+          severity: critical
+          component: api-server
+          runbook: performance-degradation
+        annotations:
+          summary: "Critical API error rate"
+          description: "API error rate is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+          impact: "API mostly failing. Major service degradation."
+          action: "Immediate investigation and rollback if recent deployment"

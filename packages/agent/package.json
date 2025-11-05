@@ -1,0 +1,37 @@
+{
+  "name": "@cmdb/agent",
+  "version": "1.0.0",
+  "description": "Lightweight discovery agent for CMDB platform",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "cmdb-agent": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "test": "jest"
+  },
+  "keywords": [
+    "cmdb",
+    "discovery",
+    "agent",
+    "monitoring"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@cmdb/common": "*",
+    "axios": "^1.6.0",
+    "node-schedule": "^2.1.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.0.0",
+    "@types/node-schedule": "^2.1.5",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.4.5",
+    "typescript": "^5.0.0"
+  }
+}

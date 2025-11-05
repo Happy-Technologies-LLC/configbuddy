@@ -1,0 +1,34 @@
+{
+  "name": "@cmdb/connector-rubrik",
+  "version": "1.0.0",
+  "description": "Rubrik CDM connector for ConfigBuddy CMDB",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "keywords": [
+    "cmdb",
+    "rubrik",
+    "backup",
+    "data-protection",
+    "disaster-recovery",
+    "cdm",
+    "cloud-data-management"
+  ],
+  "author": "ConfigBuddy",
+  "license": "MIT",
+  "dependencies": {
+    "@cmdb/common": "workspace:*",
+    "@cmdb/integration-framework": "workspace:*",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0"
+  }
+}

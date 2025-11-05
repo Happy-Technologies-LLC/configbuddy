@@ -1,0 +1,281 @@
+{
+  "type": "lansweeper",
+  "category": "connector",
+  "connector_category": "asset-management",
+  "icon": "lansweeper",
+  "name": "Lansweeper Asset Manager",
+  "version": "1.0.0",
+  "description": "Network-based asset discovery and IT inventory integration with Lansweeper platform",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": true,
+    "bidirectional": false
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["api_url", "api_key"],
+    "properties": {
+      "api_url": {
+        "type": "string",
+        "description": "Lansweeper API URL (e.g., https://api.lansweeper.com or https://your-server.com/api)"
+      },
+      "api_key": {
+        "type": "string",
+        "description": "Lansweeper API authentication key",
+        "format": "password"
+      },
+      "site_id": {
+        "type": "string",
+        "description": "Specific Lansweeper site ID to scan (optional - if not specified, all sites will be scanned)"
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "servers",
+      "name": "Servers",
+      "description": "Windows and Linux servers discovered by Lansweeper",
+      "ci_type": "server",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "filter_os_type": {
+            "type": "string",
+            "enum": ["all", "windows", "linux"],
+            "default": "all",
+            "description": "Filter servers by operating system type"
+          },
+          "include_offline": {
+            "type": "boolean",
+            "default": false,
+            "description": "Include offline/inactive servers"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 500,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "name": "AssetBasicInfo.AssetName",
+        "ip_address": "AssetBasicInfo.IPAddress",
+        "mac_address": "AssetBasicInfo.MACAddress",
+        "domain": "AssetBasicInfo.Domain",
+        "os": "OperatingSystem.Caption",
+        "os_version": "OperatingSystem.Version",
+        "manufacturer": "AssetBasicInfo.Manufacturer",
+        "model": "AssetBasicInfo.Model",
+        "serial_number": "AssetBasicInfo.SerialNumber",
+        "asset_type": "AssetBasicInfo.Type",
+        "cpu_name": "Processor.Name",
+        "cpu_count": "Processor.NumberOfCores",
+        "ram_mb": "Memory.TotalPhysical",
+        "disk_size_gb": "DiskDrive.Size",
+        "last_seen": "AssetBasicInfo.LastSeen",
+        "scan_time": "AssetBasicInfo.ScanTime",
+        "uptime_seconds": "AssetBasicInfo.Uptime",
+        "description": "AssetBasicInfo.Description",
+        "location": "AssetBasicInfo.Location"
+      }
+    },
+    {
+      "id": "workstations",
+      "name": "Workstations",
+      "description": "Desktop and laptop computers discovered by Lansweeper",
+      "ci_type": "workstation",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "filter_device_type": {
+            "type": "string",
+            "enum": ["all", "desktop", "laptop"],
+            "default": "all",
+            "description": "Filter workstations by device type"
+          },
+          "include_offline": {
+            "type": "boolean",
+            "default": false,
+            "description": "Include offline/inactive workstations"
+          },
+          "min_last_seen_days": {
+            "type": "number",
+            "default": 90,
+            "description": "Only include workstations seen within this many days"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 1000,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "name": "AssetBasicInfo.AssetName",
+        "ip_address": "AssetBasicInfo.IPAddress",
+        "mac_address": "AssetBasicInfo.MACAddress",
+        "user": "AssetBasicInfo.UserName",
+        "domain": "AssetBasicInfo.Domain",
+        "os": "OperatingSystem.Caption",
+        "os_version": "OperatingSystem.Version",
+        "os_serial": "OperatingSystem.SerialNumber",
+        "manufacturer": "AssetBasicInfo.Manufacturer",
+        "model": "AssetBasicInfo.Model",
+        "serial_number": "AssetBasicInfo.SerialNumber",
+        "asset_type": "AssetBasicInfo.Type",
+        "chassis_type": "SystemEnclosure.ChassisType",
+        "cpu_name": "Processor.Name",
+        "cpu_count": "Processor.NumberOfCores",
+        "ram_mb": "Memory.TotalPhysical",
+        "disk_size_gb": "DiskDrive.Size",
+        "bios_version": "BIOS.Version",
+        "bios_date": "BIOS.ReleaseDate",
+        "last_seen": "AssetBasicInfo.LastSeen",
+        "scan_time": "AssetBasicInfo.ScanTime",
+        "first_seen": "AssetBasicInfo.FirstSeen",
+        "last_logged_on_user": "AssetBasicInfo.LastLoggedUser",
+        "location": "AssetBasicInfo.Location",
+        "description": "AssetBasicInfo.Description"
+      }
+    },
+    {
+      "id": "network_devices",
+      "name": "Network Devices",
+      "description": "Network equipment (switches, routers, firewalls) discovered by Lansweeper",
+      "ci_type": "network-device",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "filter_device_type": {
+            "type": "string",
+            "enum": ["all", "switch", "router", "firewall", "access_point", "other"],
+            "default": "all",
+            "description": "Filter network devices by type"
+          },
+          "include_offline": {
+            "type": "boolean",
+            "default": false,
+            "description": "Include offline/unreachable network devices"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 500,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "name": "AssetBasicInfo.AssetName",
+        "ip_address": "AssetBasicInfo.IPAddress",
+        "mac_address": "AssetBasicInfo.MACAddress",
+        "device_type": "AssetBasicInfo.Type",
+        "manufacturer": "AssetBasicInfo.Manufacturer",
+        "model": "AssetBasicInfo.Model",
+        "serial_number": "AssetBasicInfo.SerialNumber",
+        "firmware_version": "NetworkDevice.FirmwareVersion",
+        "os_version": "NetworkDevice.OSVersion",
+        "location": "AssetBasicInfo.Location",
+        "description": "AssetBasicInfo.Description",
+        "uptime_seconds": "AssetBasicInfo.Uptime",
+        "last_seen": "AssetBasicInfo.LastSeen",
+        "scan_time": "AssetBasicInfo.ScanTime",
+        "snmp_enabled": "NetworkDevice.SNMPEnabled",
+        "snmp_version": "NetworkDevice.SNMPVersion",
+        "port_count": "NetworkDevice.PortCount",
+        "vlan_count": "NetworkDevice.VLANCount",
+        "management_ip": "NetworkDevice.ManagementIP"
+      }
+    },
+    {
+      "id": "software",
+      "name": "Software Inventory",
+      "description": "Installed software inventory discovered by Lansweeper",
+      "ci_type": "application",
+      "enabled_by_default": false,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "exclude_updates": {
+            "type": "boolean",
+            "default": true,
+            "description": "Exclude Windows updates and patches from software inventory"
+          },
+          "exclude_components": {
+            "type": "boolean",
+            "default": true,
+            "description": "Exclude software components and runtime libraries"
+          },
+          "min_install_count": {
+            "type": "number",
+            "default": 1,
+            "description": "Only include software installed on at least this many assets"
+          },
+          "filter_vendor": {
+            "type": "string",
+            "description": "Filter software by vendor name (optional)"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 2000,
+        "rate_limit": 5
+      },
+      "field_mappings": {
+        "name": "Software.Name",
+        "version": "Software.Version",
+        "vendor": "Software.Publisher",
+        "install_date": "Software.InstallDate",
+        "install_location": "Software.InstallLocation",
+        "install_source": "Software.InstallSource",
+        "product_code": "Software.ProductCode",
+        "package_code": "Software.PackageCode",
+        "uninstall_string": "Software.UninstallString",
+        "size_mb": "Software.EstimatedSize",
+        "language": "Software.Language",
+        "install_count": "Software.InstallCount",
+        "asset_name": "AssetBasicInfo.AssetName",
+        "asset_id": "AssetBasicInfo.AssetID",
+        "last_seen": "Software.LastSeen"
+      }
+    },
+    {
+      "id": "relationships",
+      "name": "Asset Relationships",
+      "description": "Relationships between discovered assets (host-guest, network connections, software-device)",
+      "ci_type": null,
+      "enabled_by_default": true,
+      "operations": ["extract"],
+      "configuration_schema": {
+        "properties": {
+          "include_software_relationships": {
+            "type": "boolean",
+            "default": true,
+            "description": "Include software-to-device relationships (INSTALLED_ON)"
+          },
+          "include_network_relationships": {
+            "type": "boolean",
+            "default": true,
+            "description": "Include network connectivity relationships (CONNECTS_TO)"
+          },
+          "include_virtualization_relationships": {
+            "type": "boolean",
+            "default": true,
+            "description": "Include VM-to-host relationships (HOSTED_ON)"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 5000,
+        "depends_on": ["servers", "workstations", "network_devices", "software"]
+      }
+    }
+  ]
+}

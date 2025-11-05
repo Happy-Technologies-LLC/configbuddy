@@ -1,0 +1,309 @@
+{
+  "type": "defender",
+  "category": "connector",
+  "connector_category": "security",
+  "icon": "defender",
+  "name": "Microsoft Defender for Endpoint",
+  "version": "1.0.0",
+  "description": "Integration with Microsoft Defender for Endpoint for security monitoring, threat detection, and vulnerability management",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": true,
+    "bidirectional": false
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["tenant_id", "client_id", "client_secret"],
+    "properties": {
+      "tenant_id": {
+        "type": "string",
+        "description": "Azure AD tenant ID"
+      },
+      "client_id": {
+        "type": "string",
+        "description": "Azure AD application (client) ID"
+      },
+      "client_secret": {
+        "type": "string",
+        "description": "Azure AD application client secret",
+        "format": "password"
+      },
+      "machines": {
+        "type": "object",
+        "description": "Machine filtering options",
+        "properties": {
+          "health_status": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["Active", "Inactive", "ImpairedCommunication", "NoSensorData", "NoSensorDataImpairedCommunication"]
+            },
+            "default": ["Active", "Inactive", "ImpairedCommunication"],
+            "description": "Filter machines by health status"
+          },
+          "risk_score": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["None", "Informational", "Low", "Medium", "High"]
+            },
+            "default": ["None", "Informational", "Low", "Medium", "High"],
+            "description": "Filter machines by risk score"
+          }
+        }
+      },
+      "alerts": {
+        "type": "object",
+        "description": "Alert filtering options",
+        "properties": {
+          "severity": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["Unspecified", "Informational", "Low", "Medium", "High"]
+            },
+            "default": ["Low", "Medium", "High"],
+            "description": "Filter alerts by severity"
+          },
+          "status": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["New", "InProgress", "Resolved"]
+            },
+            "default": ["New", "InProgress"],
+            "description": "Filter alerts by status"
+          }
+        }
+      },
+      "vulnerabilities": {
+        "type": "object",
+        "description": "Vulnerability filtering options",
+        "properties": {
+          "severity": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["None", "Low", "Medium", "High", "Critical"]
+            },
+            "default": ["Medium", "High", "Critical"],
+            "description": "Filter vulnerabilities by severity"
+          },
+          "exploit_verified": {
+            "type": "boolean",
+            "default": false,
+            "description": "Only include vulnerabilities with verified exploits"
+          }
+        }
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "machines",
+      "name": "Protected Machines",
+      "description": "Devices protected by Microsoft Defender for Endpoint",
+      "ci_type": "server",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "health_status_filter": {
+            "type": "string",
+            "description": "OData filter for health status",
+            "default": ""
+          },
+          "risk_score_filter": {
+            "type": "string",
+            "description": "OData filter for risk score",
+            "default": ""
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 100,
+        "rate_limit": 5
+      },
+      "field_mappings": {
+        "name": "computerDnsName",
+        "source_id": "id",
+        "attributes.os_platform": "osPlatform",
+        "attributes.os_version": "osVersion",
+        "attributes.last_ip_address": "lastIpAddress",
+        "attributes.last_external_ip_address": "lastExternalIpAddress",
+        "attributes.health_status": "healthStatus",
+        "attributes.risk_score": "riskScore",
+        "attributes.exposure_level": "exposureLevel",
+        "attributes.onboarding_status": "onboardingStatus",
+        "attributes.agent_version": "agentVersion",
+        "attributes.first_seen": "firstSeen",
+        "attributes.last_seen": "lastSeen",
+        "attributes.machine_tags": "machineTags",
+        "identifiers.external_id": "id",
+        "identifiers.hostname": "computerDnsName",
+        "identifiers.ip_address": "lastIpAddress",
+        "identifiers.custom_identifiers.defender_machine_id": "id",
+        "identifiers.custom_identifiers.last_external_ip": "lastExternalIpAddress"
+      }
+    },
+    {
+      "id": "alerts",
+      "name": "Security Alerts",
+      "description": "Security alerts and threat detections from Microsoft Defender",
+      "ci_type": "alert",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "severity_filter": {
+            "type": "string",
+            "description": "OData filter for severity",
+            "default": ""
+          },
+          "status_filter": {
+            "type": "string",
+            "description": "OData filter for status",
+            "default": ""
+          },
+          "time_range_hours": {
+            "type": "number",
+            "description": "Number of hours to look back for alerts",
+            "default": 24
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 100,
+        "rate_limit": 5,
+        "depends_on": ["machines"]
+      },
+      "field_mappings": {
+        "name": "title",
+        "source_id": "id",
+        "attributes.severity": "severity",
+        "attributes.category": "category",
+        "attributes.detection_source": "detectionSource",
+        "attributes.machine_id": "machineId",
+        "attributes.investigation_state": "investigationState",
+        "attributes.created_time": "createdTime",
+        "attributes.resolved_time": "resolvedTime",
+        "attributes.classification": "classification",
+        "attributes.determination": "determination",
+        "attributes.description": "description",
+        "identifiers.external_id": "id",
+        "identifiers.custom_identifiers.defender_id": "id"
+      }
+    },
+    {
+      "id": "vulnerabilities",
+      "name": "Vulnerabilities",
+      "description": "Software vulnerabilities detected on protected devices",
+      "ci_type": "vulnerability",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "severity_filter": {
+            "type": "string",
+            "description": "OData filter for severity",
+            "default": ""
+          },
+          "exploit_verified_only": {
+            "type": "boolean",
+            "description": "Only include vulnerabilities with verified exploits",
+            "default": false
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 100,
+        "rate_limit": 5,
+        "depends_on": ["machines"]
+      },
+      "field_mappings": {
+        "name": "cveId",
+        "source_id": "id",
+        "attributes.cve_id": "cveId",
+        "attributes.severity": "severity",
+        "attributes.cvss_v3": "cvssV3",
+        "attributes.exploit_verified": "exploitVerified",
+        "attributes.exposed_machines": "exposedMachines",
+        "attributes.published_on": "publishedOn",
+        "attributes.updated_on": "updatedOn",
+        "attributes.description": "description",
+        "attributes.weaknesses": "weaknesses",
+        "identifiers.external_id": "id",
+        "identifiers.custom_identifiers.defender_id": "id"
+      }
+    },
+    {
+      "id": "software",
+      "name": "Installed Software",
+      "description": "Software inventory from protected devices",
+      "ci_type": "software",
+      "enabled_by_default": false,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "include_end_of_support": {
+            "type": "boolean",
+            "description": "Include software that has reached end of support",
+            "default": true
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 100,
+        "rate_limit": 5
+      },
+      "field_mappings": {
+        "name": "name",
+        "source_id": "id",
+        "attributes.vendor": "vendor",
+        "attributes.software_name": "name",
+        "attributes.version": "version",
+        "attributes.installed_machines": "installedMachines",
+        "attributes.weaknesses": "weaknesses",
+        "attributes.active_alerts": "activeAlerts",
+        "attributes.end_of_support_status": "endOfSupportStatus",
+        "attributes.end_of_support_date": "endOfSupportDate",
+        "identifiers.external_id": "id",
+        "identifiers.custom_identifiers.defender_id": "id"
+      }
+    },
+    {
+      "id": "relationships",
+      "name": "Defender Relationships",
+      "description": "Relationships between alerts, vulnerabilities, software, and machines",
+      "ci_type": null,
+      "enabled_by_default": true,
+      "operations": ["extract"],
+      "configuration_schema": {
+        "properties": {}
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 1000,
+        "depends_on": ["machines", "alerts", "vulnerabilities", "software"]
+      },
+      "field_mappings": {
+        "source_external_id": "id",
+        "target_external_id": "machineId",
+        "relationship_type": "DETECTED_ON|AFFECTS|INSTALLED_ON",
+        "properties.severity": "severity",
+        "properties.status": "status",
+        "properties.cvss_score": "cvssV3",
+        "properties.exploit_verified": "exploitVerified",
+        "properties.version": "version",
+        "properties.vendor": "vendor"
+      }
+    }
+  ]
+}

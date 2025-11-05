@@ -1,0 +1,106 @@
+/**
+ * Jest Configuration for E2E Tests
+ *
+ * Specialized configuration for end-to-end testing with:
+ * - Extended timeouts for Docker and service startup
+ * - Global setup and teardown
+ * - Sequential test execution (no parallelization)
+ * - Custom test environment
+ */
+
+module.exports = {
+  // Use ts-jest for TypeScript support
+  preset: 'ts-jest',
+
+  // Node environment for E2E tests
+  testEnvironment: 'node',
+
+  // Test file patterns
+  testMatch: ['**/tests/e2e/**/*.test.ts'],
+
+  // Ignore patterns
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/dist/',
+    '/build/',
+  ],
+
+  // Global setup and teardown
+  globalSetup: '<rootDir>/tests/e2e/setup.ts',
+  globalTeardown: '<rootDir>/tests/e2e/teardown.ts',
+
+  // Extended timeout for E2E tests (5 minutes default)
+  testTimeout: 300000,
+
+  // Run tests sequentially (not in parallel) to avoid Docker conflicts
+  maxWorkers: 1,
+
+  // Module path aliases
+  moduleNameMapper: {
+    '^@cmdb/common$': '<rootDir>/packages/common/src',
+    '^@cmdb/database$': '<rootDir>/packages/database/src',
+    '^@cmdb/api-server$': '<rootDir>/packages/api-server/src',
+    '^@cmdb/discovery-engine$': '<rootDir>/packages/discovery-engine/src',
+    '^@cmdb/etl-processor$': '<rootDir>/packages/etl-processor/src',
+  },
+
+  // Coverage configuration (optional for E2E)
+  collectCoverage: false, // Enable with --coverage flag
+  coverageDirectory: '<rootDir>/coverage/e2e',
+  coverageReporters: ['text', 'lcov', 'html'],
+  collectCoverageFrom: [
+    'packages/*/src/**/*.ts',
+    '!packages/*/src/**/*.test.ts',
+    '!packages/*/src/**/*.spec.ts',
+    '!**/node_modules/**',
+  ],
+
+  // Verbose output
+  verbose: true,
+
+  // Display individual test results
+  displayName: {
+    name: 'E2E',
+    color: 'cyan',
+  },
+
+  // Detect open handles (useful for debugging)
+  detectOpenHandles: false, // Enable for debugging: --detectOpenHandles
+
+  // Force exit after tests complete
+  forceExit: true,
+
+  // Reporters
+  reporters: [
+    'default',
+    [
+      'jest-junit',
+      {
+        outputDirectory: './test-results/e2e',
+        outputName: 'junit.xml',
+        classNameTemplate: '{classname}',
+        titleTemplate: '{title}',
+        ancestorSeparator: ' › ',
+        usePathForSuiteName: true,
+      },
+    ],
+  ],
+
+  // Transform TypeScript files
+  transform: {
+    '^.+\\.ts$': [
+      'ts-jest',
+      {
+        tsconfig: {
+          esModuleInterop: true,
+          allowSyntheticDefaultImports: true,
+          resolveJsonModule: true,
+          moduleResolution: 'node',
+        },
+      },
+    ],
+  },
+
+  // Setup files to run before each test file
+  setupFilesAfterEnv: ['<rootDir>/tests/e2e/jest.setup.js'],
+};

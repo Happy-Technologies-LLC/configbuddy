@@ -1,0 +1,267 @@
+{
+  "type": "sccm",
+  "category": "connector",
+  "connector_category": "endpoint-management",
+  "icon": "sccm",
+  "name": "Microsoft SCCM (Configuration Manager)",
+  "version": "1.0.0",
+  "description": "Integration with Microsoft System Center Configuration Manager (SCCM) for devices, software, collections, and updates",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": false,
+    "bidirectional": false
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["server", "database", "site_code"],
+    "properties": {
+      "server": {
+        "type": "string",
+        "description": "SCCM SQL Server FQDN (e.g., sccm-sql.example.com)"
+      },
+      "database": {
+        "type": "string",
+        "description": "ConfigMgr database name (default: CM_XXX where XXX is site code)",
+        "default": "CM_PS1"
+      },
+      "username": {
+        "type": "string",
+        "description": "SQL username (leave empty for Windows authentication)"
+      },
+      "password": {
+        "type": "string",
+        "description": "SQL password",
+        "format": "password"
+      },
+      "use_windows_auth": {
+        "type": "boolean",
+        "description": "Use Windows authentication instead of SQL authentication",
+        "default": true
+      },
+      "site_code": {
+        "type": "string",
+        "description": "SCCM site code (e.g., PS1)",
+        "default": "PS1"
+      },
+      "devices": {
+        "type": "object",
+        "description": "Device extraction settings",
+        "properties": {
+          "active_only": {
+            "type": "boolean",
+            "description": "Only extract active clients",
+            "default": true
+          },
+          "last_scan_days": {
+            "type": "number",
+            "description": "Only include devices scanned in the last N days",
+            "default": 30
+          }
+        }
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "devices",
+      "name": "Managed Devices",
+      "description": "Physical and virtual devices managed by SCCM (servers, workstations, laptops)",
+      "ci_type": "server",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "active_only": {
+            "type": "boolean",
+            "description": "Only extract devices with active SCCM client",
+            "default": true
+          },
+          "last_scan_days": {
+            "type": "number",
+            "description": "Only include devices scanned in last N days",
+            "default": 30
+          },
+          "device_types": {
+            "type": "array",
+            "description": "Filter by device types (Desktop, Laptop, Server, Virtual Machine)",
+            "items": {
+              "type": "string"
+            },
+            "default": ["Desktop", "Laptop", "Server", "Virtual Machine"]
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 1000,
+        "rate_limit": 5
+      },
+      "field_mappings": {
+        "name": "name",
+        "ci_type": "system_type",
+        "external_id": "resource_id",
+        "serial_number": "serial_number",
+        "mac_address": "mac_address",
+        "ip_address": "ip_address",
+        "hostname": "name",
+        "fqdn": "distinguished_name",
+        "resource_id": "resource_id",
+        "distinguished_name": "distinguished_name",
+        "client_version": "client_version",
+        "operating_system": "operating_system",
+        "domain": "domain",
+        "ad_site": "ad_site",
+        "manufacturer": "manufacturer",
+        "model": "model",
+        "system_type": "system_type",
+        "total_memory_gb": "total_memory_gb",
+        "processor_name": "processor_name",
+        "cpu_cores": "cpu_cores",
+        "cpu_logical_processors": "cpu_logical_processors",
+        "disk_size_gb": "disk_size_gb",
+        "os_install_date": "os_install_date",
+        "last_boot_time": "last_boot_time",
+        "last_hardware_scan": "last_hardware_scan",
+        "last_logon": "last_logon",
+        "created_date": "created_date",
+        "is_client": "is_client",
+        "is_active": "is_active",
+        "is_obsolete": "is_obsolete"
+      }
+    },
+    {
+      "id": "software_inventory",
+      "name": "Software Inventory",
+      "description": "Installed software packages discovered by SCCM software inventory",
+      "ci_type": "software",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "include_system_software": {
+            "type": "boolean",
+            "description": "Include system/OS software",
+            "default": false
+          },
+          "min_install_count": {
+            "type": "number",
+            "description": "Only include software installed on at least N devices",
+            "default": 1
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 1000,
+        "depends_on": ["devices"]
+      },
+      "field_mappings": {
+        "name": "product_name",
+        "product_name": "product_name",
+        "product_version": "product_version",
+        "publisher": "publisher",
+        "install_date": "install_date",
+        "product_id": "product_id",
+        "install_count": "install_count",
+        "device_resource_id": "device_resource_id",
+        "device_name": "device_name"
+      }
+    },
+    {
+      "id": "collections",
+      "name": "Device Collections",
+      "description": "SCCM device collections (static and dynamic)",
+      "ci_type": "collection",
+      "enabled_by_default": false,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "exclude_system_collections": {
+            "type": "boolean",
+            "description": "Exclude built-in system collections",
+            "default": true
+          },
+          "min_member_count": {
+            "type": "number",
+            "description": "Only include collections with at least N members",
+            "default": 0
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 500
+      },
+      "field_mappings": {
+        "name": "name",
+        "collection_id": "collection_id",
+        "comment": "comment",
+        "member_count": "member_count",
+        "collection_type": "collection_type",
+        "last_member_change": "last_member_change",
+        "last_refresh": "last_refresh",
+        "limiting_collection_id": "limiting_collection_id",
+        "limiting_collection_name": "limiting_collection_name",
+        "is_built_in": "is_built_in",
+        "is_reference": "is_reference",
+        "rule_count": "rule_count"
+      }
+    },
+    {
+      "id": "updates",
+      "name": "Software Updates",
+      "description": "Software updates and patch compliance status",
+      "ci_type": "update",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "deployed_only": {
+            "type": "boolean",
+            "description": "Only include deployed updates",
+            "default": false
+          },
+          "required_only": {
+            "type": "boolean",
+            "description": "Only include updates required by at least one device",
+            "default": true
+          },
+          "severity_levels": {
+            "type": "array",
+            "description": "Filter by severity (Critical, Important, Moderate, Low)",
+            "items": {
+              "type": "string"
+            },
+            "default": ["Critical", "Important"]
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 1000,
+        "depends_on": ["devices"]
+      },
+      "field_mappings": {
+        "name": "title",
+        "ci_id": "ci_id",
+        "article_id": "article_id",
+        "bulletin_id": "bulletin_id",
+        "description": "description",
+        "severity": "severity",
+        "is_deployed": "is_deployed",
+        "is_superseded": "is_superseded",
+        "is_expired": "is_expired",
+        "date_posted": "date_posted",
+        "date_revised": "date_revised",
+        "installed_count": "installed_count",
+        "required_count": "required_count",
+        "not_applicable_count": "not_applicable_count",
+        "total_devices": "total_devices",
+        "compliance_percentage": "compliance_percentage"
+      }
+    }
+  ]
+}

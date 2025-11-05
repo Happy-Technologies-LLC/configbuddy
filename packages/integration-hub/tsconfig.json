@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "composite": true,
+    "declarationMap": true
+  },
+  "include": ["src/**/*"],
+  "references": [
+    { "path": "../common" },
+    { "path": "../database" },
+    { "path": "../integration-framework" },
+    { "path": "../data-mapper" }
+  ]
+}

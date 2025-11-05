@@ -1,0 +1,58 @@
+{
+  "name": "Intune Production",
+  "type": "intune",
+  "enabled": true,
+  "schedule": "0 */6 * * *",
+  "connection": {
+    "tenant_id": "12345678-1234-1234-1234-123456789abc",
+    "client_id": "abcdef12-3456-7890-abcd-ef1234567890",
+    "client_secret": "YOUR_CLIENT_SECRET_HERE"
+  },
+  "enabled_resources": [
+    "devices",
+    "applications",
+    "compliance_policies",
+    "configuration_profiles",
+    "users"
+  ],
+  "resource_configs": {
+    "devices": {
+      "compliance_state": [
+        "compliant",
+        "inGracePeriod"
+      ],
+      "ownership": [
+        "company",
+        "personal"
+      ],
+      "last_sync_days": 30
+    },
+    "applications": {
+      "platform": [
+        "iOS",
+        "Android",
+        "Windows",
+        "macOS"
+      ]
+    },
+    "compliance_policies": {
+      "platform_type": [
+        "iOS",
+        "Android",
+        "Windows",
+        "macOS"
+      ]
+    },
+    "configuration_profiles": {
+      "platform_type": [
+        "iOS",
+        "Android",
+        "Windows",
+        "macOS"
+      ]
+    },
+    "users": {
+      "has_devices": true
+    }
+  }
+}

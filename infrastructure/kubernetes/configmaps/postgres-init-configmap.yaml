@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-scripts
+  namespace: configbuddy-cmdb
+data:
+  01-init.sql: |
+    -- Enable TimescaleDB extension
+    CREATE EXTENSION IF NOT EXISTS timescaledb;
+
+    -- Create schemas
+    CREATE SCHEMA IF NOT EXISTS datamart;
+    CREATE SCHEMA IF NOT EXISTS analytics;
+
+    -- Grant permissions
+    GRANT ALL PRIVILEGES ON SCHEMA datamart TO cmdb_user;
+    GRANT ALL PRIVILEGES ON SCHEMA analytics TO cmdb_user;
+
+    -- Create dimension tables
+    CREATE TABLE IF NOT EXISTS datamart.dim_ci_type (
+      ci_type_id SERIAL PRIMARY KEY,
+      ci_type_name VARCHAR(50) UNIQUE NOT NULL,
+      description TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS datamart.dim_environment (
+      environment_id SERIAL PRIMARY KEY,
+      environment_name VARCHAR(50) UNIQUE NOT NULL,
+      description TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS datamart.dim_status (
+      status_id SERIAL PRIMARY KEY,
+      status_name VARCHAR(50) UNIQUE NOT NULL,
+      description TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    -- Create fact tables
+    CREATE TABLE IF NOT EXISTS datamart.fact_ci (
+      ci_key SERIAL PRIMARY KEY,
+      ci_id VARCHAR(100) NOT NULL,
+      ci_type_id INTEGER REFERENCES datamart.dim_ci_type(ci_type_id),
+      environment_id INTEGER REFERENCES datamart.dim_environment(environment_id),
+      status_id INTEGER REFERENCES datamart.dim_status(status_id),
+      name VARCHAR(255),
+      discovered_at TIMESTAMP NOT NULL,
+      last_seen TIMESTAMP NOT NULL,
+      attributes JSONB,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    -- Create hypertable for time-series data
+    SELECT create_hypertable('datamart.fact_ci', 'discovered_at', if_not_exists => TRUE);
+
+    -- Create indexes
+    CREATE INDEX IF NOT EXISTS idx_fact_ci_id ON datamart.fact_ci(ci_id);
+    CREATE INDEX IF NOT EXISTS idx_fact_ci_type ON datamart.fact_ci(ci_type_id);
+    CREATE INDEX IF NOT EXISTS idx_fact_ci_environment ON datamart.fact_ci(environment_id);
+    CREATE INDEX IF NOT EXISTS idx_fact_ci_discovered_at ON datamart.fact_ci(discovered_at DESC);
+
+    -- Insert default dimension data
+    INSERT INTO datamart.dim_ci_type (ci_type_name, description) VALUES
+      ('server', 'Physical or virtual server'),
+      ('application', 'Software application'),
+      ('database', 'Database instance'),
+      ('network-device', 'Network equipment'),
+      ('storage', 'Storage system'),
+      ('container', 'Container instance'),
+      ('cloud-resource', 'Cloud resource')
+    ON CONFLICT (ci_type_name) DO NOTHING;
+
+    INSERT INTO datamart.dim_environment (environment_name, description) VALUES
+      ('production', 'Production environment'),
+      ('staging', 'Staging environment'),
+      ('development', 'Development environment'),
+      ('test', 'Test environment')
+    ON CONFLICT (environment_name) DO NOTHING;
+
+    INSERT INTO datamart.dim_status (status_name, description) VALUES
+      ('active', 'Active and operational'),
+      ('inactive', 'Inactive'),
+      ('maintenance', 'Under maintenance'),
+      ('decommissioned', 'Decommissioned')
+    ON CONFLICT (status_name) DO NOTHING;

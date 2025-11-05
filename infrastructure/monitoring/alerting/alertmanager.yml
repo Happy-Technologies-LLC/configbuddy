@@ -1,0 +1,211 @@
+# AlertManager Configuration
+# Defines how alerts are routed and notified
+
+global:
+  # Default notification timeout
+  resolve_timeout: 5m
+
+  # Slack webhook URL (set via environment variable)
+  slack_api_url: '${SLACK_WEBHOOK_URL}'
+
+# Templates for alert notifications
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Route tree for alert dispatching
+route:
+  # Default receiver for all alerts
+  receiver: 'slack-default'
+
+  # Group alerts by these labels
+  group_by: ['alertname', 'cluster', 'component']
+
+  # Wait time before sending initial notification
+  group_wait: 10s
+
+  # Wait time before sending notification about new alerts in group
+  group_interval: 10s
+
+  # Wait time before re-sending notification
+  repeat_interval: 12h
+
+  # Child routes with specific matching and receivers
+  routes:
+    # Critical alerts - page immediately
+    - match:
+        severity: critical
+      receiver: 'pagerduty-critical'
+      group_wait: 5s
+      group_interval: 5m
+      repeat_interval: 4h
+      continue: true  # Also send to Slack
+
+    # Critical alerts to Slack
+    - match:
+        severity: critical
+      receiver: 'slack-critical'
+      group_wait: 5s
+
+    # Warning alerts to Slack
+    - match:
+        severity: warning
+      receiver: 'slack-warnings'
+      group_wait: 30s
+      group_interval: 5m
+
+    # Database alerts
+    - match:
+        component: database
+      receiver: 'slack-database'
+      group_by: ['alertname', 'database']
+
+    # Queue alerts
+    - match:
+        component: queue
+      receiver: 'slack-queue'
+      group_by: ['alertname', 'queue']
+
+    # Discovery alerts
+    - match:
+        component: discovery
+      receiver: 'slack-discovery'
+      group_by: ['alertname', 'provider']
+
+    # ETL alerts
+    - match:
+        component: etl
+      receiver: 'slack-etl'
+      group_by: ['alertname', 'job_type']
+
+# Inhibition rules - suppress alerts when other alerts are active
+inhibit_rules:
+  # Inhibit warning if critical is firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'component']
+
+  # Inhibit specific alerts if service is down
+  - source_match:
+      alertname: 'ServiceDown'
+    target_match_re:
+      alertname: '(HighLatency|HighErrorRate|DatabaseConnectionFailures)'
+    equal: ['instance']
+
+# Alert receivers configuration
+receivers:
+  # Default Slack receiver
+  - name: 'slack-default'
+    slack_configs:
+      - channel: '#cmdb-alerts'
+        username: 'CMDB AlertManager'
+        icon_emoji: ':warning:'
+        title: 'Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+            *Alert:* {{ .Annotations.summary }}
+            *Description:* {{ .Annotations.description }}
+            *Severity:* {{ .Labels.severity }}
+            *Component:* {{ .Labels.component }}
+            {{ if .Annotations.runbook }}*Runbook:* {{ .Annotations.runbook }}{{ end }}
+          {{ end }}
+
+  # Critical alerts to Slack
+  - name: 'slack-critical'
+    slack_configs:
+      - channel: '#cmdb-critical'
+        username: 'CMDB AlertManager'
+        icon_emoji: ':rotating_light:'
+        color: 'danger'
+        title: 'CRITICAL: {{ .GroupLabels.alertname }}'
+        text: |
+          <!channel>
+          {{ range .Alerts }}
+            *Alert:* {{ .Annotations.summary }}
+            *Description:* {{ .Annotations.description }}
+            *Component:* {{ .Labels.component }}
+            {{ if .Annotations.runbook }}*Runbook:* {{ .Annotations.runbook }}{{ end }}
+          {{ end }}
+
+  # Warning alerts to Slack
+  - name: 'slack-warnings'
+    slack_configs:
+      - channel: '#cmdb-warnings'
+        username: 'CMDB AlertManager'
+        icon_emoji: ':warning:'
+        color: 'warning'
+        title: 'Warning: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+            *Alert:* {{ .Annotations.summary }}
+            *Description:* {{ .Annotations.description }}
+            *Component:* {{ .Labels.component }}
+          {{ end }}
+
+  # Database-specific alerts
+  - name: 'slack-database'
+    slack_configs:
+      - channel: '#cmdb-database'
+        username: 'CMDB DB Monitor'
+        icon_emoji: ':database:'
+        title: 'Database Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+            *Database:* {{ .Labels.database }}
+            *Alert:* {{ .Annotations.summary }}
+            *Description:* {{ .Annotations.description }}
+          {{ end }}
+
+  # Queue-specific alerts
+  - name: 'slack-queue'
+    slack_configs:
+      - channel: '#cmdb-queues'
+        username: 'CMDB Queue Monitor'
+        icon_emoji: ':inbox_tray:'
+        title: 'Queue Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+            *Queue:* {{ .Labels.queue }}
+            *Alert:* {{ .Annotations.summary }}
+            *Description:* {{ .Annotations.description }}
+          {{ end }}
+
+  # Discovery-specific alerts
+  - name: 'slack-discovery'
+    slack_configs:
+      - channel: '#cmdb-discovery'
+        username: 'CMDB Discovery Monitor'
+        icon_emoji: ':mag:'
+        title: 'Discovery Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+            *Provider:* {{ .Labels.provider }}
+            *Alert:* {{ .Annotations.summary }}
+            *Description:* {{ .Annotations.description }}
+          {{ end }}
+
+  # ETL-specific alerts
+  - name: 'slack-etl'
+    slack_configs:
+      - channel: '#cmdb-etl'
+        username: 'CMDB ETL Monitor'
+        icon_emoji: ':arrows_counterclockwise:'
+        title: 'ETL Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+            *Job Type:* {{ .Labels.job_type }}
+            *Alert:* {{ .Annotations.summary }}
+            *Description:* {{ .Annotations.description }}
+          {{ end }}
+
+  # PagerDuty for critical alerts
+  - name: 'pagerduty-critical'
+    pagerduty_configs:
+      - service_key: '${PAGERDUTY_SERVICE_KEY}'
+        description: '{{ .GroupLabels.alertname }}: {{ .Annotations.summary }}'
+        severity: '{{ .CommonLabels.severity }}'
+        details:
+          firing: '{{ .Alerts.Firing | len }}'
+          resolved: '{{ .Alerts.Resolved | len }}'
+          component: '{{ .CommonLabels.component }}'

@@ -1,0 +1,300 @@
+{
+  "type": "zabbix",
+  "category": "connector",
+  "connector_category": "monitoring",
+  "icon": "zabbix",
+  "name": "Zabbix Monitoring",
+  "version": "1.0.0",
+  "description": "Bi-directional integration with Zabbix monitoring platform for hosts, services, and applications",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": true,
+    "bidirectional": true
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["server_url", "username", "password"],
+    "properties": {
+      "server_url": {
+        "type": "string",
+        "description": "Zabbix server URL (e.g., http://zabbix.example.com or http://192.168.1.10)"
+      },
+      "username": {
+        "type": "string",
+        "description": "Zabbix username"
+      },
+      "password": {
+        "type": "string",
+        "description": "Zabbix password",
+        "format": "password"
+      },
+      "host_groups": {
+        "type": "string",
+        "description": "Comma-separated list of host group names to filter (optional, leave empty for all)",
+        "default": ""
+      },
+      "sync_direction": {
+        "type": "string",
+        "enum": ["import", "export", "bidirectional"],
+        "default": "import",
+        "description": "Synchronization direction"
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "hosts",
+      "name": "Hosts",
+      "description": "Monitored hosts (servers/devices) from Zabbix",
+      "ci_type": "server",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load", "sync_to_source"],
+      "configuration_schema": {
+        "properties": {
+          "api_method": {
+            "type": "string",
+            "default": "host.get"
+          },
+          "filter_status": {
+            "type": "string",
+            "enum": ["all", "enabled", "disabled"],
+            "default": "enabled",
+            "description": "Filter hosts by monitoring status"
+          },
+          "include_inventory": {
+            "type": "boolean",
+            "default": true,
+            "description": "Include host inventory data"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 500,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "name": "name",
+        "hostname": "host",
+        "ip_address": "interfaces[0].ip",
+        "dns": "interfaces[0].dns",
+        "port": "interfaces[0].port",
+        "status": "status",
+        "available": "available",
+        "os": "inventory.os",
+        "os_full": "inventory.os_full",
+        "os_short": "inventory.os_short",
+        "serial_number": "inventory.serialno_a",
+        "asset_tag": "inventory.asset_tag",
+        "mac_address": "inventory.macaddress_a",
+        "hardware": "inventory.hardware",
+        "hardware_full": "inventory.hardware_full",
+        "model": "inventory.model",
+        "vendor": "inventory.vendor",
+        "location": "inventory.location",
+        "location_lat": "inventory.location_lat",
+        "location_lon": "inventory.location_lon",
+        "groups": "groups[].name",
+        "proxy_hostid": "proxy_hostid",
+        "maintenance_status": "maintenance_status",
+        "description": "description",
+        "error": "error",
+        "errors_from": "errors_from"
+      }
+    },
+    {
+      "id": "services",
+      "name": "Services",
+      "description": "Monitored services from Zabbix items",
+      "ci_type": "service",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "api_method": {
+            "type": "string",
+            "default": "item.get"
+          },
+          "item_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": ["0", "7", "10"],
+            "description": "Item types to include (0=Zabbix agent, 7=Simple check, 10=External check)"
+          },
+          "value_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": ["0", "1", "3", "4"],
+            "description": "Value types (0=float, 1=char, 3=unsigned, 4=text)"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 1000
+      },
+      "field_mappings": {
+        "name": "name",
+        "key": "key_",
+        "host_name": "hosts[0].name",
+        "host_id": "hostid",
+        "item_type": "type",
+        "value_type": "value_type",
+        "status": "status",
+        "state": "state",
+        "port": "port",
+        "delay": "delay",
+        "description": "description",
+        "units": "units",
+        "lastvalue": "lastvalue",
+        "lastclock": "lastclock",
+        "prevvalue": "prevvalue",
+        "error": "error",
+        "trends": "trends",
+        "history": "history",
+        "interfaceid": "interfaceid",
+        "applications": "applications[].name"
+      }
+    },
+    {
+      "id": "applications",
+      "name": "Applications",
+      "description": "Application monitoring groups from Zabbix",
+      "ci_type": "application",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "api_method": {
+            "type": "string",
+            "default": "application.get"
+          },
+          "expand_items": {
+            "type": "boolean",
+            "default": true,
+            "description": "Include application items in extraction"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 500
+      },
+      "field_mappings": {
+        "name": "name",
+        "host_name": "hosts[0].name",
+        "host_id": "hostid",
+        "application_id": "applicationid",
+        "flags": "flags",
+        "items": "items[].name",
+        "item_count": "items.length",
+        "template_ids": "templateids"
+      }
+    },
+    {
+      "id": "triggers",
+      "name": "Triggers",
+      "description": "Alert triggers and monitoring conditions from Zabbix",
+      "ci_type": null,
+      "enabled_by_default": false,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "api_method": {
+            "type": "string",
+            "default": "trigger.get"
+          },
+          "filter_priority": {
+            "type": "string",
+            "enum": ["all", "high", "average", "warning"],
+            "default": "all",
+            "description": "Filter triggers by severity"
+          },
+          "only_active": {
+            "type": "boolean",
+            "default": true,
+            "description": "Only include enabled triggers"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 1000
+      },
+      "field_mappings": {
+        "name": "description",
+        "expression": "expression",
+        "priority": "priority",
+        "status": "status",
+        "value": "value",
+        "lastchange": "lastchange",
+        "host_name": "hosts[0].name",
+        "host_id": "hosts[0].hostid",
+        "comments": "comments",
+        "error": "error",
+        "url": "url",
+        "recovery_mode": "recovery_mode",
+        "recovery_expression": "recovery_expression"
+      }
+    },
+    {
+      "id": "host_groups",
+      "name": "Host Groups",
+      "description": "Host group organization from Zabbix",
+      "ci_type": null,
+      "enabled_by_default": true,
+      "operations": ["extract"],
+      "configuration_schema": {
+        "properties": {
+          "api_method": {
+            "type": "string",
+            "default": "hostgroup.get"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 500
+      },
+      "field_mappings": {
+        "name": "name",
+        "groupid": "groupid",
+        "internal": "internal",
+        "flags": "flags",
+        "host_count": "hosts.length"
+      }
+    },
+    {
+      "id": "relationships",
+      "name": "Host Relationships",
+      "description": "Relationships between hosts, items, applications, and triggers",
+      "ci_type": null,
+      "enabled_by_default": true,
+      "operations": ["extract"],
+      "configuration_schema": {
+        "properties": {
+          "relationship_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": ["host_to_group", "host_to_item", "item_to_application", "trigger_to_host"],
+            "description": "Types of relationships to extract"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 5000,
+        "depends_on": ["hosts", "services", "applications"]
+      }
+    }
+  ]
+}

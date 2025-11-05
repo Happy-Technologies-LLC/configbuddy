@@ -1,0 +1,130 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: discovery-engine
+  namespace: configbuddy-cmdb
+  labels:
+    app: discovery-engine
+    component: backend
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: discovery-engine
+  template:
+    metadata:
+      labels:
+        app: discovery-engine
+        component: backend
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - discovery-engine
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: discovery-engine
+          image: configbuddy/discovery-engine:latest
+          imagePullPolicy: Always
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: NEO4J_URI
+              value: "neo4j://neo4j-0.neo4j-cluster.configbuddy-cmdb.svc.cluster.local:7687,neo4j://neo4j-1.neo4j-cluster.configbuddy-cmdb.svc.cluster.local:7687,neo4j://neo4j-2.neo4j-cluster.configbuddy-cmdb.svc.cluster.local:7687"
+            - name: NEO4J_USER
+              value: "neo4j"
+            - name: NEO4J_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cmdb-secrets
+                  key: neo4j-password
+            - name: POSTGRES_HOST
+              value: "postgres-primary.configbuddy-cmdb.svc.cluster.local"
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_DB
+              value: "cmdb"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: cmdb-secrets
+                  key: postgres-user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cmdb-secrets
+                  key: postgres-password
+            - name: KAFKA_BROKERS
+              value: "kafka-0.kafka.configbuddy-cmdb.svc.cluster.local:9092,kafka-1.kafka.configbuddy-cmdb.svc.cluster.local:9092,kafka-2.kafka.configbuddy-cmdb.svc.cluster.local:9092"
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: cloud-credentials
+                  key: aws-access-key-id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: cloud-credentials
+                  key: aws-secret-access-key
+            - name: AWS_REGION
+              value: "us-east-1"
+            - name: AZURE_TENANT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: cloud-credentials
+                  key: azure-tenant-id
+                  optional: true
+            - name: AZURE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: cloud-credentials
+                  key: azure-client-id
+                  optional: true
+            - name: AZURE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: cloud-credentials
+                  key: azure-client-secret
+                  optional: true
+            - name: GCP_PROJECT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: cloud-credentials
+                  key: gcp-project-id
+                  optional: true
+          resources:
+            requests:
+              cpu: "1"
+              memory: "2Gi"
+            limits:
+              cpu: "2"
+              memory: "4Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: discovery-engine
+  namespace: configbuddy-cmdb
+  labels:
+    app: discovery-engine
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: metrics
+  selector:
+    app: discovery-engine

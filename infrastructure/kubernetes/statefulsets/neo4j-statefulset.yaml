@@ -1,0 +1,183 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: neo4j-cluster
+  namespace: configbuddy-cmdb
+  labels:
+    app: neo4j
+spec:
+  ports:
+    - port: 7687
+      targetPort: 7687
+      name: bolt
+    - port: 7474
+      targetPort: 7474
+      name: http
+    - port: 7473
+      targetPort: 7473
+      name: https
+  clusterIP: None
+  selector:
+    app: neo4j
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: neo4j
+  namespace: configbuddy-cmdb
+spec:
+  serviceName: neo4j-cluster
+  replicas: 3
+  selector:
+    matchLabels:
+      app: neo4j
+  template:
+    metadata:
+      labels:
+        app: neo4j
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - neo4j
+              topologyKey: kubernetes.io/hostname
+      securityContext:
+        fsGroup: 7474
+      initContainers:
+        - name: init-plugins
+          image: neo4j:5.15-enterprise
+          command:
+            - sh
+            - -c
+            - |
+              cp /var/lib/neo4j/labs/apoc-*-core.jar /plugins/
+              cp /var/lib/neo4j/labs/graph-data-science-*.jar /plugins/
+          volumeMounts:
+            - name: plugins
+              mountPath: /plugins
+      containers:
+        - name: neo4j
+          image: neo4j:5.15-enterprise
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NEO4J_ACCEPT_LICENSE_AGREEMENT
+              value: "yes"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NEO4J_AUTH
+              valueFrom:
+                secretKeyRef:
+                  name: cmdb-secrets
+                  key: neo4j-auth
+            - name: NEO4J_PLUGINS
+              value: '["apoc", "graph-data-science"]'
+            - name: NEO4J_initial_dbms_default__primaries__count
+              value: "3"
+            - name: NEO4J_initial_dbms_default__secondaries__count
+              value: "0"
+            - name: NEO4J_dbms_cluster_discovery_endpoints
+              value: "neo4j-0.neo4j-cluster.configbuddy-cmdb.svc.cluster.local:5000,neo4j-1.neo4j-cluster.configbuddy-cmdb.svc.cluster.local:5000,neo4j-2.neo4j-cluster.configbuddy-cmdb.svc.cluster.local:5000"
+            - name: NEO4J_server_default__advertised__address
+              value: "$(POD_NAME).neo4j-cluster.configbuddy-cmdb.svc.cluster.local"
+            - name: NEO4J_server_default__listen__address
+              value: "0.0.0.0"
+            - name: NEO4J_dbms_cluster_raft_advertised__address
+              value: "$(POD_NAME).neo4j-cluster.configbuddy-cmdb.svc.cluster.local:7000"
+            - name: NEO4J_dbms_cluster_raft_listen__address
+              value: "0.0.0.0:7000"
+            - name: NEO4J_dbms_cluster_discovery_advertised__address
+              value: "$(POD_NAME).neo4j-cluster.configbuddy-cmdb.svc.cluster.local:5000"
+            - name: NEO4J_dbms_cluster_discovery_listen__address
+              value: "0.0.0.0:5000"
+            - name: NEO4J_dbms_connector_bolt_advertised__address
+              value: "$(POD_NAME).neo4j-cluster.configbuddy-cmdb.svc.cluster.local:7687"
+            - name: NEO4J_dbms_connector_bolt_listen__address
+              value: "0.0.0.0:7687"
+            - name: NEO4J_dbms_memory_heap_initial__size
+              value: "2G"
+            - name: NEO4J_dbms_memory_heap_max__size
+              value: "4G"
+            - name: NEO4J_dbms_memory_pagecache_size
+              value: "2G"
+            - name: NEO4J_dbms_security_procedures_unrestricted
+              value: "apoc.*,gds.*"
+            - name: NEO4J_dbms_security_procedures_allowlist
+              value: "apoc.*,gds.*"
+          ports:
+            - containerPort: 7474
+              name: http
+            - containerPort: 7473
+              name: https
+            - containerPort: 7687
+              name: bolt
+            - containerPort: 5000
+              name: discovery
+            - containerPort: 7000
+              name: raft
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: logs
+              mountPath: /logs
+            - name: plugins
+              mountPath: /var/lib/neo4j/plugins
+          resources:
+            requests:
+              cpu: "1"
+              memory: "4Gi"
+            limits:
+              cpu: "2"
+              memory: "6Gi"
+          livenessProbe:
+            exec:
+              command:
+                - cypher-shell
+                - -u
+                - neo4j
+                - -p
+                - "$(cat /run/secrets/neo4j-password)"
+                - "RETURN 1"
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 7474
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: fast-ssd
+        resources:
+          requests:
+            storage: 100Gi
+    - metadata:
+        name: logs
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: standard-hdd
+        resources:
+          requests:
+            storage: 20Gi
+    - metadata:
+        name: plugins
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: fast-ssd
+        resources:
+          requests:
+            storage: 1Gi

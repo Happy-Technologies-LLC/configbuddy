@@ -1,0 +1,398 @@
+{
+  "type": "wiz",
+  "category": "connector",
+  "connector_category": "security",
+  "icon": "wiz",
+  "name": "Wiz Cloud Security",
+  "version": "1.0.0",
+  "description": "Cloud security posture management integration with Wiz - provides comprehensive visibility into cloud resources, vulnerabilities, security issues, and identities",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": true,
+    "bidirectional": false
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["auth_url", "client_id", "client_secret", "api_url"],
+    "properties": {
+      "auth_url": {
+        "type": "string",
+        "description": "Wiz OAuth 2.0 token endpoint (e.g., https://auth.app.wiz.io/oauth/token)",
+        "default": "https://auth.app.wiz.io/oauth/token"
+      },
+      "client_id": {
+        "type": "string",
+        "description": "Wiz Service Account client ID"
+      },
+      "client_secret": {
+        "type": "string",
+        "description": "Wiz Service Account client secret",
+        "format": "password"
+      },
+      "api_url": {
+        "type": "string",
+        "description": "Wiz GraphQL API endpoint (e.g., https://api.us1.app.wiz.io/graphql)",
+        "default": "https://api.us1.app.wiz.io/graphql"
+      },
+      "cloud_resources": {
+        "type": "object",
+        "description": "Cloud resource filtering options",
+        "properties": {
+          "cloud_providers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["AWS", "Azure", "GCP", "Kubernetes", "OCI"]
+            },
+            "default": ["AWS", "Azure", "GCP"],
+            "description": "Cloud providers to include"
+          },
+          "resource_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "description": "Specific resource types to filter (empty = all types)"
+          }
+        }
+      },
+      "vulnerabilities": {
+        "type": "object",
+        "description": "Vulnerability filtering options",
+        "properties": {
+          "severity": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFORMATIONAL"]
+            },
+            "default": ["CRITICAL", "HIGH", "MEDIUM"],
+            "description": "Vulnerability severity filter"
+          },
+          "has_exploit": {
+            "type": "boolean",
+            "default": false,
+            "description": "Only include vulnerabilities with known exploits"
+          },
+          "status": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["OPEN", "IN_PROGRESS", "RESOLVED", "REJECTED"]
+            },
+            "default": ["OPEN", "IN_PROGRESS"],
+            "description": "Vulnerability status filter"
+          }
+        }
+      },
+      "issues": {
+        "type": "object",
+        "description": "Security issue filtering options",
+        "properties": {
+          "severity": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFORMATIONAL"]
+            },
+            "default": ["CRITICAL", "HIGH", "MEDIUM"],
+            "description": "Issue severity filter"
+          },
+          "status": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["OPEN", "IN_PROGRESS", "RESOLVED", "REJECTED"]
+            },
+            "default": ["OPEN", "IN_PROGRESS"],
+            "description": "Issue status filter"
+          }
+        }
+      },
+      "identities": {
+        "type": "object",
+        "description": "Cloud identity filtering options",
+        "properties": {
+          "cloud_providers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["AWS", "Azure", "GCP"]
+            },
+            "default": ["AWS", "Azure", "GCP"],
+            "description": "Cloud providers to include"
+          },
+          "identity_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["USER", "SERVICE_ACCOUNT", "ROLE", "GROUP"]
+            },
+            "default": ["USER", "SERVICE_ACCOUNT", "ROLE"],
+            "description": "Identity types to include"
+          }
+        }
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "cloud_resources",
+      "name": "Cloud Resources",
+      "description": "Cloud assets across AWS, Azure, GCP, and Kubernetes (VMs, containers, databases, storage, etc.)",
+      "ci_type": "cloud-resource",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "cloud_providers_filter": {
+            "type": "array",
+            "description": "Cloud providers to include",
+            "default": ["AWS", "Azure", "GCP"]
+          },
+          "resource_types_filter": {
+            "type": "array",
+            "description": "Specific resource types to filter",
+            "default": []
+          },
+          "max_results": {
+            "type": "number",
+            "description": "Maximum number of resources to fetch per batch",
+            "default": 500
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 500,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "name": "name",
+        "ci_type": "cloud-resource",
+        "attributes.wiz_id": "id",
+        "attributes.resource_type": "type",
+        "attributes.native_type": "nativeType",
+        "attributes.cloud_platform": "cloudPlatform",
+        "attributes.cloud_provider_url": "cloudProviderURL",
+        "attributes.region": "region",
+        "attributes.subscription_id": "subscriptionId",
+        "attributes.subscription_name": "subscriptionName",
+        "attributes.resource_group": "resourceGroupName",
+        "attributes.provider_unique_id": "providerUniqueId",
+        "attributes.tags": "tags",
+        "attributes.created_at": "createdAt",
+        "attributes.updated_at": "updatedAt",
+        "status": "status",
+        "identifiers.external_id": "id",
+        "identifiers.custom_identifiers.wiz_id": "id",
+        "identifiers.custom_identifiers.provider_unique_id": "providerUniqueId",
+        "identifiers.custom_identifiers.cloud_platform": "cloudPlatform",
+        "source": "wiz",
+        "source_id": "id"
+      }
+    },
+    {
+      "id": "vulnerabilities",
+      "name": "Vulnerabilities",
+      "description": "Security vulnerabilities detected across cloud resources (CVEs, package vulnerabilities, OS vulnerabilities)",
+      "ci_type": "vulnerability",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "severity_filter": {
+            "type": "array",
+            "description": "Vulnerability severity filter",
+            "default": ["CRITICAL", "HIGH", "MEDIUM"]
+          },
+          "status_filter": {
+            "type": "array",
+            "description": "Vulnerability status filter",
+            "default": ["OPEN", "IN_PROGRESS"]
+          },
+          "has_exploit_only": {
+            "type": "boolean",
+            "description": "Only include vulnerabilities with known exploits",
+            "default": false
+          },
+          "max_results": {
+            "type": "number",
+            "description": "Maximum number of vulnerabilities to fetch per batch",
+            "default": 500
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 500,
+        "rate_limit": 10,
+        "depends_on": ["cloud_resources"]
+      },
+      "field_mappings": {
+        "name": "cveId",
+        "ci_type": "vulnerability",
+        "attributes.wiz_id": "id",
+        "attributes.vulnerability_name": "name",
+        "attributes.detailed_name": "detailedName",
+        "attributes.description": "description",
+        "attributes.severity": "severity",
+        "attributes.cvss_score": "cvssScore",
+        "attributes.vendor_severity": "vendorSeverity",
+        "attributes.cve_id": "cveId",
+        "attributes.exploitability_score": "exploitabilityScore",
+        "attributes.has_exploit": "hasExploit",
+        "attributes.resolution": "resolution",
+        "attributes.fixed_version": "fixedVersion",
+        "attributes.detected_at": "detectedAt",
+        "attributes.resolved_at": "resolvedAt",
+        "attributes.affected_resource_id": "affectedResource.id",
+        "attributes.affected_resource_name": "affectedResource.name",
+        "attributes.affected_resource_type": "affectedResource.type",
+        "attributes.packages": "packages",
+        "status": "status",
+        "identifiers.external_id": "id",
+        "identifiers.custom_identifiers.wiz_id": "id",
+        "identifiers.custom_identifiers.cve_id": "cveId",
+        "identifiers.custom_identifiers.affected_resource_id": "affectedResource.id",
+        "source": "wiz",
+        "source_id": "id"
+      }
+    },
+    {
+      "id": "issues",
+      "name": "Security Issues",
+      "description": "Security issues and misconfigurations (compliance violations, security risks, policy violations)",
+      "ci_type": "security-issue",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "severity_filter": {
+            "type": "array",
+            "description": "Issue severity filter",
+            "default": ["CRITICAL", "HIGH", "MEDIUM"]
+          },
+          "status_filter": {
+            "type": "array",
+            "description": "Issue status filter",
+            "default": ["OPEN", "IN_PROGRESS"]
+          },
+          "max_results": {
+            "type": "number",
+            "description": "Maximum number of issues to fetch per batch",
+            "default": 500
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 500,
+        "rate_limit": 10,
+        "depends_on": ["cloud_resources"]
+      },
+      "field_mappings": {
+        "name": "control.name",
+        "ci_type": "security-issue",
+        "attributes.wiz_id": "id",
+        "attributes.issue_type": "type",
+        "attributes.control_id": "control.id",
+        "attributes.control_name": "control.name",
+        "attributes.control_description": "control.description",
+        "attributes.control_severity": "control.severity",
+        "attributes.severity": "severity",
+        "attributes.created_at": "createdAt",
+        "attributes.updated_at": "updatedAt",
+        "attributes.resolved_at": "resolvedAt",
+        "attributes.due_at": "dueAt",
+        "attributes.status_changed_at": "statusChangedAt",
+        "attributes.entity_snapshot_id": "entitySnapshot.id",
+        "attributes.entity_snapshot_name": "entitySnapshot.name",
+        "attributes.entity_snapshot_type": "entitySnapshot.type",
+        "attributes.entity_snapshot_cloud_platform": "entitySnapshot.cloudPlatform",
+        "attributes.notes": "notes",
+        "status": "status",
+        "identifiers.external_id": "id",
+        "identifiers.custom_identifiers.wiz_id": "id",
+        "identifiers.custom_identifiers.control_id": "control.id",
+        "identifiers.custom_identifiers.entity_snapshot_id": "entitySnapshot.id",
+        "source": "wiz",
+        "source_id": "id"
+      }
+    },
+    {
+      "id": "identities",
+      "name": "Cloud Identities",
+      "description": "Cloud identities and access principals (IAM users, service accounts, roles, groups)",
+      "ci_type": "identity",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "cloud_providers_filter": {
+            "type": "array",
+            "description": "Cloud providers to include",
+            "default": ["AWS", "Azure", "GCP"]
+          },
+          "identity_types_filter": {
+            "type": "array",
+            "description": "Identity types to include",
+            "default": ["USER", "SERVICE_ACCOUNT", "ROLE"]
+          },
+          "max_results": {
+            "type": "number",
+            "description": "Maximum number of identities to fetch per batch",
+            "default": 500
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 500,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "name": "name",
+        "ci_type": "identity",
+        "attributes.wiz_id": "id",
+        "attributes.identity_type": "type",
+        "attributes.cloud_platform": "cloudPlatform",
+        "attributes.cloud_provider_url": "cloudProviderURL",
+        "attributes.created_at": "createdAt",
+        "attributes.last_active_at": "lastActiveAt",
+        "attributes.is_human": "isHuman",
+        "attributes.has_console_access": "hasConsoleAccess",
+        "attributes.has_mfa": "hasMFA",
+        "attributes.effective_permissions": "effectivePermissions",
+        "attributes.tags": "tags",
+        "status": "status",
+        "identifiers.external_id": "id",
+        "identifiers.custom_identifiers.wiz_id": "id",
+        "identifiers.custom_identifiers.cloud_platform": "cloudPlatform",
+        "identifiers.custom_identifiers.identity_type": "type",
+        "source": "wiz",
+        "source_id": "id"
+      }
+    },
+    {
+      "id": "relationships",
+      "name": "Wiz Relationships",
+      "description": "Relationships between vulnerabilities, issues, resources, and identities",
+      "ci_type": null,
+      "enabled_by_default": true,
+      "operations": ["extract"],
+      "configuration_schema": {
+        "properties": {}
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 10000,
+        "depends_on": ["cloud_resources", "vulnerabilities", "issues", "identities"]
+      }
+    }
+  ]
+}

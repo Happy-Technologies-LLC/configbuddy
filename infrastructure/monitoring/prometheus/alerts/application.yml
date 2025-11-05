@@ -1,0 +1,312 @@
+groups:
+  - name: application_alerts
+    interval: 30s
+    rules:
+      # Discovery Job Failures
+      - alert: HighDiscoveryJobFailureRate
+        expr: rate(discovery_jobs_failed_total[10m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: discovery-engine
+          runbook: discovery-jobs-failing
+        annotations:
+          summary: "High discovery job failure rate"
+          description: "Discovery jobs failing at {{ $value }} failures/min for connector {{ $labels.connector }}"
+          impact: "CI data becoming stale. Discovery coverage degraded."
+          action: "Check connector logs, verify credentials, and check rate limiting"
+
+      - alert: CriticalDiscoveryJobFailures
+        expr: rate(discovery_jobs_failed_total[5m]) > 20
+        for: 2m
+        labels:
+          severity: critical
+          component: discovery-engine
+          runbook: discovery-jobs-failing
+        annotations:
+          summary: "Critical discovery job failure rate"
+          description: "Discovery jobs failing at {{ $value }} failures/min for connector {{ $labels.connector }}"
+          impact: "Discovery system severely degraded. Multiple connectors affected."
+          action: "Immediate investigation. Check API credentials, rate limits, and service health."
+
+      - alert: DiscoveryJobStuck
+        expr: time() - discovery_job_last_completion_timestamp_seconds > 7200
+        for: 10m
+        labels:
+          severity: warning
+          component: discovery-engine
+          runbook: discovery-jobs-failing
+        annotations:
+          summary: "Discovery job appears stuck"
+          description: "Discovery job {{ $labels.job_name }} has not completed in over 2 hours"
+          impact: "Discovery job may be hung. Resources locked."
+          action: "Check job logs, consider killing and restarting the job"
+
+      - alert: NoDiscoveryJobsRunning
+        expr: sum(discovery_jobs_running) == 0 and sum(discovery_jobs_scheduled) > 0
+        for: 10m
+        labels:
+          severity: warning
+          component: discovery-engine
+          runbook: discovery-jobs-failing
+        annotations:
+          summary: "No discovery jobs running despite jobs scheduled"
+          description: "Discovery engine has scheduled jobs but none are running"
+          impact: "Discovery pipeline stalled"
+          action: "Check discovery engine health and job queue"
+
+      # Connector Errors
+      - alert: HighConnectorErrorRate
+        expr: rate(connector_errors_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: discovery-engine
+          runbook: discovery-jobs-failing
+        annotations:
+          summary: "High connector error rate"
+          description: "Connector {{ $labels.connector }} experiencing {{ $value }} errors/min"
+          impact: "Data collection degraded for this connector"
+          action: "Check connector logs, verify API credentials and endpoints"
+
+      - alert: ConnectorCredentialFailure
+        expr: increase(connector_auth_failures_total[5m]) > 5
+        for: 2m
+        labels:
+          severity: critical
+          component: discovery-engine
+          runbook: discovery-jobs-failing
+        annotations:
+          summary: "Connector authentication failures"
+          description: "Connector {{ $labels.connector }} has {{ $value }} auth failures in last 5 minutes"
+          impact: "Connector cannot authenticate. No data being collected."
+          action: "Verify credentials in database. Check if API keys expired or were rotated."
+
+      # Rate Limiting
+      - alert: RateLimitViolations
+        expr: rate(rate_limit_violations_total[1m]) > 100
+        for: 2m
+        labels:
+          severity: warning
+          component: api-server
+          runbook: rate-limiting-issues
+        annotations:
+          summary: "High rate limit violations"
+          description: "Rate limit violations at {{ $value }} violations/min for {{ $labels.endpoint }}"
+          impact: "Users being throttled. API access degraded."
+          action: "Check for abusive clients or adjust rate limits"
+
+      - alert: CloudProviderRateLimited
+        expr: increase(connector_rate_limited_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          component: discovery-engine
+          runbook: rate-limiting-issues
+        annotations:
+          summary: "Connector being rate limited by cloud provider"
+          description: "Connector {{ $labels.connector }} hit rate limit {{ $value }} times in 5 minutes"
+          impact: "Discovery slowed. Some resources may not be discovered."
+          action: "Implement exponential backoff, reduce discovery frequency, or request higher limits"
+
+      # Authentication & Security
+      - alert: HighAuthenticationFailureRate
+        expr: rate(authentication_failures_total[5m]) > 20
+        for: 3m
+        labels:
+          severity: warning
+          component: api-server
+          runbook: api-server-down
+        annotations:
+          summary: "High authentication failure rate"
+          description: "Authentication failures at {{ $value }} failures/min"
+          impact: "Possible brute force attack or misconfigured clients"
+          action: "Check for suspicious IP addresses. Consider temporary IP blocking."
+
+      - alert: SuspiciousAuthenticationAttempts
+        expr: rate(authentication_failures_total{reason="invalid_credentials"}[1m]) > 50
+        for: 1m
+        labels:
+          severity: critical
+          component: api-server
+          runbook: api-server-down
+        annotations:
+          summary: "Suspicious authentication attempts detected"
+          description: "{{ $value }} failed login attempts/min - possible brute force attack"
+          impact: "System under attack. Legitimate users may be affected by rate limits."
+          action: "Implement IP-based blocking. Review security logs. Enable MFA if not already."
+
+      # Database Backups
+      - alert: DatabaseBackupFailed
+        expr: time() - last_successful_backup_timestamp_seconds{database=~"neo4j|postgresql"} > 86400
+        for: 1m
+        labels:
+          severity: critical
+          component: backup
+          runbook: backup-failure
+        annotations:
+          summary: "Database backup failed or overdue"
+          description: "No successful backup for {{ $labels.database }} in over 24 hours"
+          impact: "Data recovery at risk. Potential data loss in disaster scenario."
+          action: "Check backup job logs immediately. Manually trigger backup if needed."
+
+      - alert: BackupSizeTooSmall
+        expr: backup_size_bytes < (backup_size_bytes offset 1d) * 0.5
+        for: 5m
+        labels:
+          severity: warning
+          component: backup
+          runbook: backup-failure
+        annotations:
+          summary: "Backup size unexpectedly small"
+          description: "Backup for {{ $labels.database }} is {{ $value | humanizeBytes }} (less than 50% of previous backup)"
+          impact: "Backup may be incomplete or corrupted"
+          action: "Verify backup integrity. Check for partial backup or data loss."
+
+      # ETL Job Health
+      - alert: ETLJobFailed
+        expr: increase(etl_jobs_failed_total[10m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: etl-processor
+          runbook: performance-degradation
+        annotations:
+          summary: "ETL jobs failing"
+          description: "{{ $value }} ETL jobs failed in last 10 minutes for job type {{ $labels.job_type }}"
+          impact: "Data mart not being updated. Analytics queries may show stale data."
+          action: "Check ETL processor logs. Verify database connectivity."
+
+      - alert: ETLJobLag
+        expr: time() - etl_job_last_completion_timestamp_seconds > 3600
+        for: 10m
+        labels:
+          severity: warning
+          component: etl-processor
+          runbook: performance-degradation
+        annotations:
+          summary: "ETL job lagging behind"
+          description: "ETL job {{ $labels.job_type }} has not completed in over 1 hour"
+          impact: "Data mart becoming stale"
+          action: "Check ETL processor performance. May need to scale up resources."
+
+      # SSL Certificate Expiration
+      - alert: SSLCertificateExpiringSoon
+        expr: (ssl_certificate_expiry_timestamp_seconds - time()) / 86400 < 30
+        for: 1h
+        labels:
+          severity: warning
+          component: infrastructure
+          runbook: ssl-certificate-renewal
+        annotations:
+          summary: "SSL certificate expiring soon"
+          description: "SSL certificate for {{ $labels.domain }} expires in {{ $value }} days"
+          impact: "Service will become inaccessible when certificate expires"
+          action: "Renew SSL certificate immediately"
+
+      - alert: SSLCertificateExpiringCritical
+        expr: (ssl_certificate_expiry_timestamp_seconds - time()) / 86400 < 7
+        for: 1h
+        labels:
+          severity: critical
+          component: infrastructure
+          runbook: ssl-certificate-renewal
+        annotations:
+          summary: "SSL certificate expiring very soon"
+          description: "SSL certificate for {{ $labels.domain }} expires in {{ $value }} days"
+          impact: "Imminent service outage when certificate expires"
+          action: "URGENT: Renew SSL certificate NOW"
+
+      # Queue Health
+      - alert: QueueBacklogGrowing
+        expr: rate(queue_depth[10m]) > 100
+        for: 10m
+        labels:
+          severity: warning
+          component: bullmq
+          runbook: performance-degradation
+        annotations:
+          summary: "Job queue backlog growing"
+          description: "Queue {{ $labels.queue_name }} growing at {{ $value }} jobs/min"
+          impact: "Jobs processing slower than submission rate. Delays increasing."
+          action: "Scale up workers or investigate slow job processing"
+
+      - alert: QueueDepthCritical
+        expr: queue_depth > 10000
+        for: 5m
+        labels:
+          severity: critical
+          component: bullmq
+          runbook: performance-degradation
+        annotations:
+          summary: "Critical queue depth"
+          description: "Queue {{ $labels.queue_name }} has {{ $value }} jobs waiting"
+          impact: "Severe processing delay. Jobs may time out."
+          action: "Immediate action: scale workers or pause job submission"
+
+      - alert: DeadLetterQueueGrowing
+        expr: increase(dead_letter_queue_depth[1h]) > 50
+        for: 10m
+        labels:
+          severity: warning
+          component: bullmq
+          runbook: discovery-jobs-failing
+        annotations:
+          summary: "Dead letter queue growing"
+          description: "{{ $value }} jobs moved to DLQ in last hour for queue {{ $labels.queue_name }}"
+          impact: "Jobs repeatedly failing. Data not being processed."
+          action: "Investigate failed jobs. Fix underlying issue or update job logic."
+
+      # Agent Health
+      - alert: DiscoveryAgentDisconnected
+        expr: time() - agent_last_heartbeat_timestamp_seconds > 300
+        for: 2m
+        labels:
+          severity: warning
+          component: discovery-agent
+          runbook: discovery-jobs-failing
+        annotations:
+          summary: "Discovery agent disconnected"
+          description: "Agent {{ $labels.agent_id }} has not sent heartbeat in {{ $value }} seconds"
+          impact: "Network discovery in agent's region unavailable"
+          action: "Check agent service status and network connectivity"
+
+      - alert: AgentJobAssignmentFailed
+        expr: increase(agent_job_assignment_failures_total[10m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: discovery-engine
+          runbook: discovery-jobs-failing
+        annotations:
+          summary: "Agent job assignments failing"
+          description: "{{ $value }} job assignments to agents failed in last 10 minutes"
+          impact: "Discovery jobs not being distributed to agents"
+          action: "Check agent availability and network affinity matching logic"
+
+      # Data Quality
+      - alert: LowDiscoveryCoverage
+        expr: discovered_cis_total / expected_cis_total < 0.8
+        for: 30m
+        labels:
+          severity: warning
+          component: discovery-engine
+          runbook: discovery-jobs-failing
+        annotations:
+          summary: "Low discovery coverage"
+          description: "Only {{ $value | humanizePercentage }} of expected CIs discovered for {{ $labels.connector }}"
+          impact: "Incomplete CI data. Some resources not being tracked."
+          action: "Check connector configuration, credentials, and API permissions"
+
+      - alert: CIDataStaleness
+        expr: time() - ci_last_discovered_timestamp_seconds > 172800
+        for: 1h
+        labels:
+          severity: warning
+          component: discovery-engine
+          runbook: discovery-jobs-failing
+        annotations:
+          summary: "CI data becoming stale"
+          description: "CI {{ $labels.ci_name }} has not been discovered in {{ $value | humanizeDuration }}"
+          impact: "CI data may be outdated or CI may have been decommissioned"
+          action: "Check if CI still exists. Verify discovery schedule is running."

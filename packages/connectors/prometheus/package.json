@@ -1,0 +1,24 @@
+{
+  "name": "@cmdb/connector-prometheus",
+  "version": "1.0.0",
+  "description": "Prometheus integration connector",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@cmdb/common": "file:../../common",
+    "@cmdb/integration-framework": "file:../../integration-framework",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "name": "@cmdb/discovery-engine",
+  "version": "1.0.0",
+  "description": "Multi-cloud discovery engine for CMDB",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@aws-sdk/client-ec2": "^3.0.0",
+    "@aws-sdk/client-ecs": "^3.0.0",
+    "@aws-sdk/client-lambda": "^3.0.0",
+    "@aws-sdk/client-rds": "^3.0.0",
+    "@aws-sdk/client-s3": "^3.0.0",
+    "@azure/arm-compute": "^21.0.0",
+    "@azure/arm-sql": "^10.0.0",
+    "@azure/arm-storage": "^18.0.0",
+    "@azure/identity": "^4.0.0",
+    "@cmdb/common": "*",
+    "@cmdb/database": "*",
+    "@google-cloud/compute": "^4.0.0",
+    "@google-cloud/storage": "^7.0.0",
+    "@kubernetes/client-node": "^1.4.0",
+    "axios": "^1.6.0",
+    "dockerode": "^4.0.9",
+    "ldapjs": "^3.0.7",
+    "node-nmap": "^4.0.0",
+    "node-ssh": "^13.0.0",
+    "uuid": "^9.0.0"
+  },
+  "optionalDependencies": {
+    "@azure/arm-appservice": "^14.0.0",
+    "@azure/arm-containerservice": "^19.0.0",
+    "@google-cloud/functions": "^3.0.0",
+    "@google-cloud/sql": "^3.0.0",
+    "@googleapis/container": "^8.0.0"
+  },
+  "devDependencies": {
+    "@types/dockerode": "^3.3.44",
+    "@types/ldapjs": "^3.0.6",
+    "@types/node": "^20.0.0",
+    "@types/uuid": "^9.0.0",
+    "typescript": "^5.0.0"
+  }
+}

@@ -1,0 +1,22 @@
+# Load Testing Artifacts
+reports/*.json
+reports/*.html
+reports/*.csv
+
+# Test data
+data/*.db
+data/*.sqlite
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Node modules (if any)
+node_modules/

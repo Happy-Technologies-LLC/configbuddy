@@ -1,0 +1,322 @@
+{
+  "type": "tanium",
+  "category": "connector",
+  "connector_category": "endpoint-management",
+  "icon": "tanium",
+  "name": "Tanium Endpoint Management",
+  "version": "1.0.0",
+  "description": "Real-time endpoint management and security platform integration with comprehensive endpoint, software, patch, and sensor data",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": true,
+    "bidirectional": true
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["server_url", "username", "password"],
+    "properties": {
+      "server_url": {
+        "type": "string",
+        "description": "Tanium server URL (e.g., https://tanium.company.com)"
+      },
+      "username": {
+        "type": "string",
+        "description": "Tanium username with API access"
+      },
+      "password": {
+        "type": "string",
+        "description": "Tanium password",
+        "format": "password"
+      },
+      "computer_group": {
+        "type": "string",
+        "description": "Filter endpoints by computer group (optional)",
+        "default": ""
+      },
+      "sync_direction": {
+        "type": "string",
+        "enum": ["import", "export", "bidirectional"],
+        "default": "import",
+        "description": "Synchronization direction (bidirectional enables action execution)"
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "endpoints",
+      "name": "Managed Endpoints",
+      "description": "All managed endpoints with hardware, OS, and status information",
+      "ci_type": "server",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load", "sync_to_source"],
+      "configuration_schema": {
+        "properties": {
+          "include_offline": {
+            "type": "boolean",
+            "default": false,
+            "description": "Include offline endpoints (last seen > 7 days)"
+          },
+          "min_last_seen_hours": {
+            "type": "number",
+            "default": 168,
+            "description": "Minimum hours since last seen (default: 7 days)"
+          },
+          "operating_systems": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["Windows", "Linux", "macOS", "Unix", "All"]
+            },
+            "default": ["All"],
+            "description": "Filter by operating system types"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 500,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "name": "Computer Name",
+        "hostname": "Computer Name",
+        "ip_address": "IP Address",
+        "primary_ip": "IP Address",
+        "os": "Operating System",
+        "os_version": "OS Version",
+        "os_platform": "OS Platform",
+        "last_seen": "Last Registration",
+        "last_logged_in_user": "Last Logged In User",
+        "cpu_count": "CPU Count",
+        "cpu_type": "Processor",
+        "memory_mb": "RAM",
+        "total_memory": "Total Physical Memory (MB)",
+        "disk_space_gb": "Total Disk Space (GB)",
+        "free_disk_space_gb": "Free Disk Space (GB)",
+        "domain": "Domain Name",
+        "workgroup": "Workgroup",
+        "manufacturer": "Manufacturer",
+        "model": "Computer Model",
+        "serial_number": "Serial Number",
+        "bios_version": "BIOS Version",
+        "chassis_type": "Chassis Type",
+        "is_virtual": "Is Virtual Machine",
+        "tanium_client_version": "Tanium Client Version",
+        "status": "Online",
+        "computer_id": "Computer ID",
+        "mac_addresses": "MAC Address"
+      }
+    },
+    {
+      "id": "software",
+      "name": "Installed Software",
+      "description": "Software inventory from all managed endpoints",
+      "ci_type": "application",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "exclude_windows_updates": {
+            "type": "boolean",
+            "default": true,
+            "description": "Exclude Windows Update packages"
+          },
+          "min_install_count": {
+            "type": "number",
+            "default": 1,
+            "description": "Minimum number of installations to include"
+          },
+          "vendors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "description": "Filter by specific vendors (empty = all)"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 1000,
+        "rate_limit": 10,
+        "depends_on": ["endpoints"]
+      },
+      "field_mappings": {
+        "name": "Name",
+        "display_name": "Display Name",
+        "version": "Version",
+        "vendor": "Publisher",
+        "publisher": "Publisher",
+        "install_date": "Install Date",
+        "install_location": "Install Location",
+        "install_source": "Install Source",
+        "uninstall_string": "Uninstall String",
+        "size_mb": "Size (MB)",
+        "architecture": "Architecture",
+        "endpoint_name": "Computer Name",
+        "endpoint_id": "Computer ID",
+        "silent_uninstall_string": "Silent Uninstall String",
+        "product_code": "Product Code",
+        "package_code": "Package Code"
+      }
+    },
+    {
+      "id": "patches",
+      "name": "Missing Patches",
+      "description": "Security and critical patches missing from endpoints",
+      "ci_type": null,
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load", "sync_to_source"],
+      "configuration_schema": {
+        "properties": {
+          "severity_levels": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["Critical", "Important", "Moderate", "Low", "All"]
+            },
+            "default": ["Critical", "Important"],
+            "description": "Filter by patch severity"
+          },
+          "patch_age_days": {
+            "type": "number",
+            "default": 30,
+            "description": "Only include patches released in last N days (0 = all)"
+          },
+          "os_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["Windows", "Linux", "macOS", "All"]
+            },
+            "default": ["All"],
+            "description": "Filter by operating system"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 2000,
+        "rate_limit": 10,
+        "depends_on": ["endpoints"]
+      },
+      "field_mappings": {
+        "name": "Patch Name",
+        "title": "Patch Title",
+        "bulletin_id": "Bulletin ID",
+        "kb_article_id": "KB Article",
+        "severity": "Severity",
+        "severity_rating": "Severity Rating",
+        "classification": "Classification",
+        "date_released": "Release Date",
+        "date_revised": "Revision Date",
+        "vendor": "Vendor",
+        "product": "Product",
+        "product_family": "Product Family",
+        "endpoint_name": "Computer Name",
+        "endpoint_id": "Computer ID",
+        "os_version": "Operating System",
+        "cve_ids": "CVE IDs",
+        "superseded_by": "Superseded By",
+        "reboot_required": "Reboot Required",
+        "download_url": "Download URL",
+        "file_size_mb": "File Size (MB)"
+      }
+    },
+    {
+      "id": "sensors",
+      "name": "Custom Sensor Data",
+      "description": "Custom sensor data collected from endpoints",
+      "ci_type": null,
+      "enabled_by_default": false,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "sensor_names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "description": "Specific sensors to extract (empty = all sensors)"
+          },
+          "sensor_categories": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["Security", "Performance", "Compliance", "Inventory", "Network", "All"]
+            },
+            "default": ["All"],
+            "description": "Filter by sensor category"
+          },
+          "exclude_default_sensors": {
+            "type": "boolean",
+            "default": true,
+            "description": "Exclude built-in Tanium sensors (focus on custom)"
+          },
+          "min_collection_age_hours": {
+            "type": "number",
+            "default": 24,
+            "description": "Only include sensors collected within N hours"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 5000,
+        "rate_limit": 5,
+        "depends_on": ["endpoints"]
+      },
+      "field_mappings": {
+        "sensor_name": "Sensor Name",
+        "sensor_display_name": "Sensor Display Name",
+        "sensor_id": "Sensor ID",
+        "sensor_category": "Category",
+        "sensor_description": "Description",
+        "value": "Value",
+        "raw_value": "Raw Value",
+        "data_type": "Data Type",
+        "endpoint_name": "Computer Name",
+        "endpoint_id": "Computer ID",
+        "last_collected": "Collection Time",
+        "collection_age_seconds": "Age (seconds)",
+        "hash": "Hash",
+        "source_id": "Source ID",
+        "query_text": "Query Text",
+        "error_message": "Error Message",
+        "is_stale": "Is Stale"
+      }
+    },
+    {
+      "id": "relationships",
+      "name": "Endpoint Relationships",
+      "description": "Relationships between endpoints, software, and patches",
+      "ci_type": null,
+      "enabled_by_default": true,
+      "operations": ["extract"],
+      "configuration_schema": {
+        "properties": {
+          "relationship_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["HOSTS", "RUNS", "MISSING_PATCH", "HAS_SENSOR", "All"]
+            },
+            "default": ["All"],
+            "description": "Types of relationships to extract"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 10000,
+        "rate_limit": 5,
+        "depends_on": ["endpoints", "software", "patches", "sensors"]
+      }
+    }
+  ]
+}

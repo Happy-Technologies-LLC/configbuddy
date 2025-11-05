@@ -1,0 +1,3702 @@
+openapi: 3.0.0
+
+info:
+  title: ConfigBuddy CMDB API
+  version: 2.0.0
+  description: |
+    Comprehensive REST API for ConfigBuddy - Enterprise Configuration Management Database (CMDB) platform.
+
+    ConfigBuddy v2.0 features:
+    - Graph-based CI relationships with Neo4j
+    - 37 connectors (17 TypeScript + 20 JSON-only)
+    - Unified credential system with affinity matching
+    - Discovery agent architecture with smart routing
+    - AI-powered anomaly detection and impact analysis
+    - Identity resolution and reconciliation
+
+    ## Authentication
+
+    All API endpoints (except `/api/v1/auth/login`) require authentication via:
+    - **JWT Token**: Include `Authorization: Bearer <token>` header
+    - **API Key**: Include `X-API-Key: <key>` header
+
+    ## Rate Limiting
+
+    Rate limits apply per authentication token/API key:
+    - **Standard**: 1000 requests/hour
+    - **Burst**: 100 requests/minute
+
+    Rate limit headers included in responses:
+    - `X-RateLimit-Limit`: Maximum requests per window
+    - `X-RateLimit-Remaining`: Remaining requests
+    - `X-RateLimit-Reset`: Unix timestamp when limit resets
+
+  contact:
+    name: ConfigBuddy Support
+    url: http://localhost:8080
+    email: support@configbuddy.io
+  license:
+    name: MIT License
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Development server
+  - url: http://staging-api.configbuddy.io/api/v1
+    description: Staging server
+  - url: https://api.configbuddy.io/api/v1
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication and API key management
+  - name: Configuration Items
+    description: CRUD operations for Configuration Items (CIs)
+  - name: Relationships
+    description: Manage relationships between CIs
+  - name: Search
+    description: Advanced search and query capabilities
+  - name: Discovery
+    description: Discovery definitions and execution
+  - name: Discovery Agents
+    description: Agent registration and management
+  - name: Credentials
+    description: Unified credential system
+  - name: Credential Sets
+    description: Credential sets with fallback strategies
+  - name: Connectors
+    description: Connector registry and installation
+  - name: Reconciliation
+    description: Identity resolution and CI reconciliation
+  - name: Analytics
+    description: Dashboard statistics and reporting
+  - name: Anomalies
+    description: AI-powered anomaly detection
+  - name: Jobs
+    description: Job management and queue monitoring
+  - name: Health
+    description: Health checks and system status
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+paths:
+  # =============================================================================
+  # AUTHENTICATION
+  # =============================================================================
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Authenticate user
+      description: Login with username and password to receive JWT token
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                  example: admin
+                password:
+                  type: string
+                  format: password
+                  example: password123
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: JWT access token
+                  expiresIn:
+                    type: string
+                    example: 24h
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /auth/api-keys:
+    post:
+      tags: [Authentication]
+      summary: Create API key
+      description: Generate a new API key for programmatic access
+      operationId: createApiKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  description: Descriptive name for the API key
+                  example: Production Automation
+                expiresAt:
+                  type: string
+                  format: date-time
+                  description: Optional expiration date
+      responses:
+        '201':
+          description: API key created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  apiKey:
+                    type: string
+                    description: The API key (only shown once)
+                    example: cmdb_prod_abc123xyz789
+                  id:
+                    type: string
+                    format: uuid
+                  name:
+                    type: string
+                  createdAt:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    get:
+      tags: [Authentication]
+      summary: List API keys
+      description: Get all API keys for the authenticated user
+      operationId: listApiKeys
+      responses:
+        '200':
+          description: List of API keys
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ApiKey'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/api-keys/{keyId}:
+    delete:
+      tags: [Authentication]
+      summary: Revoke API key
+      description: Permanently revoke an API key
+      operationId: revokeApiKey
+      parameters:
+        - $ref: '#/components/parameters/KeyId'
+      responses:
+        '204':
+          description: API key revoked
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # =============================================================================
+  # CONFIGURATION ITEMS (CIs)
+  # =============================================================================
+  /cis:
+    get:
+      tags: [Configuration Items]
+      summary: List all CIs
+      description: Retrieve all Configuration Items with optional filtering
+      operationId: getAllCIs
+      parameters:
+        - name: _type
+          in: query
+          schema:
+            $ref: '#/components/schemas/CIType'
+        - name: _status
+          in: query
+          schema:
+            $ref: '#/components/schemas/CIStatus'
+        - name: _environment
+          in: query
+          schema:
+            $ref: '#/components/schemas/Environment'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: List of CIs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CI'
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Configuration Items]
+      summary: Create new CI
+      description: Create a new Configuration Item
+      operationId: createCI
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CIInput'
+            examples:
+              server:
+                summary: Create a server CI
+                value:
+                  _id: srv-prod-web-01
+                  name: Production Web Server 01
+                  _type: server
+                  _status: active
+                  environment: production
+                  metadata:
+                    hostname: web01.example.com
+                    ip_address: 192.168.1.10
+                    os: Ubuntu 22.04
+                    cpu_cores: 8
+                    memory_gb: 32
+              application:
+                summary: Create an application CI
+                value:
+                  _id: app-ecommerce-api
+                  name: E-Commerce API
+                  _type: application
+                  _status: active
+                  environment: production
+                  metadata:
+                    version: 2.3.1
+                    port: 8080
+                    framework: Node.js
+      responses:
+        '201':
+          description: CI created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CI'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: CI with this ID already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /cis/{id}:
+    get:
+      tags: [Configuration Items]
+      summary: Get CI by ID
+      description: Retrieve a specific Configuration Item
+      operationId: getCIById
+      parameters:
+        - $ref: '#/components/parameters/CIId'
+      responses:
+        '200':
+          description: CI details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CI'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Configuration Items]
+      summary: Update CI
+      description: Update an existing Configuration Item
+      operationId: updateCI
+      parameters:
+        - $ref: '#/components/parameters/CIId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                _name:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+                _type:
+                  $ref: '#/components/schemas/CIType'
+                _status:
+                  $ref: '#/components/schemas/CIStatus'
+                _environment:
+                  $ref: '#/components/schemas/Environment'
+                _metadata:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '200':
+          description: CI updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CI'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Configuration Items]
+      summary: Delete CI
+      description: Delete a Configuration Item (soft delete)
+      operationId: deleteCI
+      parameters:
+        - $ref: '#/components/parameters/CIId'
+      responses:
+        '204':
+          description: CI deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /cis/search:
+    post:
+      tags: [Configuration Items]
+      summary: Search CIs
+      description: Simple search across CI names and metadata
+      operationId: searchCIs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [_query]
+              properties:
+                _query:
+                  type: string
+                  minLength: 1
+                  description: Search query string
+                  example: web server
+                _limit:
+                  type: integer
+                  minimum: 1
+                  maximum: 1000
+                  default: 50
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CI'
+                  total:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /cis/{id}/relationships:
+    get:
+      tags: [Configuration Items]
+      summary: Get CI relationships
+      description: Retrieve all relationships for a CI
+      operationId: getCIRelationships
+      parameters:
+        - $ref: '#/components/parameters/CIId'
+        - name: _direction
+          in: query
+          schema:
+            type: string
+            enum: [in, out, both]
+            default: both
+          description: Relationship direction (in=incoming, out=outgoing, both=all)
+      responses:
+        '200':
+          description: CI relationships
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  inbound:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Relationship'
+                  outbound:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Relationship'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /cis/{id}/dependencies:
+    get:
+      tags: [Configuration Items]
+      summary: Get CI dependencies
+      description: Get dependency tree for a CI
+      operationId: getCIDependencies
+      parameters:
+        - $ref: '#/components/parameters/CIId'
+        - name: _depth
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10
+            default: 5
+          description: Maximum traversal depth
+      responses:
+        '200':
+          description: Dependency tree
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ci:
+                    $ref: '#/components/schemas/CI'
+                  dependencies:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        ci:
+                          $ref: '#/components/schemas/CI'
+                        depth:
+                          type: integer
+                        path:
+                          type: array
+                          items:
+                            type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /cis/{id}/impact:
+    get:
+      tags: [Configuration Items]
+      summary: Get impact analysis
+      description: Analyze potential impact if CI fails
+      operationId: getImpactAnalysis
+      parameters:
+        - $ref: '#/components/parameters/CIId'
+        - name: _depth
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10
+            default: 5
+      responses:
+        '200':
+          description: Impact analysis results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  affected_cis:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CI'
+                  impact_score:
+                    type: number
+                    description: Severity score 0-100
+                  criticality:
+                    type: string
+                    enum: [low, medium, high, critical]
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /cis/{id}/audit:
+    get:
+      tags: [Configuration Items]
+      summary: Get CI audit history
+      description: Retrieve change history for a CI
+      operationId: getCIAuditHistory
+      parameters:
+        - $ref: '#/components/parameters/CIId'
+      responses:
+        '200':
+          description: Audit trail
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditEntry'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # =============================================================================
+  # RELATIONSHIPS
+  # =============================================================================
+  /relationships:
+    get:
+      tags: [Relationships]
+      summary: List relationships
+      description: Retrieve relationships with optional filtering
+      operationId: listRelationships
+      parameters:
+        - name: _type
+          in: query
+          schema:
+            $ref: '#/components/schemas/RelationshipType'
+        - name: _from_id
+          in: query
+          schema:
+            type: string
+          description: Filter by source CI ID
+        - name: _to_id
+          in: query
+          schema:
+            type: string
+          description: Filter by target CI ID
+        - name: _ci_id
+          in: query
+          schema:
+            type: string
+          description: Filter by any CI ID (source or target)
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: List of relationships
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Relationship'
+                  total:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Relationships]
+      summary: Create relationship
+      description: Create a relationship between two CIs
+      operationId: createRelationship
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RelationshipInput'
+            examples:
+              dependency:
+                summary: Application depends on database
+                value:
+                  _from_id: app-ecommerce-api
+                  _to_id: db-postgres-prod
+                  _type: DEPENDS_ON
+                  properties:
+                    connection_string: postgresql://db-postgres-prod:5432/ecommerce
+              hosting:
+                summary: Server hosts application
+                value:
+                  _from_id: srv-prod-web-01
+                  _to_id: app-ecommerce-api
+                  _type: HOSTS
+      responses:
+        '201':
+          description: Relationship created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Relationship'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: One or both CIs not found
+
+  /relationships/{id}:
+    delete:
+      tags: [Relationships]
+      summary: Delete relationship
+      description: Remove a relationship between CIs
+      operationId: deleteRelationship
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Relationship ID or query string from_id/to_id/type
+      responses:
+        '204':
+          description: Relationship deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /relationships/type/{type}:
+    get:
+      tags: [Relationships]
+      summary: Get relationships by type
+      description: Retrieve all relationships of a specific type
+      operationId: getRelationshipsByType
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/RelationshipType'
+      responses:
+        '200':
+          description: Relationships of specified type
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Relationship'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # =============================================================================
+  # SEARCH
+  # =============================================================================
+  /search/advanced:
+    post:
+      tags: [Search]
+      summary: Advanced search
+      description: Search CIs with multiple filters
+      operationId: advancedSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [_query]
+              properties:
+                _query:
+                  type: string
+                  minLength: 1
+                _type:
+                  $ref: '#/components/schemas/CIType'
+                _status:
+                  $ref: '#/components/schemas/CIStatus'
+                _environment:
+                  $ref: '#/components/schemas/Environment'
+                _metadata_filters:
+                  type: object
+                  additionalProperties: true
+                  description: Filter by metadata fields
+                  example:
+                    os: Ubuntu
+                    cpu_cores: 8
+                _limit:
+                  type: integer
+                  minimum: 1
+                  maximum: 1000
+                  default: 50
+                _offset:
+                  type: integer
+                  minimum: 0
+                  default: 0
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CI'
+                  total:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /search/fulltext:
+    post:
+      tags: [Search]
+      summary: Full-text search
+      description: Search using Neo4j full-text index
+      operationId: fulltextSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [_query]
+              properties:
+                _query:
+                  type: string
+                  minLength: 1
+                _limit:
+                  type: integer
+                  minimum: 1
+                  maximum: 1000
+                  default: 50
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CI'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /search/relationships:
+    post:
+      tags: [Search]
+      summary: Search by relationship pattern
+      description: Find CIs matching relationship criteria
+      operationId: searchByRelationship
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [_ci_type, _relationship_type, _related_ci_type]
+              properties:
+                _ci_type:
+                  $ref: '#/components/schemas/CIType'
+                _relationship_type:
+                  $ref: '#/components/schemas/RelationshipType'
+                _related_ci_type:
+                  $ref: '#/components/schemas/CIType'
+                _limit:
+                  type: integer
+                  minimum: 1
+                  maximum: 1000
+                  default: 50
+      responses:
+        '200':
+          description: Matching CIs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CI'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /search/orphaned:
+    get:
+      tags: [Search]
+      summary: Get orphaned CIs
+      description: Find CIs with no relationships
+      operationId: getOrphanedCIs
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: Orphaned CIs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CI'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # =============================================================================
+  # CREDENTIALS
+  # =============================================================================
+  /credentials:
+    get:
+      tags: [Credentials]
+      summary: List credentials
+      description: Get all credentials (summaries only, no secrets)
+      operationId: listCredentials
+      parameters:
+        - name: _protocol
+          in: query
+          schema:
+            $ref: '#/components/schemas/AuthProtocol'
+        - name: _scope
+          in: query
+          schema:
+            $ref: '#/components/schemas/CredentialScope'
+        - name: _tags
+          in: query
+          schema:
+            type: string
+          description: Comma-separated tags
+        - name: _created_by
+          in: query
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: List of credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CredentialSummary'
+                  total:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Credentials]
+      summary: Create credential
+      description: Create a new credential with encrypted storage
+      operationId: createCredential
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCredentialInput'
+            examples:
+              aws_iam:
+                summary: AWS IAM credentials
+                value:
+                  _name: AWS Production Account
+                  _description: Main AWS account for production
+                  _protocol: aws_iam
+                  _scope: cloud_provider
+                  _credentials:
+                    access_key_id: AKIAIOSFODNN7EXAMPLE
+                    secret_access_key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+                    region: us-east-1
+                  _affinity:
+                    _cloud_providers: [aws]
+                    _environments: [production]
+                    _priority: 10
+                  _tags: [aws, production, primary]
+              ssh_key:
+                summary: SSH key credentials
+                value:
+                  _name: Production Servers SSH Key
+                  _protocol: ssh_key
+                  _scope: ssh
+                  _credentials:
+                    username: ubuntu
+                    private_key: "-----BEGIN RSA PRIVATE KEY-----\n..."
+                  _affinity:
+                    _networks: ["10.0.0.0/8"]
+                    _os_types: [ubuntu, debian]
+                    _priority: 8
+      responses:
+        '201':
+          description: Credential created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Credential'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /credentials/{id}:
+    get:
+      tags: [Credentials]
+      summary: Get credential by ID
+      description: Retrieve a specific credential (secrets redacted)
+      operationId: getCredentialById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Credential details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Credential'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Credentials]
+      summary: Update credential
+      description: Update credential properties
+      operationId: updateCredential
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                _name:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                _description:
+                  type: string
+                  maxLength: 1000
+                _credentials:
+                  type: object
+                  additionalProperties: true
+                _affinity:
+                  $ref: '#/components/schemas/CredentialAffinity'
+                _tags:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Credential updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Credential'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Credentials]
+      summary: Delete credential
+      description: Permanently delete a credential
+      operationId: deleteCredential
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Credential deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /credentials/match:
+    post:
+      tags: [Credentials]
+      summary: Match credential
+      description: Find best matching credential for given context
+      operationId: matchCredential
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CredentialMatchContext'
+            example:
+              _ip: 192.168.1.10
+              _hostname: web01.example.com
+              _os_type: ubuntu
+              _environment: production
+              _required_protocol: ssh_key
+      responses:
+        '200':
+          description: Best matching credential
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  credential:
+                    $ref: '#/components/schemas/Credential'
+                  match_score:
+                    type: number
+                    description: Match confidence 0-100
+        '404':
+          description: No matching credential found
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /credentials/rank:
+    post:
+      tags: [Credentials]
+      summary: Rank credentials
+      description: Rank all credentials by match score
+      operationId: rankCredentials
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CredentialMatchContext'
+      responses:
+        '200':
+          description: Ranked credentials
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    credential:
+                      $ref: '#/components/schemas/CredentialSummary'
+                    match_score:
+                      type: number
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /credentials/{id}/validate:
+    post:
+      tags: [Credentials]
+      summary: Validate credential
+      description: Test if credential is valid and working
+      operationId: validateCredential
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  message:
+                    type: string
+                  tested_at:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # =============================================================================
+  # CREDENTIAL SETS
+  # =============================================================================
+  /credential-sets:
+    get:
+      tags: [Credential Sets]
+      summary: List credential sets
+      description: Get all credential sets
+      operationId: listCredentialSets
+      responses:
+        '200':
+          description: List of credential sets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CredentialSet'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Credential Sets]
+      summary: Create credential set
+      description: Create a new credential set with fallback strategy
+      operationId: createCredentialSet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [_name, _credential_ids]
+              properties:
+                _name:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                _description:
+                  type: string
+                  maxLength: 1000
+                _credential_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  minItems: 1
+                _strategy:
+                  type: string
+                  enum: [sequential, parallel, adaptive]
+                  default: sequential
+                _stop_on_success:
+                  type: boolean
+                  default: true
+                _tags:
+                  type: array
+                  items:
+                    type: string
+            example:
+              _name: Production SSH Keys
+              _description: Fallback SSH keys for production servers
+              _credential_ids:
+                - 123e4567-e89b-12d3-a456-426614174000
+                - 223e4567-e89b-12d3-a456-426614174001
+              _strategy: sequential
+              _stop_on_success: true
+              _tags: [ssh, production]
+      responses:
+        '201':
+          description: Credential set created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialSet'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /credential-sets/{id}:
+    get:
+      tags: [Credential Sets]
+      summary: Get credential set by ID
+      operationId: getCredentialSetById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Credential set details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialSet'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Credential Sets]
+      summary: Update credential set
+      operationId: updateCredentialSet
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                _name:
+                  type: string
+                _description:
+                  type: string
+                _credential_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                _strategy:
+                  type: string
+                  enum: [sequential, parallel, adaptive]
+                _stop_on_success:
+                  type: boolean
+                _tags:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Credential set updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialSet'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Credential Sets]
+      summary: Delete credential set
+      operationId: deleteCredentialSet
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Credential set deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /credential-sets/{id}/select:
+    post:
+      tags: [Credential Sets]
+      summary: Select credentials
+      description: Select credentials from set using strategy
+      operationId: selectCredentials
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                _context:
+                  $ref: '#/components/schemas/CredentialMatchContext'
+                _strategy:
+                  type: string
+                  enum: [sequential, parallel, adaptive]
+      responses:
+        '200':
+          description: Selected credentials
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Credential'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # =============================================================================
+  # DISCOVERY DEFINITIONS
+  # =============================================================================
+  /discovery/definitions:
+    get:
+      tags: [Discovery]
+      summary: List discovery definitions
+      description: Get all discovery definitions
+      operationId: listDiscoveryDefinitions
+      parameters:
+        - name: provider
+          in: query
+          schema:
+            $ref: '#/components/schemas/DiscoveryProvider'
+        - name: is_active
+          in: query
+          schema:
+            type: string
+            enum: ['true', 'false']
+        - name: created_by
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of definitions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DiscoveryDefinition'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Discovery]
+      summary: Create discovery definition
+      description: Create a reusable discovery configuration
+      operationId: createDiscoveryDefinition
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDiscoveryDefinitionInput'
+            examples:
+              aws_discovery:
+                summary: AWS connector discovery
+                value:
+                  name: AWS Production Account Discovery
+                  description: Discover all resources in production AWS
+                  provider: aws
+                  method: connector
+                  credential_id: 123e4567-e89b-12d3-a456-426614174000
+                  config:
+                    regions: [us-east-1, us-west-2]
+                    services: [ec2, rds, lambda, s3]
+                  schedule: "0 */6 * * *"
+                  is_active: true
+                  tags: [aws, production]
+              nmap_discovery:
+                summary: NMAP network scan
+                value:
+                  name: Production Network Scan
+                  description: Scan production subnet for devices
+                  provider: nmap
+                  method: agent
+                  agent_id: agent-prod-01
+                  config:
+                    target_networks: ["10.0.0.0/24"]
+                    scan_type: comprehensive
+                  schedule: "0 2 * * *"
+                  is_active: true
+      responses:
+        '201':
+          description: Definition created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscoveryDefinition'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /discovery/definitions/{id}:
+    get:
+      tags: [Discovery]
+      summary: Get discovery definition
+      operationId: getDiscoveryDefinition
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Definition details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscoveryDefinition'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Discovery]
+      summary: Update discovery definition
+      operationId: updateDiscoveryDefinition
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                provider:
+                  $ref: '#/components/schemas/DiscoveryProvider'
+                method:
+                  $ref: '#/components/schemas/DiscoveryMethod'
+                credential_id:
+                  type: string
+                  format: uuid
+                agent_id:
+                  type: string
+                config:
+                  type: object
+                schedule:
+                  type: string
+                is_active:
+                  type: boolean
+                tags:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Definition updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscoveryDefinition'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Discovery]
+      summary: Delete discovery definition
+      operationId: deleteDiscoveryDefinition
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Definition deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /discovery/definitions/{id}/run:
+    post:
+      tags: [Discovery]
+      summary: Run discovery definition
+      description: Trigger discovery job execution
+      operationId: runDiscoveryDefinition
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '202':
+          description: Discovery job queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id:
+                    type: string
+                  queue:
+                    type: string
+                  status:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /discovery/definitions/{id}/schedule/enable:
+    post:
+      tags: [Discovery]
+      summary: Enable schedule
+      description: Enable scheduled discovery runs
+      operationId: enableDiscoverySchedule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Schedule enabled
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /discovery/definitions/{id}/schedule/disable:
+    post:
+      tags: [Discovery]
+      summary: Disable schedule
+      description: Disable scheduled discovery runs
+      operationId: disableDiscoverySchedule
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Schedule disabled
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # =============================================================================
+  # DISCOVERY AGENTS
+  # =============================================================================
+  /agents:
+    get:
+      tags: [Discovery Agents]
+      summary: List discovery agents
+      description: Get all registered discovery agents
+      operationId: listDiscoveryAgents
+      responses:
+        '200':
+          description: List of agents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DiscoveryAgent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /agents/register:
+    post:
+      tags: [Discovery Agents]
+      summary: Register agent
+      description: Register or update a discovery agent
+      operationId: registerDiscoveryAgent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterAgentInput'
+            example:
+              agent_id: agent-prod-datacenter-01
+              hostname: discovery-agent-01.internal
+              provider_capabilities: [nmap, ssh, snmp]
+              reachable_networks: ["10.0.0.0/8", "192.168.0.0/16"]
+              version: 2.0.0
+              platform: linux
+              arch: x86_64
+              api_endpoint: http://discovery-agent-01.internal:9000
+              tags: [datacenter1, production]
+      responses:
+        '200':
+          description: Agent registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscoveryAgent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /agents/heartbeat:
+    post:
+      tags: [Discovery Agents]
+      summary: Update heartbeat
+      description: Update agent status and statistics
+      operationId: updateAgentHeartbeat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [agent_id, status]
+              properties:
+                agent_id:
+                  type: string
+                status:
+                  type: string
+                  enum: [active, inactive, offline, disabled]
+                stats:
+                  type: object
+                  properties:
+                    jobs_completed:
+                      type: integer
+                    jobs_failed:
+                      type: integer
+                    cis_discovered:
+                      type: integer
+      responses:
+        '200':
+          description: Heartbeat updated
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Agent not found
+
+  /agents/find-best:
+    post:
+      tags: [Discovery Agents]
+      summary: Find best agent
+      description: Find best agent for target networks
+      operationId: findBestAgent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [targetNetworks, provider]
+              properties:
+                targetNetworks:
+                  type: array
+                  items:
+                    type: string
+                    pattern: '^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]{1,2}$'
+                  example: ["10.0.0.0/24"]
+                provider:
+                  $ref: '#/components/schemas/DiscoveryProvider'
+      responses:
+        '200':
+          description: Best agent found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agent:
+                    $ref: '#/components/schemas/DiscoveryAgent'
+                  match_score:
+                    type: number
+        '404':
+          description: No suitable agent found
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /agents/{agentId}:
+    get:
+      tags: [Discovery Agents]
+      summary: Get agent by ID
+      operationId: getAgentById
+      parameters:
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscoveryAgent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Discovery Agents]
+      summary: Delete agent
+      description: Unregister a discovery agent
+      operationId: deleteAgent
+      parameters:
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Agent deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # =============================================================================
+  # CONNECTORS
+  # =============================================================================
+  /connectors/registry:
+    get:
+      tags: [Connectors]
+      summary: Browse connector registry
+      description: Get available connectors from registry
+      operationId: getConnectorRegistry
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [discovery, connector]
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: tags
+          in: query
+          schema:
+            type: string
+          description: Comma-separated tags
+        - name: verified_only
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: Registry entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  connectors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ConnectorRegistryEntry'
+                  total:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /connectors/registry/{type}:
+    get:
+      tags: [Connectors]
+      summary: Get connector details
+      description: Get connector metadata from registry
+      operationId: getConnectorRegistryDetails
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+          example: aws
+      responses:
+        '200':
+          description: Connector details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectorRegistryEntry'
+        '404':
+          description: Connector not found in registry
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /connectors/installed:
+    get:
+      tags: [Connectors]
+      summary: List installed connectors
+      description: Get all locally installed connectors
+      operationId: getInstalledConnectors
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [discovery, connector]
+        - name: enabled
+          in: query
+          schema:
+            type: boolean
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [name, connector_type, installed_at, updated_at]
+            default: name
+        - name: sort_order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+      responses:
+        '200':
+          description: Installed connectors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InstalledConnector'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /connectors/installed/{type}:
+    get:
+      tags: [Connectors]
+      summary: Get installed connector
+      description: Get details of an installed connector
+      operationId: getInstalledConnectorDetails
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Connector details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstalledConnector'
+        '404':
+          description: Connector not installed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /connectors/install:
+    post:
+      tags: [Connectors]
+      summary: Install connector
+      description: Install a connector from the registry
+      operationId: installConnector
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [connector_type]
+              properties:
+                connector_type:
+                  type: string
+                  example: aws
+                version:
+                  type: string
+                  pattern: '^\d+\.\d+\.\d+$'
+                  example: 1.0.0
+                force:
+                  type: boolean
+                  default: false
+      responses:
+        '201':
+          description: Connector installed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstalledConnector'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Connector already installed
+
+  /connectors/{type}/update:
+    put:
+      tags: [Connectors]
+      summary: Update connector
+      description: Update connector to specific version
+      operationId: updateConnector
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                version:
+                  type: string
+                  pattern: '^\d+\.\d+\.\d+$'
+                force:
+                  type: boolean
+                  default: false
+      responses:
+        '200':
+          description: Connector updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstalledConnector'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Connector not installed
+
+  /connectors/{type}:
+    delete:
+      tags: [Connectors]
+      summary: Uninstall connector
+      description: Remove a connector from the system
+      operationId: uninstallConnector
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Connector uninstalled
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Connector not installed
+
+  /connectors/{type}/verify:
+    post:
+      tags: [Connectors]
+      summary: Verify connector
+      description: Verify connector installation and integrity
+      operationId: verifyConnector
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  errors:
+                    type: array
+                    items:
+                      type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Connector not installed
+
+  /connectors/outdated:
+    get:
+      tags: [Connectors]
+      summary: Check for updates
+      description: Get list of outdated connectors
+      operationId: checkOutdatedConnectors
+      responses:
+        '200':
+          description: Outdated connectors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    connector_type:
+                      type: string
+                    current_version:
+                      type: string
+                    latest_version:
+                      type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /connectors/cache/refresh:
+    post:
+      tags: [Connectors]
+      summary: Refresh registry cache
+      description: Clear and refresh connector registry cache
+      operationId: refreshRegistryCache
+      responses:
+        '200':
+          description: Cache refreshed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # =============================================================================
+  # RECONCILIATION
+  # =============================================================================
+  /reconciliation/match:
+    post:
+      tags: [Reconciliation]
+      summary: Find matching CIs
+      description: Find duplicate/matching CIs based on identifiers
+      operationId: findMatches
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MatchRequest'
+      responses:
+        '200':
+          description: Matching CIs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    ci:
+                      $ref: '#/components/schemas/CI'
+                    match_score:
+                      type: number
+                    matching_attributes:
+                      type: array
+                      items:
+                        type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /reconciliation/merge:
+    post:
+      tags: [Reconciliation]
+      summary: Merge CI
+      description: Reconcile discovered CI into CMDB
+      operationId: mergeCI
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MergeRequest'
+      responses:
+        '200':
+          description: CI merged successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ci:
+                    $ref: '#/components/schemas/CI'
+                  action:
+                    type: string
+                    enum: [created, updated, merged]
+                  conflicts:
+                    type: array
+                    items:
+                      type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /reconciliation/conflicts:
+    get:
+      tags: [Reconciliation]
+      summary: List conflicts
+      description: Get pending reconciliation conflicts
+      operationId: listConflicts
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, resolved, dismissed]
+            default: pending
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: List of conflicts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conflicts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ReconciliationConflict'
+                  total:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /reconciliation/conflicts/{id}/resolve:
+    post:
+      tags: [Reconciliation]
+      summary: Resolve conflict
+      description: Resolve a specific reconciliation conflict
+      operationId: resolveConflict
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [resolution]
+              properties:
+                resolution:
+                  type: string
+                  enum: [accept_source, accept_target, merge]
+                merged_data:
+                  type: object
+      responses:
+        '200':
+          description: Conflict resolved
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /reconciliation/rules:
+    get:
+      tags: [Reconciliation]
+      summary: List reconciliation rules
+      operationId: listReconciliationRules
+      responses:
+        '200':
+          description: Reconciliation rules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReconciliationRule'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Reconciliation]
+      summary: Create reconciliation rule
+      operationId: createReconciliationRule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReconciliationRuleInput'
+      responses:
+        '201':
+          description: Rule created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReconciliationRule'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /reconciliation/lineage/{ci_id}:
+    get:
+      tags: [Reconciliation]
+      summary: Get CI lineage
+      description: Get source lineage for a CI
+      operationId: getCILineage
+      parameters:
+        - name: ci_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: CI lineage
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ci_id:
+                    type: string
+                  sources:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        source:
+                          type: string
+                        discovered_at:
+                          type: string
+                          format: date-time
+                        authority_score:
+                          type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # =============================================================================
+  # ANALYTICS
+  # =============================================================================
+  /analytics/dashboard:
+    get:
+      tags: [Analytics]
+      summary: Dashboard statistics
+      description: Get summary statistics for dashboard
+      operationId: getDashboardStats
+      responses:
+        '200':
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_cis:
+                    type: integer
+                  total_relationships:
+                    type: integer
+                  active_discovery_jobs:
+                    type: integer
+                  recent_anomalies:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /analytics/ci-counts:
+    get:
+      tags: [Analytics]
+      summary: CI counts by type
+      operationId: getCICountsByType
+      responses:
+        '200':
+          description: CI type counts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    type:
+                      $ref: '#/components/schemas/CIType'
+                    count:
+                      type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /analytics/discovery-stats:
+    get:
+      tags: [Analytics]
+      summary: Discovery statistics
+      description: Get discovery job statistics
+      operationId: getDiscoveryStats
+      parameters:
+        - name: _start_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: _end_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Discovery statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_jobs:
+                    type: integer
+                  successful_jobs:
+                    type: integer
+                  failed_jobs:
+                    type: integer
+                  cis_discovered:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # =============================================================================
+  # ANOMALIES
+  # =============================================================================
+  /anomalies/recent:
+    get:
+      tags: [Anomalies]
+      summary: Get recent anomalies
+      description: Retrieve recently detected anomalies
+      operationId: getRecentAnomalies
+      parameters:
+        - name: hours
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 168
+            default: 24
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 100
+      responses:
+        '200':
+          description: Recent anomalies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Anomaly'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /anomalies/ci/{ciId}:
+    get:
+      tags: [Anomalies]
+      summary: Get anomalies for CI
+      description: Get all anomalies detected for a specific CI
+      operationId: getAnomaliesForCI
+      parameters:
+        - name: ciId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 50
+      responses:
+        '200':
+          description: CI anomalies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Anomaly'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /anomalies/stats:
+    get:
+      tags: [Anomalies]
+      summary: Anomaly statistics
+      description: Get anomaly detection statistics
+      operationId: getAnomalyStats
+      responses:
+        '200':
+          description: Anomaly stats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_anomalies:
+                    type: integer
+                  by_type:
+                    type: object
+                  by_status:
+                    type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /anomalies/{id}/status:
+    patch:
+      tags: [Anomalies]
+      summary: Update anomaly status
+      description: Update the investigation status of an anomaly
+      operationId: updateAnomalyStatus
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [investigating, resolved, false_positive, confirmed, ignored]
+                resolved_by:
+                  type: string
+      responses:
+        '200':
+          description: Status updated
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /anomalies/detect:
+    post:
+      tags: [Anomalies]
+      summary: Run anomaly detection
+      description: Manually trigger anomaly detection job
+      operationId: runAnomalyDetection
+      responses:
+        '202':
+          description: Detection job started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id:
+                    type: string
+                  message:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # =============================================================================
+  # JOBS
+  # =============================================================================
+  /jobs/stats:
+    get:
+      tags: [Jobs]
+      summary: Get job statistics
+      description: Overall job statistics across all queues
+      operationId: getJobStats
+      responses:
+        '200':
+          description: Job statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_jobs:
+                    type: integer
+                  active_jobs:
+                    type: integer
+                  completed_jobs:
+                    type: integer
+                  failed_jobs:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /jobs/discovery:
+    get:
+      tags: [Jobs]
+      summary: List discovery jobs
+      description: Get all discovery jobs
+      operationId: listDiscoveryJobs
+      responses:
+        '200':
+          description: Discovery jobs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Job'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /jobs/discovery/{provider}:
+    post:
+      tags: [Jobs]
+      summary: Trigger discovery
+      description: Manually trigger discovery for a provider
+      operationId: triggerDiscovery
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/DiscoveryProvider'
+      responses:
+        '202':
+          description: Discovery job queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id:
+                    type: string
+                  queue:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /jobs/{queueName}/{jobId}:
+    get:
+      tags: [Jobs]
+      summary: Get job status
+      description: Get detailed status of a specific job
+      operationId: getJobStatus
+      parameters:
+        - name: queueName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Job details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Jobs]
+      summary: Cancel job
+      description: Cancel a running or queued job
+      operationId: cancelJob
+      parameters:
+        - name: queueName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Job cancelled
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /jobs/{queueName}/{jobId}/retry:
+    post:
+      tags: [Jobs]
+      summary: Retry failed job
+      description: Retry a failed job
+      operationId: retryJob
+      parameters:
+        - name: queueName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Job requeued
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # =============================================================================
+  # HEALTH
+  # =============================================================================
+  /cmdb-health:
+    get:
+      tags: [Health]
+      summary: Health check
+      description: Get overall system health status
+      operationId: healthCheck
+      security: []
+      responses:
+        '200':
+          description: System healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy, degraded, unhealthy]
+                  timestamp:
+                    type: string
+                    format: date-time
+                  services:
+                    type: object
+                    properties:
+                      neo4j:
+                        type: string
+                        enum: [up, down]
+                      postgres:
+                        type: string
+                        enum: [up, down]
+                      redis:
+                        type: string
+                        enum: [up, down]
+        '503':
+          description: System unhealthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [unhealthy]
+                  errors:
+                    type: array
+                    items:
+                      type: string
+
+# =============================================================================
+# REUSABLE COMPONENTS
+# =============================================================================
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token from /auth/login endpoint
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key from /auth/api-keys endpoint
+
+  parameters:
+    CIId:
+      name: id
+      in: path
+      required: true
+      description: CI unique identifier
+      schema:
+        type: string
+      example: srv-prod-web-01
+
+    KeyId:
+      name: keyId
+      in: path
+      required: true
+      description: API key ID
+      schema:
+        type: string
+        format: uuid
+
+    Limit:
+      name: _limit
+      in: query
+      description: Maximum number of results
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 1000
+        default: 100
+
+    Offset:
+      name: _offset
+      in: query
+      description: Number of results to skip
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+
+  responses:
+    BadRequest:
+      description: Invalid request parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Validation Error
+            message: Invalid CI type provided
+            details:
+              - field: _type
+                error: must be one of [server, virtual-machine, ...]
+
+    Unauthorized:
+      description: Authentication required or invalid token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Unauthorized
+            message: Invalid or expired JWT token
+
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Not Found
+            message: CI with ID 'srv-prod-web-01' not found
+
+    TooManyRequests:
+      description: Rate limit exceeded
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+          description: Maximum requests per window
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+          description: Remaining requests
+        X-RateLimit-Reset:
+          schema:
+            type: integer
+          description: Unix timestamp when limit resets
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    # =========================================================================
+    # CORE MODELS
+    # =========================================================================
+    CI:
+      type: object
+      required: [_id, name, _type, _status, _created_at, _updated_at, _discovered_at]
+      properties:
+        _id:
+          type: string
+          description: Unique identifier
+          example: srv-prod-web-01
+        external_id:
+          type: string
+          description: External system ID (e.g., AWS instance ID)
+          example: i-0123456789abcdef0
+        name:
+          type: string
+          description: Human-readable name
+          example: Production Web Server 01
+        _type:
+          $ref: '#/components/schemas/CIType'
+        _status:
+          $ref: '#/components/schemas/CIStatus'
+        environment:
+          $ref: '#/components/schemas/Environment'
+        _created_at:
+          type: string
+          format: date-time
+          description: When CI was created in CMDB
+        _updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+        _discovered_at:
+          type: string
+          format: date-time
+          description: When CI was discovered
+        _metadata:
+          type: object
+          additionalProperties: true
+          description: Additional attributes and metadata
+          example:
+            hostname: web01.example.com
+            ip_address: 192.168.1.10
+            os: Ubuntu 22.04
+            cpu_cores: 8
+            memory_gb: 32
+
+    CIInput:
+      type: object
+      required: [_id, name, _type]
+      properties:
+        _id:
+          type: string
+        external_id:
+          type: string
+        name:
+          type: string
+        _type:
+          $ref: '#/components/schemas/CIType'
+        status:
+          $ref: '#/components/schemas/CIStatus'
+        environment:
+          $ref: '#/components/schemas/Environment'
+        discovered_at:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+          additionalProperties: true
+
+    CIType:
+      type: string
+      enum:
+        - server
+        - virtual-machine
+        - container
+        - application
+        - service
+        - database
+        - network-device
+        - storage
+        - load-balancer
+        - cloud-resource
+        - alert
+        - vulnerability
+        - software
+        - detection
+        - incident
+        - hardware-component
+        - mobile-device
+        - policy
+        - configuration
+        - user
+        - group
+        - organizational-unit
+        - collection
+        - update
+
+    CIStatus:
+      type: string
+      enum: [active, inactive, maintenance, decommissioned]
+
+    Environment:
+      type: string
+      enum: [production, staging, development, test]
+
+    Relationship:
+      type: object
+      required: [_from_id, _to_id, _type]
+      properties:
+        _from_id:
+          type: string
+          description: Source CI ID
+        _to_id:
+          type: string
+          description: Target CI ID
+        _type:
+          $ref: '#/components/schemas/RelationshipType'
+        properties:
+          type: object
+          additionalProperties: true
+          description: Additional relationship metadata
+
+    RelationshipInput:
+      type: object
+      required: [_from_id, _to_id, _type]
+      properties:
+        _from_id:
+          type: string
+        _to_id:
+          type: string
+        _type:
+          $ref: '#/components/schemas/RelationshipType'
+        properties:
+          type: object
+          additionalProperties: true
+
+    RelationshipType:
+      type: string
+      enum:
+        - DEPENDS_ON
+        - HOSTS
+        - CONNECTS_TO
+        - USES
+        - OWNED_BY
+        - PART_OF
+        - LOCATED_IN
+        - DEPLOYED_ON
+        - BACKED_UP_BY
+        - DETECTED_ON
+        - AFFECTS
+        - INSTALLED_ON
+        - CONTAINS
+        - ASSIGNED_TO
+        - APPLIES_TO
+        - MEMBER_OF
+        - REQUIRED_BY
+        - HOSTED_ON
+
+    # =========================================================================
+    # AUTHENTICATION
+    # =========================================================================
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+          format: uuid
+        _username:
+          type: string
+        _email:
+          type: string
+          format: email
+        _role:
+          type: string
+          enum: [admin, user, readonly]
+        _enabled:
+          type: boolean
+        _createdAt:
+          type: string
+          format: date-time
+
+    ApiKey:
+      type: object
+      properties:
+        _id:
+          type: string
+          format: uuid
+        _name:
+          type: string
+        _role:
+          type: string
+        _enabled:
+          type: boolean
+        _createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        lastUsedAt:
+          type: string
+          format: date-time
+
+    # =========================================================================
+    # CREDENTIALS
+    # =========================================================================
+    Credential:
+      type: object
+      required: [id, name, protocol, scope, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        protocol:
+          $ref: '#/components/schemas/AuthProtocol'
+        scope:
+          $ref: '#/components/schemas/CredentialScope'
+        credentials:
+          type: object
+          description: Encrypted credentials (redacted in responses)
+        affinity:
+          $ref: '#/components/schemas/CredentialAffinity'
+        tags:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        created_by:
+          type: string
+        last_used_at:
+          type: string
+          format: date-time
+
+    CredentialSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        protocol:
+          $ref: '#/components/schemas/AuthProtocol'
+        scope:
+          $ref: '#/components/schemas/CredentialScope'
+        tags:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+
+    CreateCredentialInput:
+      type: object
+      required: [_name, _protocol, _scope, _credentials]
+      properties:
+        _name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        _description:
+          type: string
+          maxLength: 1000
+        _protocol:
+          $ref: '#/components/schemas/AuthProtocol'
+        _scope:
+          $ref: '#/components/schemas/CredentialScope'
+        _credentials:
+          type: object
+          additionalProperties: true
+          description: Protocol-specific credentials
+        _affinity:
+          $ref: '#/components/schemas/CredentialAffinity'
+        _tags:
+          type: array
+          items:
+            type: string
+
+    AuthProtocol:
+      type: string
+      enum:
+        - oauth2
+        - api_key
+        - basic
+        - bearer
+        - aws_iam
+        - azure_sp
+        - gcp_sa
+        - ssh_key
+        - ssh_password
+        - certificate
+        - kerberos
+        - snmp_v2c
+        - snmp_v3
+        - winrm
+
+    CredentialScope:
+      type: string
+      enum: [cloud_provider, ssh, api, network, database, container, universal]
+
+    CredentialAffinity:
+      type: object
+      properties:
+        _networks:
+          type: array
+          items:
+            type: string
+          description: CIDR network ranges
+          example: ["10.0.0.0/8"]
+        _hostname_patterns:
+          type: array
+          items:
+            type: string
+          description: Regex patterns for hostname matching
+          example: [".*\\.prod\\.example\\.com"]
+        _os_types:
+          type: array
+          items:
+            type: string
+          example: [ubuntu, debian, centos]
+        _device_types:
+          type: array
+          items:
+            type: string
+          example: [server, virtual-machine]
+        _environments:
+          type: array
+          items:
+            type: string
+          example: [production, staging]
+        _cloud_providers:
+          type: array
+          items:
+            type: string
+          example: [aws, azure, gcp]
+        _priority:
+          type: integer
+          minimum: 1
+          maximum: 10
+          description: Priority when multiple credentials match (higher = preferred)
+
+    CredentialMatchContext:
+      type: object
+      properties:
+        _ip:
+          type: string
+        _hostname:
+          type: string
+        _os_type:
+          type: string
+        _device_type:
+          type: string
+        _environment:
+          type: string
+        _cloud_provider:
+          type: string
+        _required_protocol:
+          $ref: '#/components/schemas/AuthProtocol'
+        _required_scope:
+          $ref: '#/components/schemas/CredentialScope'
+
+    CredentialSet:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        credential_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        strategy:
+          type: string
+          enum: [sequential, parallel, adaptive]
+        stop_on_success:
+          type: boolean
+        tags:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+
+    # =========================================================================
+    # DISCOVERY
+    # =========================================================================
+    DiscoveryDefinition:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        provider:
+          $ref: '#/components/schemas/DiscoveryProvider'
+        method:
+          $ref: '#/components/schemas/DiscoveryMethod'
+        credential_id:
+          type: string
+          format: uuid
+        agent_id:
+          type: string
+        config:
+          type: object
+          additionalProperties: true
+        schedule:
+          type: string
+          description: Cron expression
+          example: "0 */6 * * *"
+        is_active:
+          type: boolean
+        tags:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        created_by:
+          type: string
+
+    CreateDiscoveryDefinitionInput:
+      type: object
+      required: [name, provider, method]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        provider:
+          $ref: '#/components/schemas/DiscoveryProvider'
+        method:
+          $ref: '#/components/schemas/DiscoveryMethod'
+        credential_id:
+          type: string
+          format: uuid
+        agent_id:
+          type: string
+        config:
+          type: object
+        schedule:
+          type: string
+        is_active:
+          type: boolean
+        tags:
+          type: array
+          items:
+            type: string
+
+    DiscoveryProvider:
+      type: string
+      enum:
+        - aws
+        - azure
+        - gcp
+        - vmware
+        - kubernetes
+        - docker
+        - nmap
+        - ssh
+        - snmp
+        - active_directory
+        - servicenow
+        - salesforce
+        - datadog
+        - pagerduty
+
+    DiscoveryMethod:
+      type: string
+      enum: [connector, agent]
+      description: connector = API-based, agent = network-based
+
+    DiscoveryAgent:
+      type: object
+      properties:
+        agent_id:
+          type: string
+        hostname:
+          type: string
+        provider_capabilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/DiscoveryProvider'
+        reachable_networks:
+          type: array
+          items:
+            type: string
+          description: CIDR network ranges
+        version:
+          type: string
+        platform:
+          type: string
+        arch:
+          type: string
+        api_endpoint:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive, offline, disabled]
+        last_heartbeat:
+          type: string
+          format: date-time
+        stats:
+          type: object
+          properties:
+            jobs_completed:
+              type: integer
+            jobs_failed:
+              type: integer
+            cis_discovered:
+              type: integer
+        tags:
+          type: array
+          items:
+            type: string
+        registered_at:
+          type: string
+          format: date-time
+
+    RegisterAgentInput:
+      type: object
+      required: [agent_id, hostname, provider_capabilities, reachable_networks]
+      properties:
+        agent_id:
+          type: string
+        hostname:
+          type: string
+        provider_capabilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/DiscoveryProvider'
+        reachable_networks:
+          type: array
+          items:
+            type: string
+        version:
+          type: string
+        platform:
+          type: string
+        arch:
+          type: string
+        api_endpoint:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+
+    # =========================================================================
+    # CONNECTORS
+    # =========================================================================
+    ConnectorRegistryEntry:
+      type: object
+      properties:
+        connector_type:
+          type: string
+        name:
+          type: string
+        version:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [discovery, connector]
+        tags:
+          type: array
+          items:
+            type: string
+        verified:
+          type: boolean
+        downloads:
+          type: integer
+        rating:
+          type: number
+
+    InstalledConnector:
+      type: object
+      properties:
+        connector_type:
+          type: string
+        name:
+          type: string
+        version:
+          type: string
+        category:
+          type: string
+        enabled:
+          type: boolean
+        installed_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    # =========================================================================
+    # RECONCILIATION
+    # =========================================================================
+    MatchRequest:
+      type: object
+      required: [identifiers]
+      properties:
+        identifiers:
+          type: object
+          properties:
+            external_id:
+              type: string
+            serial_number:
+              type: string
+            uuid:
+              type: string
+            mac_address:
+              type: array
+              items:
+                type: string
+            fqdn:
+              type: string
+            hostname:
+              type: string
+            ip_address:
+              type: array
+              items:
+                type: string
+        source:
+          type: string
+        ci_type:
+          type: string
+        environment:
+          type: string
+
+    MergeRequest:
+      type: object
+      required: [name, ci_type, source, source_id, identifiers]
+      properties:
+        name:
+          type: string
+        ci_type:
+          type: string
+        source:
+          type: string
+        source_id:
+          type: string
+        identifiers:
+          type: object
+        attributes:
+          type: object
+        relationships:
+          type: array
+        confidence_score:
+          type: number
+        environment:
+          type: string
+        status:
+          type: string
+
+    ReconciliationConflict:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        source_ci:
+          $ref: '#/components/schemas/CI'
+        target_ci:
+          $ref: '#/components/schemas/CI'
+        conflicting_fields:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              source_value:
+                type: string
+              target_value:
+                type: string
+        status:
+          type: string
+          enum: [pending, resolved, dismissed]
+        detected_at:
+          type: string
+          format: date-time
+
+    ReconciliationRule:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        identification_rules:
+          type: array
+          items:
+            type: object
+        merge_strategies:
+          type: array
+          items:
+            type: object
+        enabled:
+          type: boolean
+
+    CreateReconciliationRuleInput:
+      type: object
+      required: [name, identification_rules]
+      properties:
+        name:
+          type: string
+        identification_rules:
+          type: array
+          items:
+            type: object
+        merge_strategies:
+          type: array
+          items:
+            type: object
+        enabled:
+          type: boolean
+
+    # =========================================================================
+    # ANOMALIES
+    # =========================================================================
+    Anomaly:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        ci_id:
+          type: string
+        anomaly_type:
+          type: string
+          enum: [config_drift, unexpected_change, performance_anomaly, relationship_anomaly]
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+        description:
+          type: string
+        detected_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [investigating, resolved, false_positive, confirmed, ignored]
+        resolved_by:
+          type: string
+        resolved_at:
+          type: string
+          format: date-time
+
+    # =========================================================================
+    # JOBS
+    # =========================================================================
+    Job:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        queue:
+          type: string
+        status:
+          type: string
+          enum: [waiting, active, completed, failed, delayed]
+        progress:
+          type: number
+        data:
+          type: object
+        result:
+          type: object
+        error:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+
+    # =========================================================================
+    # AUDIT
+    # =========================================================================
+    AuditEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        ci_id:
+          type: string
+        action:
+          type: string
+          enum: [created, updated, deleted]
+        changes:
+          type: object
+        performed_by:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    # =========================================================================
+    # ERROR
+    # =========================================================================
+    Error:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          description: Error type/code
+          example: Validation Error
+        message:
+          type: string
+          description: Human-readable error message
+          example: Invalid CI type provided
+        details:
+          type: array
+          description: Detailed validation errors
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              error:
+                type: string

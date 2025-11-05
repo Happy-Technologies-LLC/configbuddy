@@ -1,0 +1,336 @@
+{
+  "type": "tenable",
+  "category": "connector",
+  "connector_category": "security",
+  "icon": "tenable",
+  "name": "Tenable.io Vulnerability Management",
+  "version": "1.0.0",
+  "description": "Comprehensive vulnerability management integration with Tenable.io for devices, vulnerabilities, assets, and plugins",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": true,
+    "bidirectional": false
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["api_url", "access_key", "secret_key"],
+    "properties": {
+      "api_url": {
+        "type": "string",
+        "description": "Tenable.io API URL",
+        "default": "https://cloud.tenable.com"
+      },
+      "access_key": {
+        "type": "string",
+        "description": "Tenable.io API Access Key"
+      },
+      "secret_key": {
+        "type": "string",
+        "description": "Tenable.io API Secret Key",
+        "format": "password"
+      },
+      "verify_ssl": {
+        "type": "boolean",
+        "description": "Verify SSL certificates",
+        "default": true
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "devices",
+      "name": "Devices",
+      "description": "Network devices discovered by Tenable vulnerability scanners",
+      "ci_type": "server",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "source_filter": {
+            "type": "array",
+            "description": "Filter devices by source (e.g., ['NESSUS_SCAN', 'AGENT'])",
+            "default": ["NESSUS_SCAN", "AGENT", "WAS_SCAN", "MANUAL"]
+          },
+          "has_agent_filter": {
+            "type": "boolean",
+            "description": "Filter devices that have Tenable agent installed",
+            "default": null
+          },
+          "operating_systems": {
+            "type": "array",
+            "description": "Filter by operating system families (e.g., ['Windows', 'Linux', 'Unix'])",
+            "default": []
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 1000,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "name": "hostname|fqdn|netbios_name|ipv4[0]|uuid",
+        "ci_type": "system_type",
+        "status": "last_seen",
+        "hostname": "hostname",
+        "fqdn": "fqdn",
+        "ipv4": "ipv4",
+        "ipv6": "ipv6",
+        "mac_address": "mac_address",
+        "netbios_name": "netbios_name",
+        "operating_system": "operating_system",
+        "system_type": "system_type",
+        "has_agent": "has_agent",
+        "first_seen": "first_seen",
+        "last_seen": "last_seen",
+        "last_authenticated_scan": "last_authenticated_scan",
+        "sources": "sources",
+        "tags": "tags",
+        "external_id": "uuid|id",
+        "uuid": "uuid",
+        "serial_number": "bios_uuid[0]",
+        "tenable_device_id": "id",
+        "tenable_uuid": "uuid"
+      }
+    },
+    {
+      "id": "vulnerabilities",
+      "name": "Vulnerabilities",
+      "description": "Vulnerability findings from Tenable scans with CVE mappings and severity ratings",
+      "ci_type": "vulnerability",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "severity_filter": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["critical", "high", "medium", "low", "info"]
+            },
+            "default": ["critical", "high", "medium"],
+            "description": "Vulnerability severity filter"
+          },
+          "state_filter": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["open", "reopened", "fixed"]
+            },
+            "default": ["open", "reopened"],
+            "description": "Vulnerability state filter"
+          },
+          "days_back": {
+            "type": "number",
+            "description": "Number of days to look back for vulnerabilities",
+            "default": 90
+          },
+          "include_accepted_risk": {
+            "type": "boolean",
+            "description": "Include vulnerabilities marked as accepted risk",
+            "default": false
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 5000,
+        "rate_limit": 5,
+        "depends_on": ["devices"]
+      },
+      "field_mappings": {
+        "name": "plugin_name",
+        "ci_type": "vulnerability",
+        "status": "state",
+        "plugin_id": "plugin_id",
+        "plugin_family": "plugin_family",
+        "severity": "severity_name",
+        "severity_score": "severity",
+        "vpr_score": "vpr_score",
+        "cvss_base_score": "cvss_base_score",
+        "cvss_temporal_score": "cvss_temporal_score",
+        "cvss_vector": "cvss_vector",
+        "cvss3_base_score": "cvss3_base_score",
+        "cvss3_temporal_score": "cvss3_temporal_score",
+        "cvss3_vector": "cvss3_vector",
+        "cve": "cve",
+        "description": "description",
+        "solution": "solution",
+        "synopsis": "synopsis",
+        "count": "count",
+        "first_found": "first_found",
+        "last_found": "last_found",
+        "state": "state",
+        "accepted_count": "accepted_count",
+        "recasted_count": "recasted_count",
+        "affected_assets": "asset_uuids.length",
+        "external_id": "plugin_id",
+        "tenable_plugin_id": "plugin_id",
+        "cve_list": "cve.join(',')"
+      }
+    },
+    {
+      "id": "assets",
+      "name": "Assets",
+      "description": "Asset inventory with detailed system information and tags",
+      "ci_type": "server",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "tag_filter": {
+            "type": "array",
+            "description": "Filter assets by tags (e.g., ['Production', 'Critical'])",
+            "default": []
+          },
+          "exposure_score_min": {
+            "type": "number",
+            "description": "Minimum exposure score (0-1000)",
+            "default": 0
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 500,
+        "rate_limit": 5
+      },
+      "field_mappings": {
+        "name": "hostname[0]|fqdn[0]|netbios_name[0]|ipv4[0]|uuid",
+        "ci_type": "system_type",
+        "environment": "tags",
+        "status": "active",
+        "has_agent": "has_agent",
+        "created_at": "created_at",
+        "updated_at": "updated_at",
+        "first_seen": "first_seen",
+        "last_seen": "last_seen",
+        "first_scan_time": "first_scan_time",
+        "last_scan_time": "last_scan_time",
+        "last_authenticated_scan_date": "last_authenticated_scan_date",
+        "ipv4": "ipv4",
+        "ipv6": "ipv6",
+        "fqdn": "fqdn",
+        "netbios_name": "netbios_name",
+        "hostname": "hostname",
+        "mac_address": "mac_address",
+        "operating_system": "operating_system",
+        "system_type": "system_type",
+        "agent_name": "agent_name",
+        "bios_uuid": "bios_uuid",
+        "aws_ec2_instance_id": "aws_ec2_instance_id",
+        "aws_ec2_name": "aws_ec2_name",
+        "aws_region": "aws_region",
+        "azure_vm_id": "azure_vm_id",
+        "azure_resource_id": "azure_resource_id",
+        "gcp_instance_id": "gcp_instance_id",
+        "exposure_score": "exposure_score",
+        "tags": "tags",
+        "external_id": "uuid|id",
+        "uuid": "uuid",
+        "serial_number": "bios_uuid[0]",
+        "tenable_device_id": "id",
+        "tenable_uuid": "uuid",
+        "aws_instance_id": "aws_ec2_instance_id[0]",
+        "azure_vm_id_identifier": "azure_vm_id[0]",
+        "gcp_instance_id_identifier": "gcp_instance_id[0]"
+      }
+    },
+    {
+      "id": "plugins",
+      "name": "Plugins",
+      "description": "Vulnerability plugin definitions with CVE mappings and CVSS scores",
+      "ci_type": null,
+      "enabled_by_default": false,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "plugin_families": {
+            "type": "array",
+            "description": "Filter by plugin families (e.g., ['Windows', 'Red Hat Local Security Checks'])",
+            "default": []
+          },
+          "severity_filter": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["critical", "high", "medium", "low", "info"]
+            },
+            "default": ["critical", "high", "medium"],
+            "description": "Plugin severity filter"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 100,
+        "rate_limit": 2
+      },
+      "field_mappings": {
+        "name": "name",
+        "ci_type": "plugin",
+        "status": "active",
+        "plugin_id": "id",
+        "family_name": "family_name",
+        "description": "description",
+        "synopsis": "synopsis",
+        "solution": "solution",
+        "risk_factor": "risk_factor",
+        "cvss_base_score": "cvss_base_score",
+        "cvss_temporal_score": "cvss_temporal_score",
+        "cvss_vector": "cvss_vector",
+        "cvss3_base_score": "cvss3_base_score",
+        "cvss3_temporal_score": "cvss3_temporal_score",
+        "cvss3_vector": "cvss3_vector",
+        "cve": "cve",
+        "bid": "bid",
+        "xref": "xref",
+        "see_also": "see_also",
+        "plugin_publication_date": "plugin_publication_date",
+        "plugin_modification_date": "plugin_modification_date",
+        "vuln_publication_date": "vuln_publication_date",
+        "patch_publication_date": "patch_publication_date",
+        "exploitability_ease": "exploitability_ease",
+        "exploit_available": "exploit_available",
+        "exploit_framework_canvas": "exploit_framework_canvas",
+        "exploit_framework_metasploit": "exploit_framework_metasploit",
+        "exploit_framework_core": "exploit_framework_core",
+        "metasploit_name": "metasploit_name",
+        "canvas_package": "canvas_package",
+        "vpr_score": "vpr_score",
+        "external_id": "id",
+        "tenable_plugin_id": "id",
+        "cve_list": "cve.join(',')"
+      }
+    },
+    {
+      "id": "relationships",
+      "name": "Vulnerability Relationships",
+      "description": "Relationships between vulnerabilities and affected devices",
+      "ci_type": null,
+      "enabled_by_default": true,
+      "operations": ["extract"],
+      "configuration_schema": {
+        "properties": {}
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 10000,
+        "depends_on": ["devices", "vulnerabilities"]
+      },
+      "field_mappings": {
+        "source_external_id": "plugin_id",
+        "target_external_id": "asset_uuids",
+        "relationship_type": "AFFECTS",
+        "severity": "severity_name",
+        "cvss_score": "cvss3_base_score|cvss_base_score",
+        "first_found": "first_found",
+        "last_found": "last_found",
+        "state": "state"
+      }
+    }
+  ]
+}

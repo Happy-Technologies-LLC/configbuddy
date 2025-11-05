@@ -1,0 +1,63 @@
+# Lightweight build for Agent
+# Using single-stage build since agent is lightweight
+FROM node:20-alpine
+
+# Install runtime dependencies
+RUN apk add --no-cache \
+    dumb-init \
+    curl \
+    ca-certificates
+
+# Enable Corepack for pnpm
+RUN corepack enable && corepack prepare pnpm@8.0.0 --activate
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY --chown=nodejs:nodejs package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY --chown=nodejs:nodejs packages/common/package.json ./packages/common/
+
+# Note: If agent package exists, add it here
+# COPY --chown=nodejs:nodejs packages/agent/package.json ./packages/agent/
+
+# Install production dependencies only
+RUN pnpm install --frozen-lockfile --prod
+
+# Copy source code
+COPY --chown=nodejs:nodejs tsconfig.base.json ./
+COPY --chown=nodejs:nodejs packages/common/ ./packages/common/
+
+# Note: If agent package exists, add it here
+# COPY --chown=nodejs:nodejs packages/agent/ ./packages/agent/
+
+# Build common package
+RUN pnpm --filter @cmdb/common build
+
+# Note: Build agent when package exists
+# RUN pnpm --filter @cmdb/agent build
+
+# Switch to non-root user
+USER nodejs
+
+# Set environment variables
+ENV NODE_ENV=production
+
+# Create directory for agent data
+RUN mkdir -p /app/data && \
+    chmod 755 /app/data
+
+# Health check - verify process is running
+HEALTHCHECK --interval=60s --timeout=10s --start-period=20s --retries=3 \
+    CMD pgrep -f "node.*agent" > /dev/null || exit 1
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start the agent
+# Note: Update path when agent package exists
+CMD ["node", "packages/agent/dist/index.js"]

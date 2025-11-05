@@ -1,0 +1,223 @@
+{
+  "type": "dynatrace",
+  "category": "connector",
+  "connector_category": "monitoring",
+  "icon": "dynatrace",
+  "name": "Dynatrace APM",
+  "version": "1.0.0",
+  "description": "Integration with Dynatrace APM for infrastructure hosts, processes, services, and applications",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": false,
+    "bidirectional": false
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["environment_url", "api_token"],
+    "properties": {
+      "environment_url": {
+        "type": "string",
+        "description": "Dynatrace environment URL (e.g., https://abc12345.live.dynatrace.com)"
+      },
+      "api_token": {
+        "type": "string",
+        "description": "Dynatrace API token with required permissions",
+        "format": "password"
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "hosts",
+      "name": "Hosts",
+      "description": "Infrastructure hosts from Dynatrace monitoring",
+      "ci_type": "server",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "pageSize": {
+            "type": "number",
+            "default": 500,
+            "description": "Number of hosts to fetch per page (max 500)"
+          },
+          "fields": {
+            "type": "string",
+            "default": "+properties,+tags,+toRelationships",
+            "description": "Additional fields to include"
+          }
+        }
+      },
+      "field_mappings": {
+        "name": "displayName",
+        "source_id": "entityId",
+        "attributes.dynatrace_id": "entityId",
+        "attributes.first_seen": "firstSeenTms",
+        "attributes.last_seen": "lastSeenTms",
+        "attributes.tags": "tags",
+        "attributes.properties": "properties",
+        "attributes.os_type": "properties.osType",
+        "attributes.os_version": "properties.osVersion",
+        "attributes.cpu_cores": "properties.cpuCores",
+        "attributes.physical_memory": "properties.physicalMemory",
+        "attributes.hypervisor_type": "properties.hypervisorType",
+        "attributes.cloud_type": "properties.cloudType",
+        "attributes.bosh_availability_zone": "properties.boshAvailabilityZone",
+        "attributes.paas_agent_version": "properties.paasAgentVersion",
+        "attributes.monitoring_mode": "properties.monitoringMode",
+        "identifiers.external_id": "entityId",
+        "identifiers.hostname": "properties.hostname",
+        "identifiers.ip_address": "properties.ipAddress",
+        "identifiers.fqdn": "properties.fqdn"
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 500,
+        "rate_limit": 10
+      }
+    },
+    {
+      "id": "processes",
+      "name": "Processes",
+      "description": "Process instances from Dynatrace monitoring",
+      "ci_type": "process",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "pageSize": {
+            "type": "number",
+            "default": 500,
+            "description": "Number of processes to fetch per page (max 500)"
+          },
+          "fields": {
+            "type": "string",
+            "default": "+properties,+tags,+toRelationships",
+            "description": "Additional fields to include"
+          }
+        }
+      },
+      "field_mappings": {
+        "name": "displayName",
+        "source_id": "entityId",
+        "ci_type": "process",
+        "attributes.dynatrace_id": "entityId",
+        "attributes.first_seen": "firstSeenTms",
+        "attributes.last_seen": "lastSeenTms",
+        "attributes.tags": "tags",
+        "attributes.properties": "properties",
+        "attributes.process_type": "properties.softwareTechnologies[0]",
+        "attributes.software_technologies": "properties.softwareTechnologies",
+        "attributes.listening_ports": "properties.listeningPorts",
+        "attributes.metadata": "properties.metadata",
+        "identifiers.external_id": "entityId",
+        "identifiers.hostname": "properties.hostname",
+        "identifiers.ip_address": "properties.ipAddress",
+        "identifiers.fqdn": "properties.fqdn"
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 500,
+        "rate_limit": 10,
+        "depends_on": ["hosts"]
+      }
+    },
+    {
+      "id": "services",
+      "name": "Services",
+      "description": "Monitored services from Dynatrace",
+      "ci_type": "service",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "pageSize": {
+            "type": "number",
+            "default": 500,
+            "description": "Number of services to fetch per page (max 500)"
+          },
+          "fields": {
+            "type": "string",
+            "default": "+properties,+tags,+toRelationships",
+            "description": "Additional fields to include"
+          }
+        }
+      },
+      "field_mappings": {
+        "name": "displayName",
+        "source_id": "entityId",
+        "ci_type": "service",
+        "attributes.dynatrace_id": "entityId",
+        "attributes.first_seen": "firstSeenTms",
+        "attributes.last_seen": "lastSeenTms",
+        "attributes.tags": "tags",
+        "attributes.properties": "properties",
+        "attributes.service_type": "properties.serviceType",
+        "attributes.service_technology_types": "properties.serviceTechnologyTypes",
+        "attributes.web_service_namespace": "properties.webServiceNamespace",
+        "attributes.web_service_name": "properties.webServiceName",
+        "attributes.database_vendor": "properties.databaseVendor",
+        "attributes.database_name": "properties.databaseName",
+        "identifiers.external_id": "entityId",
+        "identifiers.hostname": "properties.hostname",
+        "identifiers.ip_address": "properties.ipAddress",
+        "identifiers.fqdn": "properties.fqdn"
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 500,
+        "rate_limit": 10,
+        "depends_on": ["processes"]
+      }
+    },
+    {
+      "id": "applications",
+      "name": "Applications",
+      "description": "Web and mobile applications from Dynatrace",
+      "ci_type": "application",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "pageSize": {
+            "type": "number",
+            "default": 500,
+            "description": "Number of applications to fetch per page (max 500)"
+          },
+          "fields": {
+            "type": "string",
+            "default": "+properties,+tags",
+            "description": "Additional fields to include"
+          }
+        }
+      },
+      "field_mappings": {
+        "name": "displayName",
+        "source_id": "entityId",
+        "ci_type": "application",
+        "attributes.dynatrace_id": "entityId",
+        "attributes.first_seen": "firstSeenTms",
+        "attributes.last_seen": "lastSeenTms",
+        "attributes.tags": "tags",
+        "attributes.properties": "properties",
+        "attributes.application_type": "properties.applicationType",
+        "attributes.application_name": "properties.applicationName",
+        "attributes.public_domain_names": "properties.publicDomainNames",
+        "attributes.real_user_monitoring_enabled": "properties.realUserMonitoringEnabled",
+        "attributes.cost_control_user_session_percentage": "properties.costControlUserSessionPercentage",
+        "identifiers.external_id": "entityId",
+        "identifiers.hostname": "properties.hostname",
+        "identifiers.ip_address": "properties.ipAddress",
+        "identifiers.fqdn": "properties.fqdn"
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 500,
+        "rate_limit": 10
+      }
+    }
+  ]
+}

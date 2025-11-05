@@ -1,0 +1,190 @@
+{
+  "type": "appdynamics",
+  "category": "connector",
+  "connector_category": "monitoring",
+  "icon": "appdynamics",
+  "name": "AppDynamics APM",
+  "version": "1.0.0",
+  "description": "Integration with AppDynamics Application Performance Monitoring for discovering applications, tiers, nodes, and backend dependencies",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": false,
+    "bidirectional": false
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["controller_url", "account_name", "username", "password"],
+    "properties": {
+      "controller_url": {
+        "type": "string",
+        "description": "AppDynamics Controller URL (e.g., https://company.saas.appdynamics.com)",
+        "format": "uri"
+      },
+      "account_name": {
+        "type": "string",
+        "description": "AppDynamics account name"
+      },
+      "username": {
+        "type": "string",
+        "description": "AppDynamics username (will be combined with account_name as username@account_name)"
+      },
+      "password": {
+        "type": "string",
+        "description": "AppDynamics password",
+        "format": "password"
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "applications",
+      "name": "Applications",
+      "description": "Business applications monitored by AppDynamics",
+      "ci_type": "application",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "include_inactive": {
+            "type": "boolean",
+            "description": "Include inactive applications",
+            "default": false
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 100,
+        "rate_limit": 5
+      },
+      "field_mappings": {
+        "name": "name",
+        "ci_type": "application",
+        "status": "active",
+        "attributes.description": "description",
+        "attributes.appdynamics_id": "id",
+        "attributes.source": "appdynamics"
+      }
+    },
+    {
+      "id": "tiers",
+      "name": "Application Tiers",
+      "description": "Logical tiers within applications (web, business logic, database)",
+      "ci_type": "service",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "tier_types": {
+            "type": "array",
+            "description": "Filter by tier types",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 100,
+        "depends_on": ["applications"]
+      },
+      "field_mappings": {
+        "name": "name",
+        "ci_type": "service",
+        "status": "active",
+        "attributes.description": "description",
+        "attributes.tier_type": "type",
+        "attributes.agent_type": "agentType",
+        "attributes.number_of_nodes": "numberOfNodes",
+        "attributes.appdynamics_tier_id": "id",
+        "attributes.appdynamics_app_id": "applicationId",
+        "attributes.application_name": "applicationName",
+        "attributes.source": "appdynamics"
+      }
+    },
+    {
+      "id": "nodes",
+      "name": "Application Nodes",
+      "description": "Runtime nodes (JVMs, .NET processes, etc.) running application components",
+      "ci_type": "server",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "include_historical": {
+            "type": "boolean",
+            "description": "Include historical (disconnected) nodes",
+            "default": false
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 100,
+        "depends_on": ["applications", "tiers"]
+      },
+      "field_mappings": {
+        "name": "name",
+        "ci_type": "server",
+        "status": "active",
+        "attributes.node_type": "type",
+        "attributes.tier_name": "tierName",
+        "attributes.machine_name": "machineName",
+        "attributes.machine_os_type": "machineOSType",
+        "attributes.machine_agent_version": "machineAgentVersion",
+        "attributes.app_agent_version": "appAgentVersion",
+        "attributes.appdynamics_node_id": "id",
+        "attributes.appdynamics_tier_id": "tierId",
+        "attributes.appdynamics_machine_id": "machineId",
+        "attributes.appdynamics_app_id": "applicationId",
+        "attributes.application_name": "applicationName",
+        "attributes.source": "appdynamics",
+        "identifiers.hostname": "name",
+        "identifiers.ip_address": "ipAddresses"
+      }
+    },
+    {
+      "id": "backends",
+      "name": "Backend Systems",
+      "description": "External dependencies (databases, web services, message queues)",
+      "ci_type": "service",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "backend_types": {
+            "type": "array",
+            "description": "Filter by backend types (DB, HTTP, CACHE, etc.)",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 100,
+        "depends_on": ["applications"]
+      },
+      "field_mappings": {
+        "name": "name",
+        "ci_type": "service",
+        "status": "active",
+        "attributes.service_type": "exitPointType",
+        "attributes.backend_type": "exitPointType",
+        "attributes.appdynamics_backend_id": "id",
+        "attributes.appdynamics_tier_id": "tierId",
+        "attributes.appdynamics_app_id": "applicationId",
+        "attributes.application_name": "applicationName",
+        "attributes.properties": "properties",
+        "attributes.source": "appdynamics"
+      }
+    }
+  ]
+}

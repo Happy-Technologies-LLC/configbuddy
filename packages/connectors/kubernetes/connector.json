@@ -1,0 +1,174 @@
+{
+  "id": "kubernetes",
+  "category": "connector",
+  "connector_category": "container-orchestration",
+  "name": "Kubernetes",
+  "version": "1.0.0",
+  "type": "kubernetes",
+  "description": "Container orchestration integration for Kubernetes - discovers and syncs cluster nodes, pods, services, deployments, and workloads via Kubernetes API",
+    "provider": "kubernetes",
+  "protocol": "kubernetes",
+  "logo_url": "https://upload.wikimedia.org/wikipedia/commons/3/39/Kubernetes_logo_without_workmark.svg",
+  "documentation_url": "https://kubernetes.io/docs/",
+  "resources": [
+    {
+      "id": "k8s-node",
+      "name": "Kubernetes Node",
+      "type": "server",
+      "description": "Kubernetes cluster worker nodes",
+      "field_mappings": {
+        "name": "metadata.name",
+        "external_id": "metadata.uid",
+        "status": "_status_from_conditions",
+        "os_image": "status.nodeInfo.osImage",
+        "kernel_version": "status.nodeInfo.kernelVersion",
+        "container_runtime_version": "status.nodeInfo.containerRuntimeVersion",
+        "kubelet_version": "status.nodeInfo.kubeletVersion",
+        "cpu_capacity": "status.capacity.cpu",
+        "memory_capacity": "status.capacity.memory",
+        "internal_ip": "status.addresses.InternalIP",
+        "external_ip": "status.addresses.ExternalIP",
+        "hostname": "status.addresses.Hostname",
+        "labels": "metadata.labels",
+        "annotations": "metadata.annotations"
+      }
+    },
+    {
+      "id": "k8s-pod",
+      "name": "Kubernetes Pod",
+      "type": "application",
+      "description": "Kubernetes pod workloads",
+      "field_mappings": {
+        "name": "metadata.name",
+        "external_id": "metadata.uid",
+        "namespace": "metadata.namespace",
+        "status": "_status_from_phase",
+        "node_name": "spec.nodeName",
+        "pod_ip": "status.podIP",
+        "host_ip": "status.hostIP",
+        "started_at": "status.startTime",
+        "containers": "_containers_metadata",
+        "labels": "metadata.labels",
+        "annotations": "metadata.annotations",
+        "owner_references": "metadata.ownerReferences"
+      }
+    },
+    {
+      "id": "k8s-service",
+      "name": "Kubernetes Service",
+      "type": "service",
+      "description": "Kubernetes services for pod networking",
+      "field_mappings": {
+        "name": "metadata.name",
+        "external_id": "metadata.uid",
+        "namespace": "metadata.namespace",
+        "service_type": "spec.type",
+        "cluster_ip": "spec.clusterIP",
+        "external_ips": "spec.externalIPs",
+        "ports": "spec.ports",
+        "selector": "spec.selector",
+        "labels": "metadata.labels",
+        "annotations": "metadata.annotations"
+      }
+    },
+    {
+      "id": "k8s-deployment",
+      "name": "Kubernetes Deployment",
+      "type": "application",
+      "description": "Kubernetes deployment controllers",
+      "field_mappings": {
+        "name": "metadata.name",
+        "external_id": "metadata.uid",
+        "namespace": "metadata.namespace",
+        "status": "_status_from_replicas",
+        "replicas": "spec.replicas",
+        "available_replicas": "status.availableReplicas",
+        "ready_replicas": "status.readyReplicas",
+        "strategy_type": "spec.strategy.type",
+        "labels": "metadata.labels",
+        "annotations": "metadata.annotations",
+        "template_labels": "spec.template.metadata.labels"
+      }
+    }
+  ],
+  "authentication": {
+    "required": true,
+    "methods": [
+      "kubernetes"
+    ],
+    "fields": [
+      {
+        "name": "kubeconfig_content",
+        "label": "Kubeconfig Content",
+        "type": "text",
+        "required": false,
+        "sensitive": true,
+        "description": "Full kubeconfig file content (YAML)"
+      },
+      {
+        "name": "server",
+        "label": "API Server URL",
+        "type": "string",
+        "required": false,
+        "description": "Kubernetes API server URL (e.g., https://kubernetes.example.com:6443)"
+      },
+      {
+        "name": "token",
+        "label": "Service Account Token",
+        "type": "string",
+        "required": false,
+        "sensitive": true,
+        "description": "Service account bearer token for authentication"
+      },
+      {
+        "name": "certificate_authority",
+        "label": "CA Certificate",
+        "type": "text",
+        "required": false,
+        "sensitive": true,
+        "description": "Certificate authority data (base64 encoded)"
+      },
+      {
+        "name": "namespace",
+        "label": "Default Namespace",
+        "type": "string",
+        "required": false,
+        "default": "default",
+        "description": "Default namespace for operations"
+      },
+      {
+        "name": "skip_tls_verify",
+        "label": "Skip TLS Verification",
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Skip TLS certificate verification (insecure)"
+      }
+    ]
+  },
+  "capabilities": {
+    "discovery": true,
+    "sync": false,
+    "real_time": false,
+    "incremental": false
+  },
+  "rate_limits": {
+    "requests_per_second": 20,
+    "requests_per_minute": 1000,
+    "requests_per_hour": 50000
+  },
+  "supported_operations": [
+    "discover_nodes",
+    "discover_pods",
+    "discover_services",
+    "discover_deployments"
+  ],
+  "default_schedule": "0 */2 * * *",
+  "tags": [
+    "infrastructure",
+    "kubernetes",
+    "containers",
+    "orchestration",
+    "cloud-native"
+  ]
+}

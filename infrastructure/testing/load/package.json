@@ -1,0 +1,27 @@
+{
+  "name": "@cmdb/load-testing",
+  "version": "2.0.0",
+  "description": "ConfigBuddy load testing and performance benchmarking suite",
+  "private": true,
+  "scripts": {
+    "test": "./run-loadtest.sh all",
+    "test:api": "./run-loadtest.sh api",
+    "test:graphql": "./run-loadtest.sh graphql",
+    "test:discovery": "./run-loadtest.sh discovery",
+    "test:database": "./run-loadtest.sh database",
+    "seed": "node data/seed-testdata.js",
+    "clean": "rm -rf reports/*.json reports/*.html",
+    "docker:up": "docker-compose -f docker-compose.loadtest.yml up -d",
+    "docker:down": "docker-compose -f docker-compose.loadtest.yml down",
+    "docker:logs": "docker-compose -f docker-compose.loadtest.yml logs -f"
+  },
+  "keywords": [
+    "load-testing",
+    "performance",
+    "k6",
+    "benchmarking",
+    "cmdb"
+  ],
+  "author": "ConfigBuddy Team",
+  "license": "MIT"
+}

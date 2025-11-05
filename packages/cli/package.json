@@ -1,0 +1,37 @@
+{
+  "name": "@cmdb/cli",
+  "version": "1.0.0",
+  "description": "Command-line interface for CMDB platform",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "cmdb": "./bin/cmdb-cli"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "test": "jest"
+  },
+  "keywords": [
+    "cmdb",
+    "cli",
+    "command-line",
+    "discovery"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@cmdb/common": "*",
+    "@cmdb/discovery-engine": "*",
+    "@cmdb/etl-processor": "*",
+    "commander": "^11.0.0",
+    "chalk": "^5.0.0",
+    "ora": "^7.0.0",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}

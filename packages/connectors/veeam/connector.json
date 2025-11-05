@@ -1,0 +1,215 @@
+{
+  "type": "veeam",
+  "category": "connector",
+  "connector_category": "backup",
+  "icon": "veeam",
+  "name": "Veeam Backup & Replication",
+  "version": "1.0.0",
+  "description": "Integration with Veeam Enterprise Manager for backup server, protected VM, backup job, and repository discovery",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": false,
+    "bidirectional": false
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["enterprise_manager_url", "username", "password"],
+    "properties": {
+      "enterprise_manager_url": {
+        "type": "string",
+        "description": "Veeam Enterprise Manager URL (e.g., https://veeam-em.company.com:9398)"
+      },
+      "username": {
+        "type": "string",
+        "description": "Veeam Enterprise Manager username"
+      },
+      "password": {
+        "type": "string",
+        "description": "Veeam Enterprise Manager password",
+        "format": "password"
+      },
+      "verify_ssl": {
+        "type": "boolean",
+        "default": false,
+        "description": "Verify SSL certificates (default: false)"
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "backup_servers",
+      "name": "Backup Servers",
+      "description": "Veeam Backup & Replication servers from Enterprise Manager",
+      "ci_type": "server",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "endpoint": {
+            "type": "string",
+            "default": "/api/backupServers"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 100,
+        "rate_limit": 5
+      },
+      "field_mappings": {
+        "name": "Name",
+        "ci_type": "server",
+        "environment": "production",
+        "status": "active",
+        "attributes.description": "Description",
+        "attributes.port": "Port",
+        "attributes.version": "Version",
+        "attributes.product": "Veeam Backup & Replication",
+        "attributes.role": "backup-server",
+        "identifiers.external_id": "UID",
+        "identifiers.hostname": "Name",
+        "identifiers.custom_identifiers.veeam_uid": "UID",
+        "source": "veeam",
+        "source_id": "UID",
+        "confidence_score": 95
+      }
+    },
+    {
+      "id": "protected_vms",
+      "name": "Protected Virtual Machines",
+      "description": "Virtual machines under Veeam protection",
+      "ci_type": "virtual-machine",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "endpoint": {
+            "type": "string",
+            "default": "/api/query"
+          },
+          "query_type": {
+            "type": "string",
+            "default": "Vm"
+          },
+          "filter": {
+            "type": "string",
+            "default": "IsTemplate==false",
+            "description": "Query filter (e.g., IsTemplate==false)"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 500,
+        "rate_limit": 5
+      },
+      "field_mappings": {
+        "name": "Name",
+        "ci_type": "virtual-machine",
+        "environment": "<inferred_from_name>",
+        "status": "active",
+        "attributes.path": "Path",
+        "attributes.type": "Type",
+        "attributes.platform": "Platform",
+        "attributes.vm_host_name": "VmHostName",
+        "attributes.vm_host_id": "VmHostId",
+        "attributes.vi_type": "ViType",
+        "attributes.backup_protected": true,
+        "identifiers.external_id": "UID",
+        "identifiers.hostname": "Name",
+        "identifiers.custom_identifiers.veeam_uid": "UID",
+        "identifiers.custom_identifiers.veeam_type": "Type",
+        "source": "veeam",
+        "source_id": "UID",
+        "confidence_score": 90
+      }
+    },
+    {
+      "id": "backup_jobs",
+      "name": "Backup Jobs",
+      "description": "Veeam backup job definitions",
+      "ci_type": "application",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "endpoint": {
+            "type": "string",
+            "default": "/api/jobs"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 200,
+        "rate_limit": 5,
+        "depends_on": ["backup_servers"]
+      },
+      "field_mappings": {
+        "name": "Name",
+        "ci_type": "application",
+        "environment": "production",
+        "status": "<computed_from_ScheduleEnabled>",
+        "attributes.job_type": "JobType",
+        "attributes.description": "Description",
+        "attributes.schedule_enabled": "ScheduleEnabled",
+        "attributes.schedule_configured": "ScheduleConfigured",
+        "attributes.next_run": "NextRun",
+        "attributes.backup_server_uid": "BackupServerUid",
+        "attributes.application_type": "backup-job",
+        "identifiers.external_id": "UID",
+        "identifiers.hostname": "Name",
+        "identifiers.custom_identifiers.veeam_uid": "UID",
+        "identifiers.custom_identifiers.veeam_type": "JobType",
+        "source": "veeam",
+        "source_id": "UID",
+        "confidence_score": 100
+      }
+    },
+    {
+      "id": "repositories",
+      "name": "Backup Repositories",
+      "description": "Veeam backup repositories (storage)",
+      "ci_type": "storage",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "endpoint": {
+            "type": "string",
+            "default": "/api/repositories"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 100,
+        "rate_limit": 5
+      },
+      "field_mappings": {
+        "name": "Name",
+        "ci_type": "storage",
+        "environment": "production",
+        "status": "active",
+        "attributes.description": "Description",
+        "attributes.type": "Type",
+        "attributes.path": "Path",
+        "attributes.capacity_bytes": "Capacity",
+        "attributes.free_space_bytes": "FreeSpace",
+        "attributes.used_space_bytes": "<computed_from_Capacity_and_FreeSpace>",
+        "attributes.backup_server_uid": "BackupServerUid",
+        "attributes.storage_type": "backup-repository",
+        "identifiers.external_id": "UID",
+        "identifiers.hostname": "Name",
+        "identifiers.custom_identifiers.veeam_uid": "UID",
+        "identifiers.custom_identifiers.veeam_type": "Type",
+        "source": "veeam",
+        "source_id": "UID",
+        "confidence_score": 100
+      }
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "name": "@cmdb/connector-wiz",
+  "version": "1.0.0",
+  "description": "Wiz Cloud Security connector for ConfigBuddy CMDB",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "keywords": [
+    "cmdb",
+    "wiz",
+    "cloud-security",
+    "cspm",
+    "vulnerabilities",
+    "security-posture",
+    "cloud-compliance",
+    "security"
+  ],
+  "author": "ConfigBuddy",
+  "license": "MIT",
+  "dependencies": {
+    "@cmdb/common": "workspace:*",
+    "@cmdb/integration-framework": "workspace:*",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0"
+  }
+}

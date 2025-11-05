@@ -1,0 +1,28 @@
+{
+  "name": "configbuddy-docs",
+  "version": "1.0.0",
+  "description": "ConfigBuddy CMDB Documentation Site",
+  "type": "module",
+  "scripts": {
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
+    "docs:serve": "vitepress serve docs"
+  },
+  "keywords": [
+    "cmdb",
+    "configuration-management",
+    "documentation",
+    "vitepress"
+  ],
+  "author": "ConfigBuddy Team",
+  "license": "MIT",
+  "devDependencies": {
+    "vitepress": "^1.0.0",
+    "vue": "^3.4.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=9.0.0"
+  }
+}

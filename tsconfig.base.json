@@ -1,0 +1,74 @@
+{
+  "compilerOptions": {
+    /* Language and Environment */
+    "target": "ES2022",
+    "lib": ["ES2022"],
+
+    /* Modules */
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+
+    /* Emit */
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "removeComments": true,
+    "importHelpers": true,
+    "newLine": "lf",
+
+    /* Interop Constraints */
+    "isolatedModules": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+
+    /* Type Checking */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+
+    /* Completeness */
+    "skipLibCheck": true,
+
+    /* Composite Projects */
+    "composite": true,
+    "incremental": true,
+
+    /* Path Mapping */
+    "baseUrl": ".",
+    "paths": {
+      "@cmdb/common": ["./packages/common/src"],
+      "@cmdb/common/*": ["./packages/common/src/*"],
+      "@cmdb/database": ["./packages/database/src"],
+      "@cmdb/database/*": ["./packages/database/src/*"],
+      "@cmdb/discovery-engine": ["./packages/discovery-engine/src"],
+      "@cmdb/discovery-engine/*": ["./packages/discovery-engine/src/*"],
+      "@cmdb/etl-processor": ["./packages/etl-processor/src"],
+      "@cmdb/etl-processor/*": ["./packages/etl-processor/src/*"],
+      "@cmdb/api-server": ["./packages/api-server/src"],
+      "@cmdb/api-server/*": ["./packages/api-server/src/*"],
+      "@cmdb/agent": ["./packages/agent/src"],
+      "@cmdb/agent/*": ["./packages/agent/src/*"],
+      "@cmdb/cli": ["./packages/cli/src"],
+      "@cmdb/cli/*": ["./packages/cli/src/*"]
+    }
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+    "**/*.spec.ts",
+    "**/*.test.ts"
+  ]
+}

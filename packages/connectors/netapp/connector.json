@@ -1,0 +1,251 @@
+{
+  "type": "netapp",
+  "category": "connector",
+  "connector_category": "storage",
+  "icon": "netapp",
+  "name": "NetApp ONTAP",
+  "version": "1.0.0",
+  "description": "Integration with NetApp ONTAP storage systems for storage nodes, volumes, LUNs, and aggregates",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": true,
+    "bidirectional": false
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["cluster_url", "username", "password"],
+    "properties": {
+      "cluster_url": {
+        "type": "string",
+        "description": "ONTAP cluster management URL (e.g., https://ontap-cluster.example.com)"
+      },
+      "username": {
+        "type": "string",
+        "description": "ONTAP username with cluster management permissions"
+      },
+      "password": {
+        "type": "string",
+        "description": "ONTAP password",
+        "format": "password"
+      },
+      "verify_ssl": {
+        "type": "boolean",
+        "default": true,
+        "description": "Verify SSL certificates when connecting to ONTAP API"
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "storage_nodes",
+      "name": "Storage Nodes",
+      "description": "Physical storage nodes in the ONTAP cluster",
+      "ci_type": "server",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "filter": {
+            "type": "string",
+            "description": "Optional filter for node selection (e.g., node_name=*prod*)",
+            "default": ""
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 100,
+        "rate_limit": 5
+      },
+      "field_mappings": {
+        "name": "name",
+        "serial_number": "serial_number",
+        "model": "model",
+        "version": "version",
+        "location": "location",
+        "system_id": "system_id",
+        "uptime": "uptime",
+        "health": "state",
+        "cluster_name": "cluster.name",
+        "is_all_flash_optimized": "is_all_flash_optimized",
+        "is_all_flash_select_optimized": "is_all_flash_select_optimized",
+        "nvram_id": "nvram.id",
+        "membership": "membership",
+        "controller_model": "controller.model",
+        "controller_cpu_count": "controller.cpu.count",
+        "controller_memory_size": "controller.memory.size"
+      }
+    },
+    {
+      "id": "volumes",
+      "name": "Storage Volumes",
+      "description": "Storage volumes managed by ONTAP",
+      "ci_type": "storage",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "filter": {
+            "type": "string",
+            "description": "Optional filter for volume selection (e.g., svm.name=prod_svm)",
+            "default": ""
+          },
+          "include_offline": {
+            "type": "boolean",
+            "default": false,
+            "description": "Include offline volumes in discovery"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 500,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "name": "name",
+        "size_bytes": "space.size",
+        "used_bytes": "space.used",
+        "available_bytes": "space.available",
+        "percent_used": "space.percent_used",
+        "type": "type",
+        "state": "state",
+        "style": "style",
+        "svm": "svm.name",
+        "aggregate": "aggregates[0].name",
+        "uuid": "uuid",
+        "snapshot_policy": "snapshot_policy.name",
+        "export_policy": "nas.export_policy.name",
+        "junction_path": "nas.path",
+        "security_style": "nas.security_style",
+        "unix_permissions": "nas.unix_permissions",
+        "encryption_enabled": "encryption.enabled",
+        "encryption_type": "encryption.type",
+        "is_svm_root": "is_svm_root",
+        "analytics_state": "analytics.state"
+      }
+    },
+    {
+      "id": "luns",
+      "name": "LUNs",
+      "description": "Logical Unit Numbers (LUNs) for block storage",
+      "ci_type": "storage",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "filter": {
+            "type": "string",
+            "description": "Optional filter for LUN selection (e.g., svm.name=prod_svm)",
+            "default": ""
+          },
+          "include_offline": {
+            "type": "boolean",
+            "default": false,
+            "description": "Include offline LUNs in discovery"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 1000,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "name": "name",
+        "size_bytes": "space.size",
+        "used_bytes": "space.used",
+        "path": "location.logical_unit",
+        "serial_number": "serial_number",
+        "state": "status.state",
+        "enabled": "enabled",
+        "svm": "svm.name",
+        "volume": "location.volume.name",
+        "uuid": "uuid",
+        "os_type": "os_type",
+        "space_guarantee": "space.guarantee.requested",
+        "lun_maps_count": "lun_maps.count",
+        "igroup": "lun_maps[0].igroup.name",
+        "lun_id": "lun_maps[0].logical_unit_number",
+        "comment": "comment",
+        "qos_policy": "qos_policy.name",
+        "create_time": "create_time"
+      }
+    },
+    {
+      "id": "aggregates",
+      "name": "Aggregates",
+      "description": "Storage aggregates (storage pools) in the ONTAP cluster",
+      "ci_type": "storage",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "filter": {
+            "type": "string",
+            "description": "Optional filter for aggregate selection (e.g., node.name=node1)",
+            "default": ""
+          },
+          "include_root": {
+            "type": "boolean",
+            "default": false,
+            "description": "Include root aggregates in discovery"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 200,
+        "rate_limit": 5
+      },
+      "field_mappings": {
+        "name": "name",
+        "size_bytes": "space.block_storage.size",
+        "used_bytes": "space.block_storage.used",
+        "available_bytes": "space.block_storage.available",
+        "percent_used": "space.block_storage.percent_used",
+        "node": "node.name",
+        "state": "state",
+        "uuid": "uuid",
+        "home_node": "home_node.name",
+        "raid_type": "block_storage.primary.raid_type",
+        "disk_count": "block_storage.primary.disk_count",
+        "is_root_aggregate": "data_encryption.software_encryption_enabled",
+        "snapshot_policy": "snapshot.policy.name",
+        "cloud_storage_attached": "cloud_storage.attached",
+        "inactive_data_reporting_enabled": "inactive_data_reporting.enabled",
+        "snaplock_type": "snaplock_type",
+        "create_time": "create_time"
+      }
+    },
+    {
+      "id": "relationships",
+      "name": "Storage Relationships",
+      "description": "Relationships between storage nodes, aggregates, volumes, and LUNs",
+      "ci_type": null,
+      "enabled_by_default": true,
+      "operations": ["extract"],
+      "configuration_schema": {
+        "properties": {
+          "relationship_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["node_aggregate", "aggregate_volume", "volume_lun", "svm_volume"]
+            },
+            "default": ["node_aggregate", "aggregate_volume", "volume_lun", "svm_volume"],
+            "description": "Types of relationships to discover"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 5000,
+        "depends_on": ["storage_nodes", "aggregates", "volumes", "luns"]
+      }
+    }
+  ]
+}

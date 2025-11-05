@@ -1,0 +1,26 @@
+{
+  "name": "@cmdb/connector-jamf",
+  "version": "1.0.0",
+  "description": "JAMF Pro integration connector",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@cmdb/common": "file:../../common",
+    "@cmdb/integration-framework": "file:../../integration-framework",
+    "axios": "^1.6.0",
+    "xml2js": "^0.6.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/xml2js": "^0.4.14",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  }
+}

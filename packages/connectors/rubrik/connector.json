@@ -1,0 +1,229 @@
+{
+  "type": "rubrik",
+  "category": "connector",
+  "connector_category": "backup",
+  "icon": "rubrik",
+  "name": "Rubrik CDM",
+  "version": "1.0.0",
+  "description": "Data protection and backup management integration with Rubrik Cloud Data Management",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": false,
+    "bidirectional": false
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["cluster_url", "username", "password"],
+    "properties": {
+      "cluster_url": {
+        "type": "string",
+        "description": "Rubrik cluster URL (e.g., https://rubrik-cluster.example.com)"
+      },
+      "username": {
+        "type": "string",
+        "description": "Rubrik API username"
+      },
+      "password": {
+        "type": "string",
+        "description": "Rubrik API password",
+        "format": "password"
+      },
+      "api_version": {
+        "type": "string",
+        "description": "Rubrik API version",
+        "default": "v1",
+        "enum": ["v1", "v2"]
+      },
+      "verify_ssl": {
+        "type": "boolean",
+        "description": "Verify SSL certificates",
+        "default": false
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "clusters",
+      "name": "Rubrik Clusters",
+      "description": "Rubrik cluster nodes and configuration",
+      "ci_type": "server",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {}
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 100,
+        "rate_limit": 5
+      },
+      "field_mappings": {
+        "name": "name",
+        "cluster_id": "id",
+        "version": "version",
+        "api_version": "apiVersion",
+        "timezone": "timezone.timezone",
+        "location": "geolocation.address",
+        "eula_version": "acceptedEulaVersion",
+        "latest_eula_version": "latestEulaVersion"
+      }
+    },
+    {
+      "id": "vms",
+      "name": "Protected Virtual Machines",
+      "description": "Virtual machines protected by Rubrik backup policies",
+      "ci_type": "virtual-machine",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "primary_cluster_id": {
+            "type": "string",
+            "description": "Filter VMs by primary cluster ID (leave empty for all)"
+          },
+          "sla_domain_id": {
+            "type": "string",
+            "description": "Filter VMs by SLA domain ID (leave empty for all)"
+          },
+          "is_relic": {
+            "type": "boolean",
+            "description": "Include relic (deleted) VMs",
+            "default": false
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 500,
+        "rate_limit": 5
+      },
+      "field_mappings": {
+        "name": "name",
+        "vm_id": "id",
+        "guest_os": "guestOsName",
+        "ip_address": "ipAddress",
+        "power_status": "powerStatus",
+        "vmware_tools_installed": "vmwareToolsInstalled",
+        "is_relic": "isRelic",
+        "sla_assignment": "slaAssignment",
+        "configured_sla_domain_id": "configuredSlaDomainId",
+        "configured_sla_domain_name": "configuredSlaDomainName",
+        "effective_sla_domain_id": "effectiveSlaDomainId",
+        "effective_sla_domain_name": "effectiveSlaDomainName",
+        "primary_cluster_id": "primaryClusterId",
+        "agent_status": "agentStatus.agentStatus",
+        "agent_disconnect_reason": "agentStatus.disconnectReason",
+        "snapshot_consistency": "snapshotConsistencyMandate",
+        "infra_path": "infraPath",
+        "object_type": "objectType"
+      }
+    },
+    {
+      "id": "physical_hosts",
+      "name": "Protected Physical Hosts",
+      "description": "Physical servers protected by Rubrik backup agents",
+      "ci_type": "server",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "primary_cluster_id": {
+            "type": "string",
+            "description": "Filter hosts by primary cluster ID (leave empty for all)"
+          },
+          "operating_system": {
+            "type": "string",
+            "description": "Filter by operating system (Windows, Linux, AIX, Solaris)",
+            "enum": ["Windows", "Linux", "AIX", "Solaris"]
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 500,
+        "rate_limit": 5
+      },
+      "field_mappings": {
+        "name": "name",
+        "host_id": "id",
+        "hostname": "hostname",
+        "operating_system": "operatingSystem",
+        "operating_system_type": "operatingSystemType",
+        "ip_address": "ipAddress",
+        "status": "status",
+        "connectivity": "connectivity",
+        "compression_enabled": "compressionEnabled",
+        "is_relic": "isRelic",
+        "configured_sla_domain_id": "configuredSlaDomainId",
+        "configured_sla_domain_name": "configuredSlaDomainName",
+        "effective_sla_domain_id": "effectiveSlaDomainId",
+        "effective_sla_domain_name": "effectiveSlaDomainName",
+        "primary_cluster_id": "primaryClusterId",
+        "agent_id": "agentId"
+      }
+    },
+    {
+      "id": "sla_domains",
+      "name": "SLA Domains",
+      "description": "Rubrik SLA (Service Level Agreement) policies and domains",
+      "ci_type": "policy",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "primary_cluster_id": {
+            "type": "string",
+            "description": "Filter SLA domains by primary cluster ID (leave empty for all)"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 100,
+        "rate_limit": 5
+      },
+      "field_mappings": {
+        "name": "name",
+        "sla_domain_id": "id",
+        "is_default": "isDefault",
+        "frequencies": "frequencies",
+        "local_retention_limit": "localRetentionLimit",
+        "archival_specs": "archivalSpecs",
+        "replication_specs": "replicationSpecs",
+        "num_vms": "numVms",
+        "num_dbs": "numDbs",
+        "num_filesets": "numFilesets",
+        "num_hyperv_vms": "numHypervVms",
+        "num_mssql_dbs": "numMssqlDbs",
+        "num_oracle_dbs": "numOracleDbs",
+        "num_windows_volume_groups": "numWindowsVolumeGroups",
+        "num_linux_hosts": "numLinuxHosts",
+        "num_windows_hosts": "numWindowsHosts",
+        "num_shares": "numShares",
+        "num_managed_volumes": "numManagedVolumes",
+        "ui_color": "uiColor",
+        "allowed_backup_windows": "allowedBackupWindows",
+        "first_full_allowed_backup_windows": "firstFullAllowedBackupWindows"
+      }
+    },
+    {
+      "id": "relationships",
+      "name": "Backup Relationships",
+      "description": "Relationships between VMs, hosts, and SLA domains",
+      "ci_type": null,
+      "enabled_by_default": true,
+      "operations": ["extract"],
+      "configuration_schema": {
+        "properties": {}
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 10000,
+        "depends_on": ["vms", "physical_hosts", "sla_domains"]
+      }
+    }
+  ]
+}

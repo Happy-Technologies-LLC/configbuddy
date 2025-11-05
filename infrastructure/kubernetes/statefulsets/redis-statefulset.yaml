@@ -1,0 +1,183 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-cluster
+  namespace: configbuddy-cmdb
+  labels:
+    app: redis
+spec:
+  ports:
+    - port: 6379
+      targetPort: 6379
+      name: client
+    - port: 16379
+      targetPort: 16379
+      name: gossip
+  clusterIP: None
+  selector:
+    app: redis
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+  namespace: configbuddy-cmdb
+spec:
+  serviceName: redis-cluster
+  replicas: 6
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - redis
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: redis
+          image: redis:7.2-alpine
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cmdb-secrets
+                  key: redis-password
+          command:
+            - redis-server
+          args:
+            - --port
+            - "6379"
+            - --cluster-enabled
+            - "yes"
+            - --cluster-config-file
+            - /data/nodes.conf
+            - --cluster-node-timeout
+            - "5000"
+            - --appendonly
+            - "yes"
+            - --appendfsync
+            - everysec
+            - --maxmemory
+            - 1gb
+            - --maxmemory-policy
+            - allkeys-lru
+            - --requirepass
+            - $(REDIS_PASSWORD)
+            - --masterauth
+            - $(REDIS_PASSWORD)
+          ports:
+            - containerPort: 6379
+              name: client
+            - containerPort: 16379
+              name: gossip
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "1"
+              memory: "1.5Gi"
+          livenessProbe:
+            exec:
+              command:
+                - redis-cli
+                - -a
+                - $(REDIS_PASSWORD)
+                - ping
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - -a
+                - $(REDIS_PASSWORD)
+                - ping
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: fast-ssd
+        resources:
+          requests:
+            storage: 10Gi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-cluster-init
+  namespace: configbuddy-cmdb
+data:
+  init-cluster.sh: |
+    #!/bin/sh
+    set -e
+
+    # Wait for all pods to be ready
+    sleep 30
+
+    # Get pod IPs
+    REDIS_NODES=""
+    for i in $(seq 0 5); do
+      POD_IP=$(getent hosts redis-$i.redis-cluster.configbuddy-cmdb.svc.cluster.local | awk '{ print $1 }')
+      REDIS_NODES="$REDIS_NODES $POD_IP:6379"
+    done
+
+    # Create cluster
+    redis-cli -a $REDIS_PASSWORD --cluster create $REDIS_NODES --cluster-replicas 1 --cluster-yes
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: redis-cluster-init
+  namespace: configbuddy-cmdb
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: redis-cluster-init
+          image: redis:7.2-alpine
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cmdb-secrets
+                  key: redis-password
+          command:
+            - sh
+            - -c
+          args:
+            - |
+              sleep 30
+              REDIS_NODES=""
+              for i in 0 1 2 3 4 5; do
+                REDIS_NODES="$REDIS_NODES redis-$i.redis-cluster.configbuddy-cmdb.svc.cluster.local:6379"
+              done
+              redis-cli -a $REDIS_PASSWORD --cluster create $REDIS_NODES --cluster-replicas 1 --cluster-yes

@@ -1,0 +1,32 @@
+{
+  "name": "@cmdb/etl-processor",
+  "version": "1.0.0",
+  "description": "ETL processor for CMDB platform - Syncs Neo4j to PostgreSQL data mart",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "test": "jest",
+    "lint": "eslint src --ext .ts"
+  },
+  "keywords": [
+    "cmdb",
+    "etl",
+    "data-processing",
+    "neo4j",
+    "postgresql"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@cmdb/common": "*",
+    "@cmdb/database": "*",
+    "date-fns": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.3"
+  }
+}

@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  # k6 Load Testing Container
+  k6:
+    image: grafana/k6:latest
+    container_name: cmdb-k6-loadtest
+    volumes:
+      - ./scripts:/scripts
+      - ./reports:/reports
+      - ./data:/data
+    environment:
+      - API_URL=http://api-server:3000
+      - K6_OUT=json=/reports/results.json
+    networks:
+      - cmdb-network
+    depends_on:
+      - api-server
+    command: ["run", "/scripts/api-endpoints.js"]
+
+  # InfluxDB for metrics storage (optional)
+  influxdb:
+    image: influxdb:2.7
+    container_name: cmdb-influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=loadtest123
+      - DOCKER_INFLUXDB_INIT_ORG=configbuddy
+      - DOCKER_INFLUXDB_INIT_BUCKET=k6
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=loadtest-token-123
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+    networks:
+      - cmdb-network
+
+  # Grafana for visualization (optional)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: cmdb-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=loadtest123
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - cmdb-network
+    depends_on:
+      - influxdb
+
+  # Reference to main services (must be running)
+  api-server:
+    image: cmdb-api-server:latest
+    container_name: cmdb-api-server
+    external_links:
+      - cmdb-api-server:api-server
+    networks:
+      - cmdb-network
+
+volumes:
+  influxdb-data:
+  grafana-data:
+
+networks:
+  cmdb-network:
+    external: true
+    name: cmdb_default

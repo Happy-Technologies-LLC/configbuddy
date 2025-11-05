@@ -1,0 +1,49 @@
+# =============================================================================
+# Grafana Datasource Provisioning - PostgreSQL/TimescaleDB
+# =============================================================================
+# This file automatically provisions the ConfigBuddy CMDB PostgreSQL datasource
+# when Grafana starts. No manual configuration needed.
+# =============================================================================
+
+apiVersion: 1
+
+datasources:
+  # PostgreSQL CMDB Data Mart (Primary)
+  - name: ConfigBuddy CMDB
+    type: postgres
+    access: proxy
+    url: ${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}
+    database: ${POSTGRES_DATABASE:-cmdb}
+    user: ${POSTGRES_USER:-cmdb_user}
+    secureJsonData:
+      password: ${POSTGRES_PASSWORD}
+    jsonData:
+      sslmode: ${POSTGRES_SSL_MODE:-prefer}
+      postgresVersion: 1600  # PostgreSQL 16
+      timescaledb: true
+      maxOpenConns: 10
+      maxIdleConns: 5
+      connMaxLifetime: 14400
+    editable: false
+    isDefault: true
+    version: 1
+
+  # PostgreSQL CMDB Data Mart (Explore - allows custom queries)
+  - name: ConfigBuddy CMDB (Explore)
+    type: postgres
+    access: proxy
+    url: ${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}
+    database: ${POSTGRES_DATABASE:-cmdb}
+    user: ${POSTGRES_USER:-cmdb_user}
+    secureJsonData:
+      password: ${POSTGRES_PASSWORD}
+    jsonData:
+      sslmode: ${POSTGRES_SSL_MODE:-prefer}
+      postgresVersion: 1600
+      timescaledb: true
+      maxOpenConns: 10
+      maxIdleConns: 5
+      connMaxLifetime: 14400
+    editable: true
+    isDefault: false
+    version: 1

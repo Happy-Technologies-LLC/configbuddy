@@ -1,0 +1,189 @@
+{
+  "id": "vmware-vsphere",
+  "category": "connector",
+  "connector_category": "virtualization",
+  "name": "VMware vSphere",
+  "version": "1.0.0",
+  "type": "vmware-vsphere",
+  "description": "Virtualization platform integration for VMware vSphere/vCenter - discovers and syncs virtual machines, ESXi hosts, clusters, datastores, and networks via vSphere API",
+    "provider": "vmware",
+  "protocol": "basic",
+  "logo_url": "https://upload.wikimedia.org/wikipedia/commons/5/5a/Vmware_logo.svg",
+  "documentation_url": "https://docs.vmware.com/en/VMware-vSphere/index.html",
+  "resources": [
+    {
+      "id": "vsphere-vm",
+      "name": "vSphere Virtual Machine",
+      "type": "virtual-machine",
+      "description": "VMware vSphere virtual machines",
+      "field_mappings": {
+        "name": "config.name",
+        "external_id": "moRef",
+        "uuid": "config.uuid",
+        "instance_uuid": "config.instanceUuid",
+        "status": "_status_from_power_state",
+        "power_state": "runtime.powerState",
+        "connection_state": "runtime.connectionState",
+        "cpu_count": "config.hardware.numCPU",
+        "memory_mb": "config.hardware.memoryMB",
+        "guest_os": "config.guestFullName",
+        "guest_hostname": "guest.hostName",
+        "ip_addresses": "_ip_addresses_from_adapters",
+        "host_mo_ref": "runtime.host",
+        "cluster_mo_ref": "summary.runtime.cluster",
+        "network_adapters": "_network_adapters_metadata",
+        "disks": "_disks_metadata"
+      }
+    },
+    {
+      "id": "vsphere-host",
+      "name": "ESXi Host",
+      "type": "server",
+      "description": "VMware ESXi physical host servers",
+      "field_mappings": {
+        "name": "summary.config.name",
+        "external_id": "moRef",
+        "status": "_status_from_connection_state",
+        "connection_state": "runtime.connectionState",
+        "power_state": "runtime.powerState",
+        "product": "config.product.name",
+        "version": "config.product.version",
+        "build": "config.product.build",
+        "vendor": "hardware.vendor",
+        "model": "hardware.model",
+        "cpu_model": "hardware.cpuModel",
+        "cpu_cores": "hardware.numCpuCores",
+        "memory_size_gb": "_memory_size_gb",
+        "management_ip": "summary.managementServerIp",
+        "cluster_mo_ref": "_cluster_mo_ref"
+      }
+    },
+    {
+      "id": "vsphere-cluster",
+      "name": "vSphere Cluster",
+      "type": "cloud-resource",
+      "description": "VMware vSphere compute clusters",
+      "field_mappings": {
+        "name": "name",
+        "external_id": "moRef",
+        "total_cpu_mhz": "summary.totalCpu",
+        "total_memory_gb": "_total_memory_gb",
+        "num_hosts": "summary.numHosts",
+        "ha_enabled": "configuration.dasConfig.enabled",
+        "drs_enabled": "configuration.drsConfig.enabled",
+        "vsan_enabled": "configuration.vsanConfig.enabled",
+        "hosts": "_hosts_metadata"
+      }
+    },
+    {
+      "id": "vsphere-datastore",
+      "name": "vSphere Datastore",
+      "type": "storage",
+      "description": "VMware vSphere storage datastores",
+      "field_mappings": {
+        "name": "summary.name",
+        "external_id": "moRef",
+        "status": "_status_from_accessible",
+        "type": "summary.type",
+        "url": "summary.url",
+        "accessible": "summary.accessible",
+        "capacity_gb": "_capacity_gb",
+        "free_space_gb": "_free_space_gb",
+        "used_space_gb": "_used_space_gb",
+        "free_space_percent": "_free_space_percent",
+        "multiple_host_access": "summary.multipleHostAccess",
+        "num_vms": "_num_vms"
+      }
+    },
+    {
+      "id": "vsphere-network",
+      "name": "vSphere Network",
+      "type": "network-device",
+      "description": "VMware vSphere virtual networks and port groups",
+      "field_mappings": {
+        "name": "summary.name",
+        "external_id": "moRef",
+        "status": "_status_from_accessible",
+        "network_type": "_network_type",
+        "accessible": "summary.accessible",
+        "vlan_id": "_vlan_id",
+        "port_group_key": "_port_group_key",
+        "dv_switch_uuid": "_dv_switch_uuid",
+        "num_vms": "_num_vms",
+        "num_hosts": "_num_hosts"
+      }
+    }
+  ],
+  "authentication": {
+    "required": true,
+    "methods": [
+      "basic"
+    ],
+    "fields": [
+      {
+        "name": "vcenter_host",
+        "label": "vCenter Host",
+        "type": "string",
+        "required": true,
+        "description": "vCenter Server hostname or IP address"
+      },
+      {
+        "name": "username",
+        "label": "Username",
+        "type": "string",
+        "required": true,
+        "description": "vCenter username (e.g., administrator@vsphere.local)"
+      },
+      {
+        "name": "password",
+        "label": "Password",
+        "type": "string",
+        "required": true,
+        "sensitive": true,
+        "description": "vCenter password"
+      },
+      {
+        "name": "port",
+        "label": "Port",
+        "type": "number",
+        "required": false,
+        "default": 443,
+        "description": "vCenter API port"
+      },
+      {
+        "name": "ignore_ssl_errors",
+        "label": "Ignore SSL Errors",
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Skip SSL certificate verification"
+      }
+    ]
+  },
+  "capabilities": {
+    "discovery": true,
+    "sync": false,
+    "real_time": false,
+    "incremental": false
+  },
+  "rate_limits": {
+    "requests_per_second": 10,
+    "requests_per_minute": 500,
+    "requests_per_hour": 10000
+  },
+  "supported_operations": [
+    "discover_virtual_machines",
+    "discover_hosts",
+    "discover_clusters",
+    "discover_datastores",
+    "discover_networks"
+  ],
+  "default_schedule": "0 */4 * * *",
+  "tags": [
+    "infrastructure",
+    "vmware",
+    "vsphere",
+    "virtualization",
+    "datacenter"
+  ]
+}

@@ -1,0 +1,284 @@
+{
+  "type": "azure-ad",
+  "category": "connector",
+  "connector_category": "identity",
+  "icon": "azure-ad",
+  "name": "Azure AD (Entra ID)",
+  "version": "1.0.0",
+  "description": "Cloud identity and access management integration with Microsoft Azure AD (Entra ID) for users, devices, applications, and groups",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": true,
+    "bidirectional": true
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["tenant_id", "client_id", "client_secret"],
+    "properties": {
+      "tenant_id": {
+        "type": "string",
+        "description": "Azure AD tenant ID (Directory ID)"
+      },
+      "client_id": {
+        "type": "string",
+        "description": "Application (client) ID from Azure App Registration"
+      },
+      "client_secret": {
+        "type": "string",
+        "description": "Application client secret",
+        "format": "password"
+      },
+      "include_guests": {
+        "type": "boolean",
+        "default": false,
+        "description": "Include guest users in user synchronization"
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "users",
+      "name": "Users",
+      "description": "User accounts from Microsoft Graph API",
+      "ci_type": "user",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load", "sync_to_source"],
+      "configuration_schema": {
+        "properties": {
+          "filter": {
+            "type": "string",
+            "description": "OData filter query (e.g., accountEnabled eq true)",
+            "default": ""
+          },
+          "include_manager": {
+            "type": "boolean",
+            "default": true,
+            "description": "Include manager relationship data"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 999,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "id": "id",
+        "name": "displayName",
+        "email": "mail",
+        "user_principal_name": "userPrincipalName",
+        "given_name": "givenName",
+        "surname": "surname",
+        "job_title": "jobTitle",
+        "department": "department",
+        "office_location": "officeLocation",
+        "mobile_phone": "mobilePhone",
+        "business_phones": "businessPhones",
+        "manager": "manager.displayName",
+        "manager_id": "manager.id",
+        "account_enabled": "accountEnabled",
+        "user_type": "userType",
+        "created_datetime": "createdDateTime",
+        "last_password_change": "lastPasswordChangeDateTime",
+        "mail_nickname": "mailNickname",
+        "preferred_language": "preferredLanguage",
+        "company_name": "companyName",
+        "employee_id": "employeeId"
+      }
+    },
+    {
+      "id": "devices",
+      "name": "Devices",
+      "description": "Registered and managed devices from Microsoft Graph API",
+      "ci_type": "endpoint",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load", "sync_to_source"],
+      "configuration_schema": {
+        "properties": {
+          "filter": {
+            "type": "string",
+            "description": "OData filter query (e.g., operatingSystem eq 'Windows')",
+            "default": ""
+          },
+          "include_compliance": {
+            "type": "boolean",
+            "default": true,
+            "description": "Include device compliance state"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 999,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "id": "id",
+        "name": "displayName",
+        "device_id": "deviceId",
+        "os": "operatingSystem",
+        "os_version": "operatingSystemVersion",
+        "manufacturer": "manufacturer",
+        "model": "model",
+        "device_category": "deviceCategory",
+        "ownership": "deviceOwnership",
+        "management_type": "managementType",
+        "enrollment_type": "enrollmentType",
+        "compliance_state": "complianceState",
+        "is_compliant": "isCompliant",
+        "is_managed": "isManaged",
+        "is_encrypted": "isEncrypted",
+        "is_supervised": "isSupervised",
+        "registration_datetime": "registrationDateTime",
+        "approximate_last_signin": "approximateLastSignInDateTime",
+        "profile_type": "profileType",
+        "system_labels": "systemLabels",
+        "trust_type": "trustType",
+        "mdm_app_id": "mdmAppId",
+        "physical_ids": "physicalIds"
+      }
+    },
+    {
+      "id": "applications",
+      "name": "Enterprise Applications",
+      "description": "Enterprise applications and service principals from Microsoft Graph API",
+      "ci_type": "application",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "filter": {
+            "type": "string",
+            "description": "OData filter query",
+            "default": ""
+          },
+          "include_app_roles": {
+            "type": "boolean",
+            "default": true,
+            "description": "Include application role assignments"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 999,
+        "rate_limit": 8
+      },
+      "field_mappings": {
+        "id": "id",
+        "name": "displayName",
+        "app_id": "appId",
+        "app_display_name": "appDisplayName",
+        "publisher": "publisherName",
+        "homepage": "homepage",
+        "reply_urls": "replyUrls",
+        "service_principal_type": "servicePrincipalType",
+        "sign_in_audience": "signInAudience",
+        "account_enabled": "accountEnabled",
+        "app_description": "description",
+        "app_roles": "appRoles",
+        "tags": "tags",
+        "notes": "notes",
+        "preferred_single_sign_on_mode": "preferredSingleSignOnMode",
+        "saml_single_sign_on_settings": "samlSingleSignOnSettings",
+        "verified_publisher": "verifiedPublisher.displayName",
+        "created_datetime": "createdDateTime"
+      }
+    },
+    {
+      "id": "groups",
+      "name": "Groups",
+      "description": "Security and distribution groups from Microsoft Graph API",
+      "ci_type": "group",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load", "sync_to_source"],
+      "configuration_schema": {
+        "properties": {
+          "filter": {
+            "type": "string",
+            "description": "OData filter query (e.g., securityEnabled eq true)",
+            "default": ""
+          },
+          "include_members": {
+            "type": "boolean",
+            "default": true,
+            "description": "Include group membership count"
+          },
+          "security_enabled_only": {
+            "type": "boolean",
+            "default": false,
+            "description": "Only sync security-enabled groups"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 999,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "id": "id",
+        "name": "displayName",
+        "description": "description",
+        "mail": "mail",
+        "mail_nickname": "mailNickname",
+        "mail_enabled": "mailEnabled",
+        "security_enabled": "securityEnabled",
+        "group_types": "groupTypes",
+        "membership_rule": "membershipRule",
+        "membership_rule_processing_state": "membershipRuleProcessingState",
+        "preferred_data_location": "preferredDataLocation",
+        "preferred_language": "preferredLanguage",
+        "proxy_addresses": "proxyAddresses",
+        "renewed_datetime": "renewedDateTime",
+        "visibility": "visibility",
+        "is_assignable_to_role": "isAssignableToRole",
+        "classification": "classification",
+        "created_datetime": "createdDateTime",
+        "expiration_datetime": "expirationDateTime",
+        "on_premises_sync_enabled": "onPremisesSyncEnabled"
+      }
+    },
+    {
+      "id": "relationships",
+      "name": "Identity Relationships",
+      "description": "Relationships between users, devices, groups, and applications",
+      "ci_type": null,
+      "enabled_by_default": true,
+      "operations": ["extract"],
+      "configuration_schema": {
+        "properties": {
+          "include_group_members": {
+            "type": "boolean",
+            "default": true,
+            "description": "Extract group membership relationships"
+          },
+          "include_device_owners": {
+            "type": "boolean",
+            "default": true,
+            "description": "Extract device ownership relationships"
+          },
+          "include_app_assignments": {
+            "type": "boolean",
+            "default": true,
+            "description": "Extract application assignments"
+          },
+          "include_manager_hierarchy": {
+            "type": "boolean",
+            "default": true,
+            "description": "Extract manager reporting relationships"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 999,
+        "rate_limit": 8,
+        "depends_on": ["users", "devices", "applications", "groups"]
+      }
+    }
+  ]
+}

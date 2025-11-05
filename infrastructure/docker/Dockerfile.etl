@@ -1,0 +1,42 @@
+# Production Docker image for ETL Processor
+# Assumes packages are already built (dist folders exist)
+FROM node:20-alpine
+
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init curl
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files and install production dependencies only
+COPY package*.json ./
+COPY packages/common/package.json ./packages/common/
+COPY packages/database/package.json ./packages/database/
+COPY packages/etl-processor/package.json ./packages/etl-processor/
+
+RUN npm install --production --workspace=packages/common --workspace=packages/database --workspace=packages/etl-processor --ignore-scripts
+
+# Copy pre-built dist folders
+COPY --chown=nodejs:nodejs packages/common/dist ./packages/common/dist
+COPY --chown=nodejs:nodejs packages/database/dist ./packages/database/dist
+COPY --chown=nodejs:nodejs packages/etl-processor/dist ./packages/etl-processor/dist
+
+# Switch to non-root user
+USER nodejs
+
+# Set environment variables
+ENV NODE_ENV=production
+
+# Health check - verify process is running
+HEALTHCHECK --interval=60s --timeout=10s --start-period=30s --retries=3 \
+    CMD pgrep -f "node.*etl-processor" > /dev/null || exit 1
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start the ETL processor
+CMD ["node", "packages/etl-processor/dist/index.js"]

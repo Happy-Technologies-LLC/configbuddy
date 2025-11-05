@@ -1,0 +1,301 @@
+{
+  "id": "azure-discovery",
+  "category": "connector",
+  "connector_category": "cloud",
+  "name": "Microsoft Azure",
+  "version": "1.0.0",
+  "type": "azure-discovery",
+  "description": "Cloud infrastructure integration for Microsoft Azure - discovers and syncs Virtual Machines, SQL Databases, Storage Accounts, App Services, and AKS Clusters via Azure Resource Manager APIs",
+  "provider": "azure",
+  "protocol": "azure_sp",
+  "logo_url": "https://upload.wikimedia.org/wikipedia/commons/a/a8/Microsoft_Azure_Logo.svg",
+  "documentation_url": "https://docs.microsoft.com/en-us/azure/",
+  "resources": [
+    {
+      "id": "azure-vm",
+      "name": "Azure Virtual Machine",
+      "type": "virtual-machine",
+      "description": "Azure compute virtual machines",
+      "field_mappings": {
+        "name": "name",
+        "external_id": "vmId",
+        "status": "_power_state",
+        "location": "location",
+        "resource_id": "id",
+        "resource_group": "_resource_group",
+        "vm_size": "hardwareProfile.vmSize",
+        "power_state": "_power_state",
+        "provisioning_state": "provisioningState",
+        "availability_zone": "zones[0]",
+        "availability_set": "availabilitySet.id",
+        "os_type": "storageProfile.osDisk.osType",
+        "os_disk_name": "storageProfile.osDisk.name",
+        "os_disk_size_gb": "storageProfile.osDisk.diskSizeGB",
+        "image_publisher": "storageProfile.imageReference.publisher",
+        "image_offer": "storageProfile.imageReference.offer",
+        "image_sku": "storageProfile.imageReference.sku",
+        "image_version": "storageProfile.imageReference.version",
+        "priority": "priority",
+        "eviction_policy": "evictionPolicy",
+        "license_type": "licenseType",
+        "diagnostics_enabled": "diagnosticsProfile.bootDiagnostics.enabled",
+        "azure_subscription_id": "_azure_subscription_id"
+      }
+    },
+    {
+      "id": "azure-sqldb",
+      "name": "Azure SQL Database",
+      "type": "database",
+      "description": "Azure SQL managed database instances",
+      "field_mappings": {
+        "name": "name",
+        "external_id": "id",
+        "status": "status",
+        "location": "location",
+        "resource_id": "id",
+        "resource_group": "_resource_group",
+        "server_name": "_server_name",
+        "server_fqdn": "_server_fqdn",
+        "server_version": "_server_version",
+        "server_admin_login": "_server_admin_login",
+        "database_edition": "_database_edition",
+        "service_tier": "_service_tier",
+        "sku_name": "sku.name",
+        "sku_tier": "sku.tier",
+        "sku_capacity": "sku.capacity",
+        "max_size_bytes": "maxSizeBytes",
+        "collation": "collation",
+        "creation_date": "creationDate",
+        "earliest_restore_date": "earliestRestoreDate",
+        "database_id": "databaseId",
+        "elastic_pool_id": "elasticPoolId",
+        "read_scale": "readScale",
+        "zone_redundant": "zoneRedundant",
+        "min_capacity": "minCapacity",
+        "auto_pause_delay": "autoPauseDelay",
+        "storage_account_type": "currentBackupStorageRedundancy",
+        "azure_subscription_id": "_azure_subscription_id"
+      }
+    },
+    {
+      "id": "azure-storage",
+      "name": "Azure Storage Account",
+      "type": "storage",
+      "description": "Azure blob, file, table, and queue storage accounts",
+      "field_mappings": {
+        "name": "name",
+        "external_id": "id",
+        "status": "provisioningState",
+        "location": "location",
+        "resource_id": "id",
+        "resource_group": "_resource_group",
+        "kind": "kind",
+        "sku_name": "sku.name",
+        "sku_tier": "sku.tier",
+        "access_tier": "accessTier",
+        "provisioning_state": "provisioningState",
+        "creation_time": "creationTime",
+        "primary_location": "primaryLocation",
+        "secondary_location": "secondaryLocation",
+        "status_of_primary": "statusOfPrimary",
+        "status_of_secondary": "statusOfSecondary",
+        "https_only": "enableHttpsTrafficOnly",
+        "minimum_tls_version": "minimumTlsVersion",
+        "allow_blob_public_access": "allowBlobPublicAccess",
+        "allow_shared_key_access": "allowSharedKeyAccess",
+        "is_hns_enabled": "isHnsEnabled",
+        "encryption_key_source": "encryption.keySource",
+        "network_default_action": "networkRuleSet.defaultAction",
+        "blob_endpoint": "primaryEndpoints.blob",
+        "queue_endpoint": "primaryEndpoints.queue",
+        "table_endpoint": "primaryEndpoints.table",
+        "file_endpoint": "primaryEndpoints.file",
+        "keys_count": "_keys_count",
+        "azure_subscription_id": "_azure_subscription_id"
+      }
+    },
+    {
+      "id": "azure-appservice",
+      "name": "Azure App Service",
+      "type": "application",
+      "description": "Azure web apps and function apps",
+      "field_mappings": {
+        "name": "name",
+        "external_id": "id",
+        "status": "state",
+        "location": "location",
+        "resource_id": "id",
+        "resource_group": "_resource_group",
+        "kind": "kind",
+        "state": "state",
+        "default_host_name": "defaultHostName",
+        "enabled_host_names": "enabledHostNames",
+        "server_farm_id": "serverFarmId",
+        "https_only": "httpsOnly",
+        "client_cert_enabled": "clientCertEnabled",
+        "client_cert_mode": "clientCertMode",
+        "always_on": "_site_config._always_on",
+        "http20_enabled": "_site_config._http20_enabled",
+        "min_tls_version": "_site_config._min_tls_version",
+        "ftps_state": "_site_config._ftps_state",
+        "platform": "_site_config._platform",
+        "runtime": "_site_config._runtime",
+        "net_framework_version": "_site_config._net_framework_version",
+        "php_version": "_site_config._php_version",
+        "python_version": "_site_config._python_version",
+        "node_version": "_site_config._node_version",
+        "java_version": "_site_config._java_version",
+        "app_settings_count": "_app_settings_count",
+        "connection_strings_count": "_connection_strings_count",
+        "availability_state": "availabilityState",
+        "outbound_ip_addresses": "outboundIpAddresses",
+        "azure_subscription_id": "_azure_subscription_id"
+      }
+    },
+    {
+      "id": "azure-aks",
+      "name": "Azure Kubernetes Service (AKS)",
+      "type": "cloud-resource",
+      "description": "Azure managed Kubernetes clusters",
+      "field_mappings": {
+        "name": "name",
+        "external_id": "id",
+        "status": "provisioningState",
+        "location": "location",
+        "resource_id": "id",
+        "resource_group": "_resource_group",
+        "resource_type": "_resource_type",
+        "kubernetes_version": "kubernetesVersion",
+        "dns_prefix": "dnsPrefix",
+        "fqdn": "fqdn",
+        "private_fqdn": "privateFQDN",
+        "provisioning_state": "provisioningState",
+        "power_state": "powerState.code",
+        "enable_rbac": "enableRBAC",
+        "enable_pod_security_policy": "enablePodSecurityPolicy",
+        "network_plugin": "networkProfile.networkPlugin",
+        "network_policy": "networkProfile.networkPolicy",
+        "service_cidr": "networkProfile.serviceCidr",
+        "dns_service_ip": "networkProfile.dnsServiceIP",
+        "pod_cidr": "networkProfile.podCidr",
+        "load_balancer_sku": "networkProfile.loadBalancerSku",
+        "aad_managed": "aadProfile.managed",
+        "aad_enable_azure_rbac": "aadProfile.enableAzureRBAC",
+        "node_resource_group": "nodeResourceGroup",
+        "disk_encryption_set_id": "diskEncryptionSetID",
+        "identity_type": "identity.type",
+        "identity_principal_id": "identity.principalId",
+        "sku_name": "sku.name",
+        "sku_tier": "sku.tier",
+        "max_agent_pools": "maxAgentPools",
+        "azure_subscription_id": "_azure_subscription_id"
+      }
+    }
+  ],
+  "authentication": {
+    "required": true,
+    "methods": [
+      "azure_sp"
+    ],
+    "fields": [
+      {
+        "name": "tenant_id",
+        "label": "Azure Tenant ID",
+        "type": "string",
+        "required": true,
+        "sensitive": false,
+        "description": "Azure Active Directory tenant ID"
+      },
+      {
+        "name": "client_id",
+        "label": "Azure Client ID (Application ID)",
+        "type": "string",
+        "required": true,
+        "sensitive": false,
+        "description": "Azure service principal application (client) ID"
+      },
+      {
+        "name": "client_secret",
+        "label": "Azure Client Secret",
+        "type": "string",
+        "required": true,
+        "sensitive": true,
+        "description": "Azure service principal client secret"
+      },
+      {
+        "name": "subscription_id",
+        "label": "Azure Subscription ID",
+        "type": "string",
+        "required": true,
+        "sensitive": false,
+        "description": "Azure subscription ID to discover resources in"
+      }
+    ]
+  },
+  "capabilities": {
+    "discovery": true,
+    "sync": false,
+    "real_time": false,
+    "incremental": false
+  },
+  "rate_limits": {
+    "requests_per_second": 5,
+    "requests_per_minute": 200,
+    "requests_per_hour": 5000
+  },
+  "supported_operations": [
+    "discover_virtual_machines",
+    "discover_sql_databases",
+    "discover_storage_accounts",
+    "discover_app_services",
+    "discover_aks_clusters"
+  ],
+  "default_schedule": "0 */6 * * *",
+  "tags": [
+    "cloud",
+    "azure",
+    "microsoft",
+    "infrastructure",
+    "compute",
+    "storage",
+    "database",
+    "kubernetes"
+  ],
+  "relationships": [
+    {
+      "from": "azure-appservice",
+      "to": "azure-sqldb",
+      "type": "CONNECTS_TO",
+      "condition": "same_resource_group_and_connection_strings",
+      "confidence": 0.7
+    },
+    {
+      "from": "azure-appservice",
+      "to": "azure-storage",
+      "type": "USES",
+      "condition": "same_resource_group",
+      "confidence": 0.6
+    },
+    {
+      "from": "azure-vm",
+      "to": "azure-storage",
+      "type": "USES",
+      "condition": "os_disk_storage",
+      "confidence": 0.8
+    },
+    {
+      "from": "azure-aks",
+      "to": "azure-vm",
+      "type": "HOSTS",
+      "condition": "node_resource_group",
+      "confidence": 0.9
+    },
+    {
+      "from": "azure-sqldb",
+      "to": "azure-sqldb",
+      "type": "PART_OF",
+      "condition": "same_sql_server",
+      "confidence": 0.5
+    }
+  ]
+}

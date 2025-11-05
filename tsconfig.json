@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false
+  },
+  "files": [],
+  "references": [
+    { "path": "./packages/common" },
+    { "path": "./packages/database" },
+    { "path": "./packages/api-server" },
+    { "path": "./packages/discovery-engine" },
+    { "path": "./packages/etl-processor" },
+    { "path": "./packages/agent" },
+    { "path": "./packages/cli" }
+  ]
+}

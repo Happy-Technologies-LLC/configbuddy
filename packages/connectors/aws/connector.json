@@ -1,0 +1,176 @@
+{
+  "id": "aws",
+  "category": "connector",
+  "connector_category": "cloud",
+  "name": "AWS",
+  "version": "1.0.0",
+  "type": "aws",
+  "description": "Cloud infrastructure integration for AWS - discovers and syncs EC2 instances, RDS databases, S3 buckets, ECS containers, and Lambda functions via AWS APIs",
+  "provider": "aws",
+  "protocol": "aws_iam",
+  "logo_url": "https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_Web_Services_Logo.svg",
+  "documentation_url": "https://docs.aws.amazon.com/",
+  "resources": [
+    {
+      "id": "ec2-instance",
+      "name": "EC2 Instance",
+      "type": "virtual-machine",
+      "description": "AWS EC2 virtual machine instances",
+      "field_mappings": {
+        "name": "Tags.Name",
+        "external_id": "InstanceId",
+        "status": "State.Name",
+        "ip_address": "PrivateIpAddress",
+        "hostname": "PrivateDnsName",
+        "instance_type": "InstanceType",
+        "availability_zone": "Placement.AvailabilityZone",
+        "vpc_id": "VpcId",
+        "subnet_id": "SubnetId",
+        "public_ip": "PublicIpAddress",
+        "launch_time": "LaunchTime",
+        "platform": "Platform",
+        "architecture": "Architecture",
+        "image_id": "ImageId",
+        "key_name": "KeyName",
+        "monitoring_state": "Monitoring.State",
+        "iam_instance_profile": "IamInstanceProfile.Arn",
+        "aws_region": "_aws_region"
+      }
+    },
+    {
+      "id": "rds-instance",
+      "name": "RDS Database Instance",
+      "type": "database",
+      "description": "AWS RDS managed database instances",
+      "field_mappings": {
+        "name": "DBInstanceIdentifier",
+        "external_id": "DbiResourceId",
+        "status": "DBInstanceStatus",
+        "hostname": "Endpoint.Address",
+        "engine": "Engine",
+        "engine_version": "EngineVersion",
+        "instance_class": "DBInstanceClass",
+        "allocated_storage": "AllocatedStorage",
+        "storage_type": "StorageType",
+        "port": "Endpoint.Port",
+        "availability_zone": "AvailabilityZone",
+        "multi_az": "MultiAZ",
+        "publicly_accessible": "PubliclyAccessible",
+        "storage_encrypted": "StorageEncrypted",
+        "backup_retention_period": "BackupRetentionPeriod",
+        "auto_minor_version_upgrade": "AutoMinorVersionUpgrade",
+        "created_at": "InstanceCreateTime",
+        "aws_region": "_aws_region"
+      }
+    },
+    {
+      "id": "s3-bucket",
+      "name": "S3 Bucket",
+      "type": "storage",
+      "description": "AWS S3 object storage buckets",
+      "field_mappings": {
+        "name": "Name",
+        "external_id": "Name",
+        "created_at": "CreationDate",
+        "versioning_status": "_versioning_status",
+        "aws_region": "_aws_region"
+      }
+    },
+    {
+      "id": "lambda-function",
+      "name": "Lambda Function",
+      "type": "application",
+      "description": "AWS Lambda serverless functions",
+      "field_mappings": {
+        "name": "FunctionName",
+        "external_id": "FunctionArn",
+        "description": "Description",
+        "runtime": "Runtime",
+        "handler": "Handler",
+        "code_size": "CodeSize",
+        "timeout": "Timeout",
+        "memory_size": "MemorySize",
+        "last_modified": "LastModified",
+        "role": "Role",
+        "state": "State",
+        "aws_region": "_aws_region"
+      }
+    },
+    {
+      "id": "ecs-cluster",
+      "name": "ECS Cluster",
+      "type": "cloud-resource",
+      "description": "AWS ECS container orchestration clusters",
+      "field_mappings": {
+        "name": "clusterName",
+        "external_id": "clusterArn",
+        "status": "status",
+        "resource_type": "_resource_type",
+        "running_tasks_count": "runningTasksCount",
+        "pending_tasks_count": "pendingTasksCount",
+        "active_services_count": "activeServicesCount",
+        "aws_region": "_aws_region"
+      }
+    }
+  ],
+  "authentication": {
+    "required": true,
+    "methods": [
+      "aws_iam"
+    ],
+    "fields": [
+      {
+        "name": "access_key_id",
+        "label": "AWS Access Key ID",
+        "type": "string",
+        "required": true,
+        "sensitive": false,
+        "description": "AWS IAM access key ID"
+      },
+      {
+        "name": "secret_access_key",
+        "label": "AWS Secret Access Key",
+        "type": "string",
+        "required": true,
+        "sensitive": true,
+        "description": "AWS IAM secret access key"
+      },
+      {
+        "name": "region",
+        "label": "AWS Region",
+        "type": "string",
+        "required": false,
+        "default": "us-east-1",
+        "description": "AWS region to discover resources in"
+      }
+    ]
+  },
+  "capabilities": {
+    "discovery": true,
+    "sync": false,
+    "real_time": false,
+    "incremental": false
+  },
+  "rate_limits": {
+    "requests_per_second": 10,
+    "requests_per_minute": 500,
+    "requests_per_hour": 10000
+  },
+  "supported_operations": [
+    "discover_ec2",
+    "discover_rds",
+    "discover_s3",
+    "discover_lambda",
+    "discover_ecs"
+  ],
+  "default_schedule": "0 */6 * * *",
+  "tags": [
+    "cloud",
+    "aws",
+    "infrastructure",
+    "compute",
+    "storage",
+    "database",
+    "serverless"
+  ]
+}

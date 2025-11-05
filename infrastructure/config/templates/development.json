@@ -1,0 +1,152 @@
+{
+  "env": "development",
+  "server": {
+    "port": 3000,
+    "host": "0.0.0.0",
+    "trustProxy": false
+  },
+  "databases": {
+    "neo4j": {
+      "uri": "bolt://localhost:7687",
+      "username": "neo4j",
+      "password": "development",
+      "database": "neo4j",
+      "maxConnectionPoolSize": 10,
+      "connectionTimeout": 30000
+    },
+    "postgres": {
+      "host": "localhost",
+      "port": 5432,
+      "database": "cmdb_dev",
+      "username": "postgres",
+      "password": "development",
+      "maxConnections": 10,
+      "ssl": {
+        "enabled": false
+      }
+    },
+    "redis": {
+      "host": "localhost",
+      "port": 6379,
+      "db": 0,
+      "maxRetriesPerRequest": 3,
+      "enableReadyCheck": true
+    },
+    "kafka": {
+      "brokers": ["localhost:9092"],
+      "clientId": "cmdb-dev",
+      "groupId": "cmdb-dev-consumers",
+      "ssl": false
+    }
+  },
+  "cloudProviders": {
+    "aws": {
+      "enabled": false,
+      "region": "us-east-1"
+    },
+    "azure": {
+      "enabled": false
+    },
+    "gcp": {
+      "enabled": false
+    }
+  },
+  "auth": {
+    "jwt": {
+      "secret": "dev-secret-change-in-production-minimum-32-characters",
+      "accessTokenExpiresIn": "30m",
+      "refreshTokenExpiresIn": "7d",
+      "issuer": "cmdb-platform",
+      "audience": "cmdb-api"
+    },
+    "bcrypt": {
+      "rounds": 10
+    },
+    "apiKeys": {
+      "enabled": true,
+      "headerName": "X-API-Key"
+    }
+  },
+  "rateLimit": {
+    "enabled": true,
+    "windowMs": 60000,
+    "endpoints": {
+      "discovery": {
+        "max": 10,
+        "windowMs": 60000
+      },
+      "query": {
+        "max": 100,
+        "windowMs": 60000
+      },
+      "graphql": {
+        "max": 50,
+        "windowMs": 60000
+      },
+      "admin": {
+        "max": 30,
+        "windowMs": 60000
+      },
+      "auth": {
+        "max": 10,
+        "windowMs": 300000
+      }
+    }
+  },
+  "cors": {
+    "enabled": true,
+    "origins": ["http://localhost:3000", "http://localhost:3001", "http://localhost:5173"],
+    "credentials": true,
+    "maxAge": 86400
+  },
+  "ssl": {
+    "enabled": false,
+    "redirectHttp": false
+  },
+  "secrets": {
+    "provider": "env",
+    "cacheTtl": 300
+  },
+  "logging": {
+    "level": "debug",
+    "format": "simple",
+    "colorize": true,
+    "auditEnabled": true,
+    "auditLevel": "info"
+  },
+  "security": {
+    "helmet": {
+      "enabled": true,
+      "contentSecurityPolicy": {
+        "enabled": false
+      },
+      "hsts": {
+        "enabled": false,
+        "maxAge": 31536000,
+        "includeSubDomains": true,
+        "preload": false
+      }
+    },
+    "csrf": {
+      "enabled": false,
+      "ignoredRoutes": []
+    }
+  },
+  "validation": {
+    "stripUnknown": true,
+    "abortEarly": false,
+    "sanitizeInput": true
+  },
+  "discovery": {
+    "enabled": true,
+    "interval": 3600000,
+    "batchSize": 100,
+    "maxRetries": 3,
+    "retryDelay": 2000
+  },
+  "monitoring": {
+    "enabled": true,
+    "metricsPort": 9090,
+    "healthCheckPath": "/health"
+  }
+}

@@ -1,0 +1,289 @@
+{
+  "type": "rancher",
+  "category": "connector",
+  "connector_category": "container-orchestration",
+  "icon": "rancher",
+  "name": "Rancher Kubernetes Management",
+  "version": "1.0.0",
+  "description": "Bi-directional integration with Rancher for multi-cluster Kubernetes management, nodes, projects, and workloads",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": true,
+    "bidirectional": true
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["rancher_url", "access_key", "secret_key"],
+    "properties": {
+      "rancher_url": {
+        "type": "string",
+        "description": "Rancher server URL (e.g., https://rancher.example.com)"
+      },
+      "access_key": {
+        "type": "string",
+        "description": "Rancher API access key"
+      },
+      "secret_key": {
+        "type": "string",
+        "description": "Rancher API secret key",
+        "format": "password"
+      },
+      "cluster_ids": {
+        "type": "string",
+        "description": "Specific cluster IDs to sync (comma-separated, leave empty for all clusters)",
+        "default": ""
+      },
+      "sync_direction": {
+        "type": "string",
+        "enum": ["import", "export", "bidirectional"],
+        "default": "import",
+        "description": "Synchronization direction"
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "clusters",
+      "name": "Kubernetes Clusters",
+      "description": "Managed Kubernetes clusters from Rancher",
+      "ci_type": "container-orchestrator",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load", "sync_to_source"],
+      "configuration_schema": {
+        "properties": {
+          "include_imported": {
+            "type": "boolean",
+            "default": true,
+            "description": "Include imported/registered clusters (not provisioned by Rancher)"
+          },
+          "state_filter": {
+            "type": "string",
+            "description": "Filter by cluster state (active, provisioning, updating, unavailable)",
+            "default": ""
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 100,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "name": "name",
+        "display_name": "displayName",
+        "cluster_id": "id",
+        "provider": "provider",
+        "k8s_version": "version.gitVersion",
+        "node_count": "nodeCount",
+        "cpu_capacity": "capacity.cpu",
+        "memory_capacity": "capacity.memory",
+        "pod_capacity": "capacity.pods",
+        "state": "state",
+        "transitioning": "transitioning",
+        "api_endpoint": "apiEndpoint",
+        "ca_cert": "caCert",
+        "local_cluster": "internal",
+        "driver": "driver",
+        "created": "created",
+        "updated": "updated",
+        "description": "description"
+      }
+    },
+    {
+      "id": "nodes",
+      "name": "Cluster Nodes",
+      "description": "Kubernetes cluster nodes from Rancher",
+      "ci_type": "server",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "role_filter": {
+            "type": "string",
+            "description": "Filter by node role (controlplane, etcd, worker)",
+            "default": ""
+          },
+          "state_filter": {
+            "type": "string",
+            "description": "Filter by node state (active, registering, unavailable)",
+            "default": ""
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 500,
+        "rate_limit": 20,
+        "depends_on": ["clusters"]
+      },
+      "field_mappings": {
+        "name": "nodeName",
+        "hostname": "hostname",
+        "node_id": "id",
+        "cluster_id": "clusterId",
+        "cluster_name": "clusterName",
+        "node_type": "nodeType",
+        "roles": "roles",
+        "is_controlplane": "controlPlane",
+        "is_etcd": "etcd",
+        "is_worker": "worker",
+        "cpu": "allocatable.cpu",
+        "memory": "allocatable.memory",
+        "pods": "allocatable.pods",
+        "os": "info.os.operatingSystem",
+        "os_image": "info.os.dockerVersion",
+        "kernel_version": "info.os.kernelVersion",
+        "container_runtime": "info.os.containerRuntimeVersion",
+        "kubelet_version": "info.kubernetes.kubeletVersion",
+        "ip_address": "ipAddress",
+        "external_ip": "externalIpAddress",
+        "internal_ip": "internalIpAddress",
+        "state": "state",
+        "transitioning": "transitioning",
+        "requested_hostname": "requestedHostname",
+        "created": "created",
+        "updated": "updated"
+      }
+    },
+    {
+      "id": "projects",
+      "name": "Rancher Projects",
+      "description": "Rancher projects (namespace groupings) from managed clusters",
+      "ci_type": "application",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load", "sync_to_source"],
+      "configuration_schema": {
+        "properties": {
+          "include_system": {
+            "type": "boolean",
+            "default": false,
+            "description": "Include system projects (System, Default)"
+          },
+          "state_filter": {
+            "type": "string",
+            "description": "Filter by project state (active, removing)",
+            "default": ""
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 200,
+        "rate_limit": 15,
+        "depends_on": ["clusters"]
+      },
+      "field_mappings": {
+        "name": "name",
+        "display_name": "displayName",
+        "project_id": "id",
+        "cluster_id": "clusterId",
+        "cluster_name": "clusterName",
+        "description": "description",
+        "namespace_count": "namespaceCount",
+        "pod_security_policy": "podSecurityPolicyTemplateId",
+        "enable_project_monitoring": "enableProjectMonitoring",
+        "resource_quota": "resourceQuota",
+        "namespace_default_limit": "namespaceDefaultResourceQuota",
+        "container_default_limit": "containerDefaultResourceLimit",
+        "state": "state",
+        "created": "created",
+        "updated": "updated",
+        "creator_id": "creatorId"
+      }
+    },
+    {
+      "id": "workloads",
+      "name": "Kubernetes Workloads",
+      "description": "Kubernetes deployments, daemonsets, statefulsets, and pods from Rancher",
+      "ci_type": "service",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load", "sync_to_source"],
+      "configuration_schema": {
+        "properties": {
+          "workload_types": {
+            "type": "string",
+            "description": "Workload types to sync (deployment,daemonset,statefulset,cronjob,job)",
+            "default": "deployment,daemonset,statefulset"
+          },
+          "namespace_filter": {
+            "type": "string",
+            "description": "Filter by namespace (comma-separated, leave empty for all)",
+            "default": ""
+          },
+          "state_filter": {
+            "type": "string",
+            "description": "Filter by workload state (active, updating, unavailable)",
+            "default": ""
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 1000,
+        "rate_limit": 30,
+        "depends_on": ["clusters", "projects"]
+      },
+      "field_mappings": {
+        "name": "name",
+        "workload_id": "id",
+        "cluster_id": "clusterId",
+        "cluster_name": "clusterName",
+        "project_id": "projectId",
+        "project_name": "projectName",
+        "namespace": "namespaceId",
+        "namespace_name": "namespace",
+        "type": "type",
+        "workload_type": "workloadType",
+        "image": "containers[0].image",
+        "images": "containers[*].image",
+        "replicas": "scale",
+        "replicas_desired": "replicas",
+        "replicas_ready": "readyReplicas",
+        "replicas_available": "availableReplicas",
+        "replicas_unavailable": "unavailableReplicas",
+        "state": "state",
+        "transitioning": "transitioning",
+        "transitioning_message": "transitioningMessage",
+        "labels": "labels",
+        "annotations": "annotations",
+        "selector": "selector",
+        "strategy": "deploymentStrategy",
+        "restart_policy": "restartPolicy",
+        "dns_policy": "dnsPolicy",
+        "host_network": "hostNetwork",
+        "host_pid": "hostPID",
+        "node_selector": "nodeId",
+        "service_account": "serviceAccountName",
+        "created": "created",
+        "updated": "updated",
+        "creator_id": "creatorId"
+      }
+    },
+    {
+      "id": "relationships",
+      "name": "Rancher Relationships",
+      "description": "Relationships between clusters, nodes, projects, and workloads",
+      "ci_type": null,
+      "enabled_by_default": true,
+      "operations": ["extract"],
+      "configuration_schema": {
+        "properties": {
+          "relationship_types": {
+            "type": "string",
+            "description": "Relationship types to extract (cluster_node,project_cluster,workload_project,workload_node)",
+            "default": "cluster_node,project_cluster,workload_project,workload_node"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 5000,
+        "rate_limit": 50,
+        "depends_on": ["clusters", "nodes", "projects", "workloads"]
+      }
+    }
+  ]
+}

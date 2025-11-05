@@ -1,0 +1,21 @@
+{
+  "name": "@cmdb/connector-servicenow",
+  "version": "2.0.0",
+  "description": "ServiceNow CMDB integration connector",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo"
+  },
+  "dependencies": {
+    "@cmdb/common": "file:../../common",
+    "@cmdb/integration-framework": "file:../../integration-framework",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}

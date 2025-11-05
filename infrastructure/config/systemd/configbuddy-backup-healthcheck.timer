@@ -1,0 +1,18 @@
+[Unit]
+Description=ConfigBuddy Backup Health Check Timer
+Documentation=https://github.com/configbuddy/configbuddy
+Requires=configbuddy-backup-healthcheck.service
+
+[Timer]
+# Run every 6 hours
+OnCalendar=00/6:00:00
+# Equivalent to: OnCalendar=*-*-* 00,06,12,18:00:00
+
+# If system was off at scheduled time, run on next boot
+Persistent=true
+
+# Accuracy
+AccuracySec=5min
+
+[Install]
+WantedBy=timers.target

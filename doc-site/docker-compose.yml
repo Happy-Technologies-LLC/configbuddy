@@ -1,0 +1,49 @@
+version: '3.9'
+
+services:
+  configbuddy-docs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: configbuddy-docs
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+
+    # Health check configuration
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+    # Optional: Volume mount for development (hot reload)
+    # Uncomment below lines for live development
+    # volumes:
+    #   - ./docs:/app/docs:ro
+
+    # Resource limits (optional but recommended)
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Network configuration
+    networks:
+      - docs-network
+
+networks:
+  docs-network:
+    driver: bridge

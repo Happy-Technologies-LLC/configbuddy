@@ -1,0 +1,21 @@
+[Unit]
+Description=ConfigBuddy Database Backup Timer
+Documentation=https://github.com/configbuddy/configbuddy
+Requires=configbuddy-backup.service
+
+[Timer]
+# Run daily at 2:00 AM
+OnCalendar=daily
+# Equivalent to: OnCalendar=*-*-* 02:00:00
+
+# If system was off at scheduled time, run on next boot
+Persistent=true
+
+# Randomize start time by up to 15 minutes to avoid load spikes
+RandomizedDelaySec=15min
+
+# Accuracy (how close to scheduled time the timer should fire)
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

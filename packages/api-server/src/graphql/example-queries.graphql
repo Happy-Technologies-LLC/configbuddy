@@ -1,0 +1,402 @@
+# Example GraphQL Queries and Mutations for CMDB Platform
+
+# ============================================
+# QUERIES
+# ============================================
+
+# Get all CIs with filtering
+query GetAllCIs {
+  getCIs(
+    filter: {
+      type: SERVER
+      status: ACTIVE
+      environment: PRODUCTION
+    }
+    limit: 50
+    offset: 0
+  ) {
+    id
+    name
+    type
+    status
+    environment
+    externalId
+    createdAt
+    updatedAt
+    metadata
+  }
+}
+
+# Get a single CI by ID
+query GetCI {
+  getCI(id: "server-001") {
+    id
+    name
+    type
+    status
+    environment
+    externalId
+    createdAt
+    updatedAt
+    discoveredAt
+    metadata
+    relationships {
+      type
+      ci {
+        id
+        name
+        type
+      }
+      properties
+    }
+    dependents {
+      type
+      ci {
+        id
+        name
+        type
+      }
+    }
+    dependencies {
+      id
+      name
+      type
+      status
+    }
+  }
+}
+
+# Search CIs by name or external ID
+query SearchCIs {
+  searchCIs(
+    query: "web-server"
+    filter: {
+      type: SERVER
+      status: ACTIVE
+    }
+    limit: 20
+  ) {
+    id
+    name
+    type
+    status
+    environment
+    metadata
+  }
+}
+
+# Get relationships for a specific CI
+query GetCIRelationships {
+  getCIRelationships(id: "server-001", direction: "out") {
+    type
+    ci {
+      id
+      name
+      type
+      status
+    }
+    properties
+  }
+}
+
+# Get all dependencies (recursive)
+query GetDependencies {
+  getCIDependencies(id: "app-001", depth: 5) {
+    id
+    name
+    type
+    status
+    environment
+    metadata
+  }
+}
+
+# Impact analysis - what depends on this CI?
+query GetImpactAnalysis {
+  getImpactAnalysis(id: "database-001", depth: 5) {
+    ci {
+      id
+      name
+      type
+      status
+      environment
+    }
+    distance
+  }
+}
+
+# Complex query with nested relationships
+query ComplexCIQuery {
+  getCI(id: "server-001") {
+    id
+    name
+    type
+    status
+    environment
+
+    # Outgoing relationships
+    relationships {
+      type
+      ci {
+        id
+        name
+        type
+        status
+        # Nested relationships
+        relationships {
+          type
+          ci {
+            id
+            name
+            type
+          }
+        }
+      }
+    }
+
+    # Incoming relationships (what depends on this)
+    dependents {
+      type
+      ci {
+        id
+        name
+        type
+      }
+    }
+
+    # All recursive dependencies
+    dependencies {
+      id
+      name
+      type
+      status
+    }
+  }
+}
+
+# ============================================
+# MUTATIONS
+# ============================================
+
+# Create a new CI
+mutation CreateCI {
+  createCI(
+    input: {
+      id: "server-001"
+      externalId: "i-1234567890abcdef0"
+      name: "Production Web Server 01"
+      type: SERVER
+      status: ACTIVE
+      environment: PRODUCTION
+      discoveredAt: "2024-01-15T10:30:00Z"
+      metadata: {
+        "ip_address": "10.0.1.100"
+        "hostname": "web-prod-01.example.com"
+        "region": "us-east-1"
+        "instance_type": "t3.large"
+      }
+    }
+  ) {
+    id
+    name
+    type
+    status
+    environment
+    externalId
+    createdAt
+    updatedAt
+    discoveredAt
+    metadata
+  }
+}
+
+# Update an existing CI
+mutation UpdateCI {
+  updateCI(
+    id: "server-001"
+    input: {
+      name: "Production Web Server 01 (Updated)"
+      status: MAINTENANCE
+      metadata: {
+        "ip_address": "10.0.1.100"
+        "hostname": "web-prod-01.example.com"
+        "region": "us-east-1"
+        "instance_type": "t3.xlarge"
+        "last_patched": "2024-01-20T14:00:00Z"
+      }
+    }
+  ) {
+    id
+    name
+    status
+    updatedAt
+    metadata
+  }
+}
+
+# Delete a CI
+mutation DeleteCI {
+  deleteCI(id: "server-001")
+}
+
+# Create a relationship between two CIs
+mutation CreateRelationship {
+  createRelationship(
+    input: {
+      fromId: "app-001"
+      toId: "database-001"
+      type: DEPENDS_ON
+      properties: {
+        "connection_type": "tcp"
+        "port": 5432
+        "created_by": "discovery-agent"
+      }
+    }
+  )
+}
+
+# Delete a relationship
+mutation DeleteRelationship {
+  deleteRelationship(
+    fromId: "app-001"
+    toId: "database-001"
+    type: DEPENDS_ON
+  )
+}
+
+# ============================================
+# FRAGMENTS (Reusable)
+# ============================================
+
+fragment CIBasicInfo on CI {
+  id
+  name
+  type
+  status
+  environment
+  externalId
+  createdAt
+  updatedAt
+}
+
+fragment CIWithRelationships on CI {
+  ...CIBasicInfo
+  relationships {
+    type
+    ci {
+      ...CIBasicInfo
+    }
+    properties
+  }
+  dependents {
+    type
+    ci {
+      ...CIBasicInfo
+    }
+  }
+}
+
+# Using fragments
+query GetCIWithFragments {
+  getCI(id: "server-001") {
+    ...CIWithRelationships
+    metadata
+    discoveredAt
+  }
+}
+
+# ============================================
+# VARIABLES (for parameterized queries)
+# ============================================
+
+# Query with variables
+query GetCIById($ciId: ID!) {
+  getCI(id: $ciId) {
+    id
+    name
+    type
+    status
+    relationships {
+      type
+      ci {
+        id
+        name
+      }
+    }
+  }
+}
+
+# Variables JSON:
+# {
+#   "ciId": "server-001"
+# }
+
+# Mutation with variables
+mutation CreateCIWithVariables($input: CreateCIInput!) {
+  createCI(input: $input) {
+    id
+    name
+    type
+    status
+    createdAt
+  }
+}
+
+# Variables JSON:
+# {
+#   "input": {
+#     "id": "server-002",
+#     "name": "Web Server 02",
+#     "type": "SERVER",
+#     "status": "ACTIVE",
+#     "environment": "PRODUCTION"
+#   }
+# }
+
+# ============================================
+# BATCH QUERIES (Multiple operations)
+# ============================================
+
+# Multiple queries in one request
+query BatchQueries {
+  servers: getCIs(filter: { type: SERVER }, limit: 10) {
+    id
+    name
+    status
+  }
+
+  databases: getCIs(filter: { type: DATABASE }, limit: 10) {
+    id
+    name
+    status
+  }
+
+  applications: getCIs(filter: { type: APPLICATION }, limit: 10) {
+    id
+    name
+    status
+  }
+}
+
+# ============================================
+# PAGINATION EXAMPLE
+# ============================================
+
+query GetCIsWithPagination($limit: Int!, $offset: Int!) {
+  getCIs(
+    filter: { status: ACTIVE }
+    limit: $limit
+    offset: $offset
+  ) {
+    id
+    name
+    type
+    createdAt
+  }
+}
+
+# Variables for page 1:
+# { "limit": 25, "offset": 0 }
+
+# Variables for page 2:
+# { "limit": 25, "offset": 25 }

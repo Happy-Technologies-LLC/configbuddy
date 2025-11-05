@@ -1,0 +1,193 @@
+groups:
+  - name: service_health_alerts
+    interval: 30s
+    rules:
+      # API Server Health
+      - alert: APIServerDown
+        expr: up{job="api-server"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: api-server
+          runbook: api-server-down
+        annotations:
+          summary: "API Server is down"
+          description: "API Server {{ $labels.instance }} has been down for more than 1 minute"
+          impact: "Users cannot access the API. All discovery jobs are blocked."
+          action: "Check API server logs and restart service if necessary"
+
+      - alert: APIServerNoRequests
+        expr: rate(http_requests_total{job="api-server"}[1m]) == 0 and up{job="api-server"} == 1
+        for: 2m
+        labels:
+          severity: warning
+          component: api-server
+          runbook: api-server-down
+        annotations:
+          summary: "API Server receiving no requests"
+          description: "API Server {{ $labels.instance }} has received no requests in 2 minutes despite being up"
+          impact: "Potential network issues or load balancer misconfiguration"
+          action: "Check load balancer configuration and network connectivity"
+
+      # Neo4j Health
+      - alert: Neo4jDown
+        expr: up{job="neo4j"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: neo4j
+          runbook: database-connection-issues
+        annotations:
+          summary: "Neo4j database is down"
+          description: "Neo4j instance {{ $labels.instance }} has been unreachable for more than 1 minute"
+          impact: "All CI queries and discovery operations will fail. Data integrity at risk."
+          action: "Check Neo4j service status, disk space, and logs immediately"
+
+      - alert: Neo4jConnectionPoolExhausted
+        expr: neo4j_connection_pool_total_used / neo4j_connection_pool_total_created > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: neo4j
+          runbook: database-connection-issues
+        annotations:
+          summary: "Neo4j connection pool near exhaustion"
+          description: "Neo4j connection pool is {{ $value | humanizePercentage }} full on {{ $labels.instance }}"
+          impact: "New database operations may be delayed or fail"
+          action: "Check for connection leaks or increase pool size"
+
+      # PostgreSQL Health
+      - alert: PostgreSQLDown
+        expr: up{job="postgresql"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: postgresql
+          runbook: database-connection-issues
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "PostgreSQL instance {{ $labels.instance }} has been unreachable for more than 1 minute"
+          impact: "Connector registry, credentials, and metadata operations will fail"
+          action: "Check PostgreSQL service status, disk space, and logs immediately"
+
+      - alert: PostgreSQLTooManyConnections
+        expr: sum by (instance) (pg_stat_activity_count) / pg_settings_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          component: postgresql
+          runbook: database-connection-issues
+        annotations:
+          summary: "PostgreSQL connection limit approaching"
+          description: "PostgreSQL instance {{ $labels.instance }} is using {{ $value | humanizePercentage }} of max connections"
+          impact: "New database connections may be rejected"
+          action: "Check for connection leaks or increase max_connections setting"
+
+      - alert: PostgreSQLReplicationLag
+        expr: pg_replication_lag > 30
+        for: 5m
+        labels:
+          severity: warning
+          component: postgresql
+          runbook: database-connection-issues
+        annotations:
+          summary: "PostgreSQL replication lag detected"
+          description: "PostgreSQL replica {{ $labels.instance }} is {{ $value }} seconds behind primary"
+          impact: "Read replicas may serve stale data"
+          action: "Check network connectivity and replica performance"
+
+      # Redis Health
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: redis
+          runbook: database-connection-issues
+        annotations:
+          summary: "Redis is down"
+          description: "Redis instance {{ $labels.instance }} has been unreachable for more than 1 minute"
+          impact: "Cache unavailable, job queue stopped, session management degraded"
+          action: "Check Redis service status and logs immediately"
+
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: redis
+          runbook: high-memory-usage
+        annotations:
+          summary: "Redis memory usage critical"
+          description: "Redis instance {{ $labels.instance }} is using {{ $value | humanizePercentage }} of max memory"
+          impact: "Redis may start evicting keys or reject new data"
+          action: "Check cache policies, increase memory limit, or flush unnecessary keys"
+
+      - alert: RedisRejectedConnections
+        expr: increase(redis_rejected_connections_total[1m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+          component: redis
+          runbook: database-connection-issues
+        annotations:
+          summary: "Redis rejecting connections"
+          description: "Redis instance {{ $labels.instance }} has rejected {{ $value }} connections in the last minute"
+          impact: "Applications unable to connect to Redis"
+          action: "Check maxclients setting and connection pool configuration"
+
+      # Discovery Engine Health
+      - alert: DiscoveryEngineDown
+        expr: up{job="discovery-engine"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: discovery-engine
+          runbook: discovery-jobs-failing
+        annotations:
+          summary: "Discovery Engine is down"
+          description: "Discovery Engine {{ $labels.instance }} has been down for more than 2 minutes"
+          impact: "No discovery jobs will run. CI data will become stale."
+          action: "Check discovery engine logs and restart service"
+
+      # ETL Processor Health
+      - alert: ETLProcessorDown
+        expr: up{job="etl-processor"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          component: etl-processor
+          runbook: api-server-down
+        annotations:
+          summary: "ETL Processor is down"
+          description: "ETL Processor {{ $labels.instance }} has been down for more than 2 minutes"
+          impact: "Data mart will not be updated. Analytics queries may show stale data."
+          action: "Check ETL processor logs and restart service"
+
+      # Web UI Health
+      - alert: WebUIDown
+        expr: up{job="web-ui"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          component: web-ui
+          runbook: api-server-down
+        annotations:
+          summary: "Web UI is down"
+          description: "Web UI {{ $labels.instance }} has been down for more than 2 minutes"
+          impact: "Users cannot access the web interface"
+          action: "Check web UI logs and restart service"
+
+      # Health Check Failures
+      - alert: HealthCheckFailing
+        expr: health_check_success == 0
+        for: 3m
+        labels:
+          severity: warning
+          component: "{{ $labels.service }}"
+          runbook: api-server-down
+        annotations:
+          summary: "Health check failing for {{ $labels.service }}"
+          description: "Health check for {{ $labels.service }} on {{ $labels.instance }} has been failing for 3 minutes"
+          impact: "Service may be unhealthy or degraded"
+          action: "Check service logs and dependencies"

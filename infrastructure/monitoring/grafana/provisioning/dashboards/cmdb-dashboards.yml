@@ -1,0 +1,33 @@
+# =============================================================================
+# Grafana Dashboard Provisioning - ConfigBuddy CMDB
+# =============================================================================
+# This file automatically provisions all ConfigBuddy dashboards when Grafana
+# starts. Dashboards are loaded from the /dashboards directory.
+# =============================================================================
+
+apiVersion: 1
+
+providers:
+  # CMDB Data Mart Dashboards (PostgreSQL/TimescaleDB)
+  - name: 'ConfigBuddy CMDB Dashboards'
+    orgId: 1
+    folder: 'ConfigBuddy CMDB'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/cmdb
+      foldersFromFilesStructure: false
+
+  # Prometheus Monitoring Dashboards (Legacy)
+  - name: 'ConfigBuddy Monitoring Dashboards'
+    orgId: 1
+    folder: 'ConfigBuddy Monitoring'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/monitoring
+      foldersFromFilesStructure: false

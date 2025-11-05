@@ -1,0 +1,43 @@
+# VitePress build output
+docs/.vitepress/dist
+docs/.vitepress/cache
+docs/.vitepress/.temp
+
+# Node modules
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Package manager lock files (optional - remove if you want to commit them)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# VitePress local search index
+docs/.vitepress/search-index.json
+
+# Temporary files
+*.tmp
+*.temp

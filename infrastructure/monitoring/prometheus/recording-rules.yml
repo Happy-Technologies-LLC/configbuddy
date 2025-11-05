@@ -1,0 +1,174 @@
+# Prometheus Recording Rules
+# Pre-computed queries for faster dashboard and alerting performance
+
+groups:
+  # HTTP Request Aggregations
+  - name: http_request_aggregations
+    interval: 30s
+    rules:
+      # Total request rate by service
+      - record: service:cmdb_http_requests_total:rate5m
+        expr: sum by (service) (rate(cmdb_http_requests_total[5m]))
+
+      # Request rate by route
+      - record: route:cmdb_http_requests_total:rate5m
+        expr: sum by (route, method) (rate(cmdb_http_requests_total[5m]))
+
+      # Error count by service
+      - record: service:cmdb_http_errors_total:rate5m
+        expr: sum by (service) (rate(cmdb_http_requests_total{status_code=~"5.."}[5m]))
+
+      # Success rate by route
+      - record: route:cmdb_http_success_rate:rate5m
+        expr: |
+          sum by (route, method) (rate(cmdb_http_requests_total{status_code=~"2.."}[5m]))
+          /
+          sum by (route, method) (rate(cmdb_http_requests_total[5m]))
+
+  # Latency Percentiles
+  - name: latency_percentiles
+    interval: 30s
+    rules:
+      # P50 latency by route
+      - record: route:cmdb_http_request_duration_seconds:p50
+        expr: |
+          histogram_quantile(0.50,
+            sum by (route, le) (rate(cmdb_http_request_duration_seconds_bucket[5m]))
+          )
+
+      # P95 latency by route
+      - record: route:cmdb_http_request_duration_seconds:p95
+        expr: |
+          histogram_quantile(0.95,
+            sum by (route, le) (rate(cmdb_http_request_duration_seconds_bucket[5m]))
+          )
+
+      # P99 latency by route
+      - record: route:cmdb_http_request_duration_seconds:p99
+        expr: |
+          histogram_quantile(0.99,
+            sum by (route, le) (rate(cmdb_http_request_duration_seconds_bucket[5m]))
+          )
+
+  # Database Aggregations
+  - name: database_aggregations
+    interval: 30s
+    rules:
+      # Query rate by database
+      - record: database:cmdb_database_queries_total:rate5m
+        expr: sum by (database) (rate(cmdb_database_queries_total[5m]))
+
+      # Query latency by database
+      - record: database:cmdb_database_query_duration_seconds:p95
+        expr: |
+          histogram_quantile(0.95,
+            sum by (database, le) (rate(cmdb_database_query_duration_seconds_bucket[5m]))
+          )
+
+      # Error rate by database
+      - record: database:cmdb_database_error_rate:rate5m
+        expr: |
+          sum by (database) (rate(cmdb_database_errors_total[5m]))
+          /
+          sum by (database) (rate(cmdb_database_queries_total[5m])) * 100
+
+  # Queue Aggregations
+  - name: queue_aggregations
+    interval: 30s
+    rules:
+      # Job completion rate
+      - record: queue:cmdb_queue_jobs_completed:rate5m
+        expr: sum by (queue) (rate(cmdb_queue_jobs_total{status="completed"}[5m]))
+
+      # Job failure rate
+      - record: queue:cmdb_queue_jobs_failed:rate5m
+        expr: sum by (queue) (rate(cmdb_queue_jobs_total{status="failed"}[5m]))
+
+      # Job success rate
+      - record: queue:cmdb_queue_job_success_rate:rate5m
+        expr: |
+          sum by (queue) (rate(cmdb_queue_jobs_total{status="completed"}[5m]))
+          /
+          sum by (queue) (rate(cmdb_queue_jobs_total[5m])) * 100
+
+      # Average job duration
+      - record: queue:cmdb_queue_job_duration_seconds:avg
+        expr: |
+          rate(cmdb_queue_job_duration_seconds_sum[5m])
+          /
+          rate(cmdb_queue_job_duration_seconds_count[5m])
+
+  # Discovery Aggregations
+  - name: discovery_aggregations
+    interval: 1m
+    rules:
+      # Discovery rate by provider
+      - record: provider:cmdb_cis_discovered_total:rate5m
+        expr: sum by (provider) (rate(cmdb_cis_discovered_total[5m]))
+
+      # Discovery by CI type
+      - record: ci_type:cmdb_cis_discovered_total:rate5m
+        expr: sum by (ci_type) (rate(cmdb_cis_discovered_total[5m]))
+
+      # Average confidence score
+      - record: provider:cmdb_discovery_confidence_score:avg
+        expr: |
+          rate(cmdb_discovery_confidence_score_sum[5m])
+          /
+          rate(cmdb_discovery_confidence_score_count[5m])
+
+      # Discovery job duration
+      - record: provider:cmdb_discovery_job_duration_seconds:p95
+        expr: |
+          histogram_quantile(0.95,
+            sum by (provider, le) (rate(cmdb_discovery_job_duration_seconds_bucket[5m]))
+          )
+
+  # ETL Aggregations
+  - name: etl_aggregations
+    interval: 1m
+    rules:
+      # ETL throughput
+      - record: job_type:cmdb_etl_records_processed:rate5m
+        expr: sum by (job_type) (rate(cmdb_etl_records_processed_total[5m]))
+
+      # CIs synced rate
+      - record: operation:cmdb_cis_synced:rate5m
+        expr: sum by (operation) (rate(cmdb_cis_synced_total[5m]))
+
+      # Average data quality
+      - record: cmdb_data_quality_score:avg
+        expr: avg(cmdb_data_quality_score)
+
+      # Data quality by dimension
+      - record: dimension:cmdb_data_quality_score:avg
+        expr: avg by (dimension) (cmdb_data_quality_score)
+
+      # ETL job duration
+      - record: job_type:cmdb_etl_job_duration_seconds:p95
+        expr: |
+          histogram_quantile(0.95,
+            sum by (job_type, le) (rate(cmdb_etl_job_duration_seconds_bucket[5m]))
+          )
+
+  # System Resource Aggregations
+  - name: system_aggregations
+    interval: 30s
+    rules:
+      # Total memory usage percentage
+      - record: instance:cmdb_memory_usage_percent
+        expr: |
+          (cmdb_heap_memory_usage_bytes{type="used"}
+          /
+          cmdb_heap_memory_usage_bytes{type="total"}) * 100
+
+      # System memory usage percentage
+      - record: instance:cmdb_system_memory_usage_percent
+        expr: |
+          (cmdb_system_memory_bytes{type="used"}
+          /
+          cmdb_system_memory_bytes{type="total"}) * 100
+
+      # Average event loop lag
+      - record: instance:cmdb_event_loop_lag_seconds:avg
+        expr: avg(cmdb_event_loop_lag_seconds)

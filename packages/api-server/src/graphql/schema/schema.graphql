@@ -1,0 +1,130 @@
+type CI {
+  id: ID!
+  external_id: String
+  name: String!
+  type: CIType!
+  status: CIStatus!
+  environment: Environment
+  created_at: String!
+  updated_at: String!
+  discovered_at: String!
+  metadata: JSON
+  relationships: [Relationship!]
+  dependencies: [CI!]
+}
+
+enum CIType {
+  SERVER
+  VIRTUAL_MACHINE
+  CONTAINER
+  APPLICATION
+  SERVICE
+  DATABASE
+  NETWORK_DEVICE
+  STORAGE
+  LOAD_BALANCER
+  CLOUD_RESOURCE
+}
+
+enum CIStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+  DECOMMISSIONED
+}
+
+enum Environment {
+  PRODUCTION
+  STAGING
+  DEVELOPMENT
+  TEST
+}
+
+type Relationship {
+  type: RelationshipType!
+  ci: CI!
+  properties: JSON
+}
+
+enum RelationshipType {
+  DEPENDS_ON
+  HOSTS
+  CONNECTS_TO
+  USES
+  OWNED_BY
+  PART_OF
+  DEPLOYED_ON
+  BACKED_UP_BY
+}
+
+scalar JSON
+
+type Query {
+  # Get all CIs with optional filtering
+  getCIs(
+    type: CIType
+    status: CIStatus
+    environment: Environment
+    limit: Int = 100
+    offset: Int = 0
+  ): [CI!]!
+
+  # Get CI by ID
+  getCI(id: ID!): CI
+
+  # Search CIs using full-text search
+  searchCIs(query: String!): [SearchResult!]!
+
+  # Get impact analysis for a CI
+  getImpactAnalysis(id: ID!, depth: Int = 5): [ImpactResult!]!
+}
+
+type SearchResult {
+  ci: CI!
+  score: Float!
+}
+
+type ImpactResult {
+  ci: CI!
+  distance: Int!
+}
+
+type Mutation {
+  # Create a new CI
+  createCI(input: CIInput!): CI!
+
+  # Update an existing CI
+  updateCI(id: ID!, input: CIUpdateInput!): CI!
+
+  # Delete a CI
+  deleteCI(id: ID!): Boolean!
+
+  # Create a relationship between two CIs
+  createRelationship(input: RelationshipInput!): Boolean!
+}
+
+input CIInput {
+  id: ID!
+  external_id: String
+  name: String!
+  type: CIType!
+  status: CIStatus
+  environment: Environment
+  discovered_at: String
+  metadata: JSON
+}
+
+input CIUpdateInput {
+  name: String
+  type: CIType
+  status: CIStatus
+  environment: Environment
+  metadata: JSON
+}
+
+input RelationshipInput {
+  from_id: ID!
+  to_id: ID!
+  type: RelationshipType!
+  properties: JSON
+}

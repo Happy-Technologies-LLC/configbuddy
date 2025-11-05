@@ -1,0 +1,225 @@
+{
+  "type": "infoblox",
+  "category": "connector",
+  "connector_category": "network",
+  "icon": "infoblox",
+  "name": "Infoblox IPAM/DNS",
+  "version": "1.0.0",
+  "description": "Integration with Infoblox IPAM for network discovery, DNS records, and DHCP management",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": false,
+    "bidirectional": false
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["grid_master_url", "username", "password"],
+    "properties": {
+      "grid_master_url": {
+        "type": "string",
+        "description": "Infoblox Grid Master URL (e.g., https://infoblox.company.com)"
+      },
+      "username": {
+        "type": "string",
+        "description": "Infoblox username"
+      },
+      "password": {
+        "type": "string",
+        "description": "Infoblox password",
+        "format": "password"
+      },
+      "wapi_version": {
+        "type": "string",
+        "default": "v2.12",
+        "description": "WAPI version (default: v2.12)"
+      },
+      "verify_ssl": {
+        "type": "boolean",
+        "default": false,
+        "description": "Verify SSL certificates (default: false)"
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "networks",
+      "name": "Networks",
+      "description": "Network objects (subnets and CIDR blocks) from Infoblox IPAM",
+      "ci_type": "network",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "include_ipv6": {
+            "type": "boolean",
+            "default": false,
+            "description": "Include IPv6 networks"
+          },
+          "network_view": {
+            "type": "string",
+            "default": "default",
+            "description": "Network view to query (default: 'default')"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 1000,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "name": "network",
+        "ci_type": "'network'",
+        "status": "'active'",
+        "source": "'infoblox'",
+        "source_id": "_ref",
+        "attributes.network_cidr": "network",
+        "attributes.network_view": "network_view",
+        "attributes.comment": "comment",
+        "attributes.utilization": "utilization",
+        "identifiers.external_id": "_ref",
+        "identifiers.custom_identifiers.network_cidr": "network",
+        "identifiers.custom_identifiers.network_view": "network_view"
+      }
+    },
+    {
+      "id": "hosts",
+      "name": "Host Records",
+      "description": "Host records with IP addresses from Infoblox DNS",
+      "ci_type": "server",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "zone_filter": {
+            "type": "string",
+            "description": "DNS zone filter (e.g., company.com)",
+            "default": ""
+          },
+          "include_disabled": {
+            "type": "boolean",
+            "default": false,
+            "description": "Include disabled host records"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 1000,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "name": "name",
+        "ci_type": "'server'",
+        "status": "disable ? 'inactive' : 'active'",
+        "source": "'infoblox'",
+        "source_id": "_ref",
+        "attributes.dns_name": "name",
+        "attributes.view": "view",
+        "attributes.comment": "comment",
+        "attributes.disabled": "disable",
+        "identifiers.external_id": "_ref",
+        "identifiers.hostname": "name",
+        "identifiers.fqdn": "name",
+        "identifiers.ip_address": "ipv4addrs?.map(addr => addr.ipv4addr)",
+        "identifiers.custom_identifiers.infoblox_ref": "_ref"
+      }
+    },
+    {
+      "id": "dns_records",
+      "name": "DNS Records",
+      "description": "DNS A and CNAME records from Infoblox",
+      "ci_type": null,
+      "enabled_by_default": true,
+      "operations": ["extract", "transform"],
+      "configuration_schema": {
+        "properties": {
+          "zone_filter": {
+            "type": "string",
+            "description": "DNS zone filter",
+            "default": ""
+          },
+          "record_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["A", "CNAME"]
+            },
+            "default": ["A", "CNAME"],
+            "description": "DNS record types to extract"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 1000,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "name": "name",
+        "ci_type": "'dns-record'",
+        "environment": "'production'",
+        "status": "'active'",
+        "source": "'infoblox'",
+        "source_id": "_ref",
+        "attributes.record_type": "record_type",
+        "attributes.name": "name",
+        "attributes.ipv4addr": "ipv4addr",
+        "attributes.canonical": "canonical",
+        "attributes.view": "view",
+        "attributes.comment": "comment",
+        "attributes.ttl": "ttl",
+        "attributes.zone": "zone",
+        "identifiers.external_id": "_ref",
+        "identifiers.hostname": "record_type === 'A' ? name : undefined",
+        "identifiers.fqdn": "record_type === 'A' ? name : undefined",
+        "identifiers.ip_address": "ipv4addr ? [ipv4addr] : undefined",
+        "identifiers.custom_identifiers.infoblox_ref": "_ref",
+        "identifiers.custom_identifiers.record_type": "record_type"
+      }
+    },
+    {
+      "id": "dhcp_ranges",
+      "name": "DHCP Ranges",
+      "description": "DHCP address ranges from Infoblox",
+      "ci_type": null,
+      "enabled_by_default": true,
+      "operations": ["extract", "transform"],
+      "configuration_schema": {
+        "properties": {
+          "network_view": {
+            "type": "string",
+            "default": "default",
+            "description": "Network view to query"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 500,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "name": "`DHCP Range ${start_addr} - ${end_addr}`",
+        "ci_type": "'dhcp-range'",
+        "status": "'active'",
+        "source": "'infoblox'",
+        "source_id": "_ref",
+        "attributes.network": "network",
+        "attributes.start_addr": "start_addr",
+        "attributes.end_addr": "end_addr",
+        "attributes.network_view": "network_view",
+        "attributes.comment": "comment",
+        "attributes.server_association_type": "server_association_type",
+        "identifiers.external_id": "_ref",
+        "identifiers.custom_identifiers.infoblox_ref": "_ref",
+        "identifiers.custom_identifiers.network": "network",
+        "identifiers.custom_identifiers.start_addr": "start_addr",
+        "identifiers.custom_identifiers.end_addr": "end_addr"
+      }
+    }
+  ]
+}

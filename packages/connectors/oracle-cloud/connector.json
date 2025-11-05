@@ -1,0 +1,408 @@
+{
+  "type": "oracle-cloud",
+  "category": "connector",
+  "connector_category": "cloud",
+  "icon": "oracle-cloud",
+  "name": "Oracle Cloud Infrastructure",
+  "version": "1.0.0",
+  "description": "Cloud infrastructure integration for Oracle Cloud Infrastructure (OCI) - discovers and syncs compute instances, databases, storage, and networking resources via OCI REST APIs",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": true,
+    "bidirectional": false
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["tenancy_ocid", "user_ocid", "fingerprint", "private_key", "region"],
+    "properties": {
+      "tenancy_ocid": {
+        "type": "string",
+        "description": "Tenancy OCID (e.g., ocid1.tenancy.oc1..aaaaaa...)",
+        "pattern": "^ocid1\\.tenancy\\.oc1\\."
+      },
+      "user_ocid": {
+        "type": "string",
+        "description": "User OCID for API authentication (e.g., ocid1.user.oc1..aaaaaa...)",
+        "pattern": "^ocid1\\.user\\.oc1\\."
+      },
+      "fingerprint": {
+        "type": "string",
+        "description": "API key fingerprint (e.g., 12:34:56:78:90:ab:cd:ef...)",
+        "pattern": "^([0-9a-f]{2}:){15}[0-9a-f]{2}$"
+      },
+      "private_key": {
+        "type": "string",
+        "description": "Private key PEM content for API authentication",
+        "format": "textarea",
+        "sensitive": true
+      },
+      "region": {
+        "type": "string",
+        "description": "OCI region identifier (e.g., us-ashburn-1, us-phoenix-1, eu-frankfurt-1)",
+        "examples": ["us-ashburn-1", "us-phoenix-1", "eu-frankfurt-1", "ap-tokyo-1"]
+      },
+      "compartment_id": {
+        "type": "string",
+        "description": "Root compartment OCID to scope discovery (defaults to tenancy root compartment)",
+        "pattern": "^ocid1\\.compartment\\.oc1\\."
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "compute_instances",
+      "name": "Compute Instances",
+      "description": "OCI compute instances (virtual machines) from Core Services API",
+      "ci_type": "virtual-machine",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "include_terminated": {
+            "type": "boolean",
+            "default": false,
+            "description": "Include terminated instances in discovery"
+          },
+          "compartment_filter": {
+            "type": "string",
+            "description": "Comma-separated list of compartment OCIDs to filter"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 500,
+        "rate_limit": 20,
+        "api_endpoint": "https://iaas.{region}.oraclecloud.com/20160918/instances",
+        "pagination": {
+          "type": "next_page_token",
+          "param_name": "page"
+        }
+      },
+      "field_mappings": {
+        "name": "displayName",
+        "instance_id": "id",
+        "shape": "shape",
+        "vcpus": "shapeConfig.ocpus",
+        "memory_gb": "shapeConfig.memoryInGBs",
+        "image": "imageId",
+        "state": "lifecycleState",
+        "availability_domain": "availabilityDomain",
+        "fault_domain": "faultDomain",
+        "compartment_id": "compartmentId",
+        "region": "region",
+        "ip_address": "primaryPrivateIp",
+        "public_ip": "primaryPublicIp",
+        "boot_volume_id": "bootVolumeId",
+        "time_created": "timeCreated",
+        "time_updated": "timeMaintenanceRebootDue",
+        "defined_tags": "definedTags",
+        "freeform_tags": "freeformTags"
+      }
+    },
+    {
+      "id": "databases",
+      "name": "Database Systems",
+      "description": "OCI Database systems and instances from Database Service API",
+      "ci_type": "database",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "include_terminated": {
+            "type": "boolean",
+            "default": false,
+            "description": "Include terminated database systems"
+          },
+          "db_system_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["VM", "BM", "EXADATA", "AUTONOMOUS"]
+            },
+            "default": ["VM", "BM"],
+            "description": "Database system types to discover"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 100,
+        "rate_limit": 10,
+        "api_endpoint": "https://database.{region}.oraclecloud.com/20160918/dbSystems",
+        "pagination": {
+          "type": "next_page_token",
+          "param_name": "page"
+        }
+      },
+      "field_mappings": {
+        "name": "displayName",
+        "db_system_id": "id",
+        "db_version": "version",
+        "db_edition": "databaseEdition",
+        "shape": "shape",
+        "node_count": "nodeCount",
+        "storage_gb": "dataStorageSizeInGBs",
+        "cpu_core_count": "cpuCoreCount",
+        "state": "lifecycleState",
+        "availability_domain": "availabilityDomain",
+        "compartment_id": "compartmentId",
+        "hostname": "hostname",
+        "domain": "domain",
+        "cluster_name": "clusterName",
+        "subnet_id": "subnetId",
+        "backup_subnet_id": "backupSubnetId",
+        "license_model": "licenseModel",
+        "time_created": "timeCreated",
+        "defined_tags": "definedTags",
+        "freeform_tags": "freeformTags"
+      }
+    },
+    {
+      "id": "block_volumes",
+      "name": "Block Storage Volumes",
+      "description": "OCI block storage volumes from Core Services API",
+      "ci_type": "storage",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "include_terminated": {
+            "type": "boolean",
+            "default": false,
+            "description": "Include terminated volumes"
+          },
+          "min_size_gb": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Minimum volume size in GB to include"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 500,
+        "rate_limit": 20,
+        "api_endpoint": "https://iaas.{region}.oraclecloud.com/20160918/volumes",
+        "pagination": {
+          "type": "next_page_token",
+          "param_name": "page"
+        }
+      },
+      "field_mappings": {
+        "name": "displayName",
+        "volume_id": "id",
+        "size_gb": "sizeInGBs",
+        "size_mb": "sizeInMBs",
+        "state": "lifecycleState",
+        "availability_domain": "availabilityDomain",
+        "compartment_id": "compartmentId",
+        "volume_group_id": "volumeGroupId",
+        "kms_key_id": "kmsKeyId",
+        "is_hydrated": "isHydrated",
+        "vpus_per_gb": "vpusPerGB",
+        "auto_tuned_vpus_per_gb": "autoTunedVpusPerGB",
+        "boot_volume_id": "bootVolumeId",
+        "source_volume_id": "sourceDetails.id",
+        "time_created": "timeCreated",
+        "defined_tags": "definedTags",
+        "freeform_tags": "freeformTags"
+      }
+    },
+    {
+      "id": "vcns",
+      "name": "Virtual Cloud Networks",
+      "description": "OCI Virtual Cloud Networks and subnets from Networking API",
+      "ci_type": "network",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "include_terminated": {
+            "type": "boolean",
+            "default": false,
+            "description": "Include terminated VCNs"
+          },
+          "include_subnets": {
+            "type": "boolean",
+            "default": true,
+            "description": "Include subnet details"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 100,
+        "rate_limit": 20,
+        "api_endpoint": "https://iaas.{region}.oraclecloud.com/20160918/vcns",
+        "pagination": {
+          "type": "next_page_token",
+          "param_name": "page"
+        }
+      },
+      "field_mappings": {
+        "name": "displayName",
+        "vcn_id": "id",
+        "cidr_block": "cidrBlock",
+        "cidr_blocks": "cidrBlocks",
+        "state": "lifecycleState",
+        "compartment_id": "compartmentId",
+        "dns_label": "dnsLabel",
+        "default_dhcp_options_id": "defaultDhcpOptionsId",
+        "default_route_table_id": "defaultRouteTableId",
+        "default_security_list_id": "defaultSecurityListId",
+        "ipv6_cidr_blocks": "ipv6CidrBlocks",
+        "time_created": "timeCreated",
+        "defined_tags": "definedTags",
+        "freeform_tags": "freeformTags"
+      }
+    },
+    {
+      "id": "volume_attachments",
+      "name": "Volume Attachments",
+      "description": "Block volume to compute instance attachments",
+      "ci_type": null,
+      "enabled_by_default": true,
+      "operations": ["extract"],
+      "configuration_schema": {
+        "properties": {
+          "attachment_types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["iscsi", "paravirtualized"]
+            },
+            "default": ["iscsi", "paravirtualized"]
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 1000,
+        "depends_on": ["compute_instances", "block_volumes"],
+        "api_endpoint": "https://iaas.{region}.oraclecloud.com/20160918/volumeAttachments"
+      },
+      "relationship_mappings": {
+        "source_field": "instanceId",
+        "target_field": "volumeId",
+        "relationship_type": "USES",
+        "attributes": {
+          "attachment_type": "attachmentType",
+          "device": "device",
+          "is_read_only": "isReadOnly",
+          "is_shareable": "isShareable"
+        }
+      }
+    },
+    {
+      "id": "vnic_attachments",
+      "name": "VNIC Attachments",
+      "description": "Virtual network interface attachments to compute instances",
+      "ci_type": null,
+      "enabled_by_default": true,
+      "operations": ["extract"],
+      "configuration_schema": {
+        "properties": {}
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 1000,
+        "depends_on": ["compute_instances", "vcns"],
+        "api_endpoint": "https://iaas.{region}.oraclecloud.com/20160918/vnicAttachments"
+      },
+      "relationship_mappings": {
+        "source_field": "instanceId",
+        "target_field": "subnetId",
+        "relationship_type": "CONNECTS_TO",
+        "attributes": {
+          "display_name": "displayName",
+          "nic_index": "nicIndex",
+          "vlan_tag": "vlanTag"
+        }
+      }
+    },
+    {
+      "id": "db_homes",
+      "name": "Database Homes",
+      "description": "Database homes associated with DB systems",
+      "ci_type": null,
+      "enabled_by_default": false,
+      "operations": ["extract"],
+      "configuration_schema": {
+        "properties": {}
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 100,
+        "depends_on": ["databases"],
+        "api_endpoint": "https://database.{region}.oraclecloud.com/20160918/dbHomes"
+      },
+      "relationship_mappings": {
+        "source_field": "dbSystemId",
+        "target_field": "id",
+        "relationship_type": "HOSTS",
+        "attributes": {
+          "db_version": "dbVersion",
+          "last_patch_history_entry_id": "lastPatchHistoryEntryId"
+        }
+      }
+    }
+  ],
+  "credential_affinity": {
+    "primary": ["oracle-cloud", "oci"],
+    "secondary": ["oracle", "cloud"],
+    "keywords": ["tenancy", "ocid", "fingerprint", "oci", "oracle"]
+  },
+  "metadata": {
+    "documentation_url": "https://docs.oracle.com/en-us/iaas/api/",
+    "api_version": "20160918",
+    "authentication_method": "API Signing (RSA SHA256)",
+    "supported_regions": [
+      "us-ashburn-1",
+      "us-phoenix-1",
+      "us-sanjose-1",
+      "ca-toronto-1",
+      "ca-montreal-1",
+      "eu-frankfurt-1",
+      "eu-zurich-1",
+      "eu-amsterdam-1",
+      "uk-london-1",
+      "uk-gov-london-1",
+      "ap-tokyo-1",
+      "ap-osaka-1",
+      "ap-seoul-1",
+      "ap-mumbai-1",
+      "ap-sydney-1",
+      "ap-melbourne-1",
+      "sa-saopaulo-1",
+      "sa-vinhedo-1",
+      "me-jeddah-1",
+      "me-dubai-1",
+      "ap-hyderabad-1",
+      "ap-chuncheon-1",
+      "us-gov-ashburn-1",
+      "us-gov-chicago-1",
+      "us-gov-phoenix-1"
+    ],
+    "rate_limits": {
+      "default": 20,
+      "compute": 20,
+      "database": 10,
+      "networking": 20,
+      "storage": 20
+    },
+    "tags": [
+      "cloud",
+      "oracle",
+      "oci",
+      "infrastructure",
+      "compute",
+      "database",
+      "storage",
+      "networking"
+    ]
+  }
+}

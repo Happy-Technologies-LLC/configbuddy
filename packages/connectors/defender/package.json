@@ -1,0 +1,27 @@
+{
+  "name": "@cmdb/connector-defender",
+  "version": "1.0.0",
+  "description": "Microsoft Defender for Endpoint integration connector",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "dependencies": {
+    "@cmdb/common": "file:../../common",
+    "@cmdb/integration-framework": "file:../../integration-framework",
+    "@azure/identity": "^4.0.0",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.0.0",
+    "jest": "^29.5.0",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.0.0"
+  }
+}

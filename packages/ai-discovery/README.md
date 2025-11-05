@@ -271,22 +271,59 @@ Read file contents via SSH.
 
 ## Pattern Learning
 
-After successful AI discoveries, patterns can be learned:
+The system automatically learns patterns from AI discoveries and compiles them into reusable code:
 
 ```typescript
-const session = agent.getCurrentSession();
+import {
+  HybridDiscoveryOrchestrator,
+  PatternAnalyzer,
+  PatternWorkflow
+} from '@cmdb/ai-discovery';
 
-if (agent.foundNewPattern()) {
-  // This discovery could become a pattern
-  // In production: compile pattern and store in database
-  console.log('Potential pattern found!');
-  console.log('Tool sequence:', session.toolCalls.map(t => t.toolName));
+const orchestrator = new HybridDiscoveryOrchestrator({
+  aiEnabled: true,
+  patternMatchingEnabled: true
+});
+
+const analyzer = new PatternAnalyzer();
+const workflow = new PatternWorkflow();
+
+// Perform discovery
+const result = await orchestrator.discover({
+  targetHost: '10.0.1.50',
+  targetPort: 8080
+});
+
+// If AI was used, check if we found a pattern
+if (result.method === 'ai') {
+  const analysis = await analyzer.analyzeSession(result.session);
+
+  if (analysis.isPattern) {
+    console.log('🎉 Pattern detected!');
+    console.log(`   Found ${analysis.candidate.signature.sessionCount} similar discoveries`);
+    console.log(`   Suggested name: ${analysis.candidate.suggestedName}`);
+
+    // Automatically compile and submit
+    await workflow.compileAndSubmitPatterns();
+  }
 }
 ```
 
-Patterns reduce cost and latency:
-- **First discovery**: 10-60 seconds, costs $0.02
-- **With pattern**: <1 second, costs $0.00
+**The Learning Flywheel**:
+1. AI discovers unknown service (20s, $0.02)
+2. System tracks discovery steps
+3. After 3+ similar discoveries → Pattern suggested
+4. Pattern compiler generates detection/discovery code
+5. Validator tests the pattern
+6. Review → Approve → Activate
+7. Future discoveries use pattern (<1s, $0.00)
+
+**Performance Impact**:
+- **First 3 discoveries**: 60 seconds, $0.06
+- **Next 997 discoveries**: 8 minutes, $0.00
+- **Savings**: 97% faster, 99.7% cost reduction
+
+**See**: [Phase 3 Documentation](./README-PHASE3.md) for complete pattern learning guide
 
 ## Cost Management
 

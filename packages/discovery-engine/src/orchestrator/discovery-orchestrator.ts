@@ -7,11 +7,15 @@ import { SSHDiscoveryWorker } from '../workers/ssh-discovery.worker';
 import { NmapDiscoveryWorker } from '../workers/nmap-discovery.worker';
 import { ActiveDirectoryDiscoveryWorker } from '../workers/active-directory-discovery.worker';
 import { getInternalAPIClient } from '../api/internal-api-client';
+import { ITILEnricher } from '../enrichment/itil-enricher';
+import { TBMEnricher } from '../enrichment/tbm-enricher';
 
 export class DiscoveryOrchestrator {
   private apiClient = getInternalAPIClient();
   private postgresClient = getPostgresClient();
   private credentialService = getUnifiedCredentialService(getPostgresClient().pool);
+  private itilEnricher = new ITILEnricher();
+  private tbmEnricher = new TBMEnricher();
   private workersRegistered = false;
 
   /**
@@ -464,7 +468,17 @@ export class DiscoveryOrchestrator {
       baseURL: process.env['CMDB_API_URL'] || 'http://localhost:3000'
     });
 
-    for (const ci of cis) {
+    // Enrich CIs with ITIL attributes before persisting
+    logger.info('Enriching CIs with ITIL attributes before persistence');
+    let enrichedCIs = await this.itilEnricher.enrichWithITIL(cis);
+    logger.info(`Successfully enriched ${enrichedCIs.length} CIs with ITIL attributes`);
+
+    // Enrich CIs with TBM attributes
+    logger.info('Enriching CIs with TBM cost attributes before persistence');
+    enrichedCIs = await this.tbmEnricher.enrichWithTBM(enrichedCIs);
+    logger.info(`Successfully enriched ${enrichedCIs.length} CIs with TBM attributes`);
+
+    for (const ci of enrichedCIs) {
       try {
         logger.debug('Checking if CI exists', { id: ci._id });
 

@@ -1,16 +1,21 @@
 /**
  * Pattern Matcher
- * Executes pre-compiled discovery patterns for fast detection
+ * Executes pre-compiled discovery patterns for fast detection with caching
  */
 
 import { DiscoveryPattern, PatternMatch, AIDiscoveryContext, IPatternMatcher } from './types';
 import { PatternStorageService } from './pattern-storage';
 import { logger } from '@cmdb/common';
 import { VM } from 'vm2';
+import { getRedisClient } from '@cmdb/database';
+import * as crypto from 'crypto';
 
 export class PatternMatcher implements IPatternMatcher {
   private patternStorage: PatternStorageService;
   private patterns: DiscoveryPattern[] = [];
+  private redis = getRedisClient();
+  private readonly MATCH_CACHE_PREFIX = 'ai:pattern:match:';
+  private readonly MATCH_CACHE_TTL = 300; // 5 minutes
 
   constructor(patternStorage?: PatternStorageService) {
     this.patternStorage = patternStorage || new PatternStorageService();
@@ -25,11 +30,35 @@ export class PatternMatcher implements IPatternMatcher {
   }
 
   /**
-   * Match scan result against patterns
+   * Create cache key from scan result
+   */
+  private createCacheKey(scanResult: any): string {
+    // Create deterministic hash of scan result
+    const data = JSON.stringify(scanResult);
+    const hash = crypto.createHash('sha256').update(data).digest('hex');
+    return `${this.MATCH_CACHE_PREFIX}${hash}`;
+  }
+
+  /**
+   * Match scan result against patterns with caching
    */
   async match(scanResult: any): Promise<PatternMatch | null> {
     if (this.patterns.length === 0) {
       await this.loadPatterns();
+    }
+
+    // Check cache first
+    const cacheKey = this.createCacheKey(scanResult);
+    try {
+      const cached = await this.redis.get(cacheKey);
+      if (cached) {
+        const match = JSON.parse(cached);
+        logger.debug('Pattern match loaded from cache', { patternId: match?.patternId });
+        return match;
+      }
+    } catch (error) {
+      // Cache miss or error - continue with matching
+      logger.debug('Cache miss for pattern match', { error });
     }
 
     let bestMatch: PatternMatch | null = null;
@@ -73,6 +102,18 @@ export class PatternMatcher implements IPatternMatcher {
       });
     } else {
       logger.debug('No pattern matches found');
+    }
+
+    // Cache the result (even null results to avoid re-scanning)
+    try {
+      await this.redis.setex(
+        cacheKey,
+        this.MATCH_CACHE_TTL,
+        JSON.stringify(bestMatch)
+      );
+    } catch (error) {
+      logger.error('Failed to cache pattern match', { error });
+      // Don't throw - caching is optional
     }
 
     return bestMatch;

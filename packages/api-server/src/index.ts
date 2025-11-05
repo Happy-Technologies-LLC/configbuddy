@@ -14,6 +14,7 @@ import { logger } from '@cmdb/common';
 import { getDiscoveryOrchestrator } from '@cmdb/discovery-engine';
 import { getAnomalyDetectionEngine } from '@cmdb/ai-ml-engine';
 import { loadConnectorsAtStartup } from './utils/connector-loader';
+import { getWebSocketService } from './services/websocket.service';
 
 const PORT = parseInt(process.env['PORT'] || '3000', 10);
 
@@ -27,7 +28,12 @@ async function startServer() {
     logger.info('Built-in connectors loaded successfully');
 
     const server = new RestAPIServer(PORT);
-    server.start();
+    const httpServer = server.start();
+
+    // Initialize WebSocket service for real-time updates
+    const wsService = getWebSocketService();
+    wsService.initialize(httpServer);
+    logger.info('WebSocket service initialized');
 
     // Start discovery workers
     const discoveryOrchestrator = getDiscoveryOrchestrator();

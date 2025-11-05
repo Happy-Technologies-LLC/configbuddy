@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { aiPatternService, AIPattern, PatternFilters, PatternAnalysisResult, PatternValidationResult } from '../services/ai-pattern.service';
 import { useToast } from '../contexts/ToastContext';
+import { useWebSocket } from './useWebSocket';
 
 export interface UseAIPatternsReturn {
   patterns: AIPattern[];
@@ -226,6 +227,25 @@ export const useAIPatterns = (): UseAIPatternsReturn => {
   useEffect(() => {
     loadPatterns();
   }, [loadPatterns]);
+
+  // WebSocket real-time updates
+  useWebSocket({
+    onMessage: (message) => {
+      if (message.type === 'pattern_update' ||
+          message.type === 'pattern_approved' ||
+          message.type === 'pattern_learned') {
+        // Refresh patterns when updates are received
+        loadPatterns();
+
+        // Show notification for new patterns
+        if (message.type === 'pattern_learned') {
+          showToast('New pattern learned from AI discovery', 'info');
+        } else if (message.type === 'pattern_approved') {
+          showToast(`Pattern approved by ${message.data.approver}`, 'success');
+        }
+      }
+    },
+  });
 
   return {
     patterns,

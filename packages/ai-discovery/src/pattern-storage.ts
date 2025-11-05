@@ -1,20 +1,38 @@
 /**
  * Pattern Storage Service
- * Manages discovery patterns in PostgreSQL
+ * Manages discovery patterns in PostgreSQL with Redis caching
  */
 
 import { getPostgresClient } from '@cmdb/database';
 import { DiscoveryPattern } from './types';
 import { logger } from '@cmdb/common';
+import { PatternCacheService } from './pattern-cache.service';
 
 export class PatternStorageService {
   private patterns: Map<string, DiscoveryPattern> = new Map();
   private postgresClient = getPostgresClient();
+  private cache: PatternCacheService;
+
+  constructor() {
+    this.cache = new PatternCacheService();
+  }
 
   /**
    * Load all active patterns from database
+   * Checks Redis cache first, then falls back to database
    */
   async loadPatterns(): Promise<DiscoveryPattern[]> {
+    // Check Redis cache first
+    const cached = await this.cache.getActivePatterns();
+    if (cached) {
+      // Update in-memory cache
+      this.patterns.clear();
+      for (const pattern of cached) {
+        this.patterns.set(pattern.patternId, pattern);
+      }
+      logger.debug('Loaded patterns from Redis cache', { count: cached.length });
+      return cached;
+    }
     const client = await this.postgresClient.getClient();
 
     try {
@@ -43,7 +61,10 @@ export class PatternStorageService {
         this.patterns.set(pattern.patternId, pattern);
       }
 
-      logger.info(`Loaded ${patterns.length} active patterns`);
+      // Cache in Redis for next time
+      await this.cache.setActivePatterns(patterns);
+
+      logger.info(`Loaded ${patterns.length} active patterns from database`);
 
       return patterns;
     } catch (error) {
@@ -56,14 +77,24 @@ export class PatternStorageService {
 
   /**
    * Get pattern by ID
+   * Checks in-memory cache, then Redis, then database
    */
   async getPattern(patternId: string): Promise<DiscoveryPattern | null> {
-    // Check cache first
+    // Check in-memory cache first (fastest)
     if (this.patterns.has(patternId)) {
       return this.patterns.get(patternId)!;
     }
 
-    // Load from database
+    // Check Redis cache second
+    const cached = await this.cache.getPattern(patternId);
+    if (cached) {
+      // Update in-memory cache
+      this.patterns.set(patternId, cached);
+      logger.debug('Pattern loaded from Redis cache', { patternId });
+      return cached;
+    }
+
+    // Load from database as last resort
     const client = await this.postgresClient.getClient();
 
     try {
@@ -76,7 +107,13 @@ export class PatternStorageService {
         return null;
       }
 
-      return this.rowToPattern(result.rows[0]);
+      const pattern = this.rowToPattern(result.rows[0]);
+
+      // Cache in Redis and memory for next time
+      await this.cache.setPattern(pattern);
+      this.patterns.set(patternId, pattern);
+
+      return pattern;
     } catch (error) {
       logger.error('Failed to get pattern', { patternId, error });
       throw error;
@@ -124,8 +161,12 @@ export class PatternStorageService {
 
       const savedPattern = this.rowToPattern(result.rows[0]);
 
-      // Update cache
+      // Update in-memory and Redis cache
       this.patterns.set(savedPattern.patternId, savedPattern);
+      await this.cache.setPattern(savedPattern);
+
+      // Invalidate the pattern list cache (so it gets refreshed with new pattern)
+      await this.cache.invalidatePattern(savedPattern.patternId);
 
       logger.info('Pattern saved', {
         patternId: savedPattern.patternId,
@@ -187,8 +228,9 @@ export class PatternStorageService {
         values
       );
 
-      // Invalidate cache
+      // Invalidate in-memory and Redis cache
       this.patterns.delete(patternId);
+      await this.cache.invalidatePattern(patternId);
 
       logger.info('Pattern updated', { patternId });
     } catch (error) {
@@ -298,5 +340,27 @@ export class PatternStorageService {
    */
   getCachedPatterns(): DiscoveryPattern[] {
     return Array.from(this.patterns.values());
+  }
+
+  /**
+   * Warm up cache with active patterns
+   * Call this during application startup for better initial performance
+   */
+  async warmupCache(): Promise<void> {
+    try {
+      const patterns = await this.loadPatterns();
+      await this.cache.warmup(patterns);
+      logger.info('Pattern cache warmed up', { count: patterns.length });
+    } catch (error) {
+      logger.error('Failed to warm up cache', { error });
+      // Don't throw - this is optional optimization
+    }
+  }
+
+  /**
+   * Get cache statistics
+   */
+  async getCacheStats() {
+    return this.cache.getStats();
   }
 }

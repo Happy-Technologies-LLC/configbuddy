@@ -25,6 +25,8 @@ export const PatternLibrary: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [selectedPattern, setSelectedPattern] = useState<AIPattern | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   if (loading) {
     return <LoadingSpinner />;
@@ -45,6 +47,17 @@ export const PatternLibrary: React.FC = () => {
 
     return matchesSearch && matchesStatus && matchesCategory;
   });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredPatterns.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedPatterns = filteredPatterns.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, categoryFilter]);
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: any; label: string; icon: any }> = {
@@ -159,7 +172,7 @@ export const PatternLibrary: React.FC = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredPatterns.map((pattern) => {
+              paginatedPatterns.map((pattern) => {
                 const successRate = pattern.usageCount > 0
                   ? (pattern.successCount / pattern.usageCount) * 100
                   : 0;
@@ -255,6 +268,74 @@ export const PatternLibrary: React.FC = () => {
           </TableBody>
         </Table>
       </LiquidGlass>
+
+      {/* Pagination Controls */}
+      {filteredPatterns.length > 0 && (
+        <LiquidGlass size="sm" rounded="xl">
+          <div className="p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="text-sm text-muted-foreground">
+              Showing {startIndex + 1}-{Math.min(endIndex, filteredPatterns.length)} of {filteredPatterns.length} patterns
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Select value={String(pageSize)} onValueChange={(val) => {
+                setPageSize(Number(val));
+                setCurrentPage(1);
+              }}>
+                <SelectTrigger className="w-[100px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10 / page</SelectItem>
+                  <SelectItem value="25">25 / page</SelectItem>
+                  <SelectItem value="50">50 / page</SelectItem>
+                  <SelectItem value="100">100 / page</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <div className="flex gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                >
+                  First
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+
+                <div className="flex items-center px-3 text-sm">
+                  Page {currentPage} of {totalPages}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                >
+                  Last
+                </Button>
+              </div>
+            </div>
+          </div>
+        </LiquidGlass>
+      )}
 
       {/* Pattern Detail Modal */}
       {selectedPattern && (

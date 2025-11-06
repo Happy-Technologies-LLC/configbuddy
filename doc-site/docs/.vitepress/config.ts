@@ -40,6 +40,7 @@ export default defineConfig({
     nav: [
       { text: 'Home', link: '/' },
       { text: 'Getting Started', link: '/getting-started/overview' },
+      { text: 'v3.0 Quick Start', link: '/getting-started/v3-quick-start' },
       { text: 'Architecture', link: '/architecture/system-overview' },
       { text: 'Deployment', link: '/deployment/kubernetes' },
       {
@@ -85,6 +86,7 @@ export default defineConfig({
           items: [
             { text: 'Overview', link: '/getting-started/overview' },
             { text: 'Quick Start', link: '/getting-started/quick-start' },
+            { text: 'v3.0 Quick Start', link: '/getting-started/v3-quick-start' },
             { text: 'Installation', link: '/getting-started/installation' },
             { text: 'Project Structure', link: '/getting-started/project-structure' },
             { text: 'Key Concepts', link: '/getting-started/key-concepts' },
@@ -450,6 +452,7 @@ export default defineConfig({
         {
           text: 'Troubleshooting',
           items: [
+            { text: 'v3.0 Troubleshooting Guide', link: '/troubleshooting/v3-troubleshooting' },
             { text: 'Troubleshooting Guide', link: '/troubleshooting/overview' },
             { text: 'Common Issues', link: '/troubleshooting/common-issues' },
             { text: 'Debug Mode', link: '/troubleshooting/debug-mode' }

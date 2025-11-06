@@ -9,6 +9,9 @@
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
     "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --coverage --maxWorkers=2",
     "test:integration": "jest --testPathPattern=integration",
     "lint": "eslint src --ext .ts"
   },

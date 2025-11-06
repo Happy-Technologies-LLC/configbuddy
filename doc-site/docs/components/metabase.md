@@ -1654,6 +1654,18 @@ For implementation assistance or customization, consult the ConfigBuddy document
 
 ---
 
+## Related Documentation
+
+- [Multi-Stakeholder Dashboards](/components/dashboards) - Built-in React dashboards for real-time monitoring
+- [TBM Cost Engine](/components/tbm-cost-engine) - Technology Business Management cost allocation
+- [BSM Impact Engine](/components/bsm-impact-engine) - Business Service Mapping and impact analysis
+- [ITIL Service Manager](/components/itil-service-manager) - ITIL v4 incident and change management
+- [Unified Framework](/components/unified-framework) - Integrated ITIL + TBM + BSM views
+- [Database Design](/architecture/database-design) - PostgreSQL data mart schema and views
+- [System Overview](/architecture/system-overview) - ConfigBuddy architecture overview
+
+---
+
 **Version**: ConfigBuddy v3.0
 **Last Updated**: November 6, 2025
 **Maintained By**: ConfigBuddy Development Team

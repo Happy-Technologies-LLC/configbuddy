@@ -9,7 +9,10 @@
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "test": "jest",
     "test:unit": "jest --testPathPattern=tests/unit",
-    "test:integration": "jest --testPathPattern=tests/integration"
+    "test:integration": "jest --testPathPattern=tests/integration",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --coverage --maxWorkers=2"
   },
   "dependencies": {
     "@cmdb/common": "workspace:*",

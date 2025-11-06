@@ -735,11 +735,140 @@ describe('ExampleService', () => {
 });
 ```
 
+## Regression Testing
+
+For comprehensive regression testing procedures, including:
+- Full test execution strategy
+- Performance testing benchmarks
+- End-to-end workflow validation
+- Data validation and accuracy testing
+- Monitoring and alerting verification
+- Complete regression test matrix
+
+**See**: [REGRESSION_TESTING_GUIDE.md](/home/user/configbuddy/docs/REGRESSION_TESTING_GUIDE.md)
+
+The regression testing guide provides:
+- **Pre-testing checklists** for environment setup and data preparation
+- **Detailed test suites** organized by type (Unit, Integration, E2E, Performance, Monitoring, Data Validation)
+- **Test scripts and commands** for automated execution
+- **Performance targets** and acceptance criteria
+- **Issue tracking templates** and severity guidelines
+- **Sign-off criteria** for production release approval
+
+**When to use**:
+- Before major releases (v3.x, v4.x)
+- After significant architectural changes
+- Before production deployments
+- During quarterly validation cycles
+- After infrastructure upgrades
+
+**Estimated execution time**: 4-6 hours for full suite
+
+---
+
+## Test Data Generation
+
+ConfigBuddy includes a comprehensive test data generator for creating realistic test datasets.
+
+**Location**: `/packages/common/src/test-utils/data-generator.ts`
+
+**Usage Examples:**
+
+```typescript
+import {
+  generateTestCI,
+  generateTestCIs,
+  generateTestBusinessService,
+  generateTestIncident,
+  generateTestChange,
+  seedTestDataset,
+} from '@cmdb/common/test-utils';
+
+// Generate single CI with specific attributes
+const server = generateTestCI({
+  type: 'server',
+  environment: 'production',
+  criticality: 'tier_0',
+  monthly_cost: 5000,
+});
+
+// Generate multiple CIs
+const cis = generateTestCIs({
+  count: 100,
+  type: 'virtual-machine',
+  environment: 'staging',
+});
+
+// Generate business service with specific metrics
+const service = generateTestBusinessService({
+  criticality: 'tier_1',
+  annual_revenue_supported: 25_000_000,
+  customer_count: 500_000,
+});
+
+// Generate complete test dataset
+const dataset = seedTestDataset({
+  ciCount: 1000,
+  businessServiceCount: 50,
+  incidentCount: 100,
+  changeCount: 75,
+});
+
+// Export as JSON
+import { exportTestDataAsJSON } from '@cmdb/common/test-utils';
+const json = exportTestDataAsJSON(dataset);
+```
+
+**Available Generators:**
+
+| Generator | Description | Options |
+|-----------|-------------|---------|
+| `generateTestCI()` | Single CI with ITIL+TBM+BSM attributes | type, status, environment, criticality, cost |
+| `generateTestCIs()` | Multiple CIs | count, type, status, environment |
+| `generateTestBusinessService()` | Business service | criticality, revenue, customers, cost |
+| `generateTestIncident()` | ITIL incident | priority, status, affected_ci_id |
+| `generateTestChange()` | ITIL change request | status, affected_ci_ids |
+| `generateTestCostAllocation()` | TBM cost allocation | ci_id, service_id, amount, method |
+| `seedTestDataset()` | Complete dataset | ciCount, serviceCount, incidentCount |
+
+**Test Data Characteristics:**
+
+- ✅ Realistic attribute values based on criticality tiers
+- ✅ Consistent relationships between entities
+- ✅ Valid ITIL workflow states
+- ✅ Accurate TBM cost calculations
+- ✅ Proper BSM impact scoring
+- ✅ Randomized but deterministic data
+- ✅ Supports all v3.0 frameworks (ITIL, TBM, BSM)
+
+**Seeding Test Databases:**
+
+```bash
+# From common package
+cd packages/common
+
+# Build the package
+npm run build
+
+# Use in test scripts
+node -e "
+const { seedTestDataset, exportTestDataAsJSON } = require('./dist/test-utils');
+const dataset = seedTestDataset({ ciCount: 1000 });
+console.log(exportTestDataAsJSON(dataset));
+" > test-data.json
+
+# Import to database
+cat test-data.json | docker exec -i cmdb-postgres psql -U cmdb_user -d cmdb -c "..."
+```
+
+---
+
 ## Resources
 
 - [Jest Documentation](https://jestjs.io/docs/getting-started)
 - [Testing Best Practices](https://testingjavascript.com/)
 - [TypeScript Testing](https://github.com/kulshekhar/ts-jest)
+- [Regression Testing Guide](REGRESSION_TESTING_GUIDE.md)
 
 ---
 

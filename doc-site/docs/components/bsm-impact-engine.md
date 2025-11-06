@@ -1371,7 +1371,7 @@ const updatedService = await updateBusinessService(businessService.id, {
 - [TBM Cost Engine](/components/tbm-cost-engine) - Cost allocation and financial analysis
 - [Unified Framework](/components/unified-framework) - Integrated ITIL + TBM + BSM views
 - [Discovery Agents](/components/discovery-agents) - Automatic BSM enrichment during discovery
-- [Business Services](/architecture/unified-data-model#business-services) - Business service data model
+- [Database Design](/architecture/database-design) - Business service data model and schema
 
 ## Next Steps
 

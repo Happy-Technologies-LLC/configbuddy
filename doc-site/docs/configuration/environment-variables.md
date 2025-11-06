@@ -220,6 +220,292 @@ METRICS_INTERVAL=15000
 
 ---
 
+## v3.0 Configuration
+
+ConfigBuddy v3.0 introduces comprehensive ITIL, TBM, and BSM frameworks with unified integration. The following sections document v3.0-specific environment variables.
+
+### Unified Framework Integration
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `V3_UNIFIED_FRAMEWORK_ENABLED` | No | `true` | Enable v3.0 unified framework (ITIL+TBM+BSM) |
+| `ITIL_ENABLED` | No | `true` | Enable ITIL v4 service management |
+| `TBM_ENABLED` | No | `true` | Enable TBM v5.0.1 cost transparency |
+| `BSM_ENABLED` | No | `true` | Enable Business Service Mapping |
+| `UNIFIED_VIEW_CACHE_TTL` | No | `300` | Cache duration for complete service views (seconds) |
+
+**Example:**
+
+```bash
+V3_UNIFIED_FRAMEWORK_ENABLED=true
+ITIL_ENABLED=true
+TBM_ENABLED=true
+BSM_ENABLED=true
+UNIFIED_VIEW_CACHE_TTL=300
+```
+
+**Impact**: Disabling any framework reduces functionality but may improve performance in resource-constrained environments.
+
+---
+
+### ITIL Service Manager Configuration
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `ITIL_PRIORITY_CALCULATION_ENABLED` | No | `true` | Enable automatic incident priority calculation |
+| `ITIL_CHANGE_RISK_ENABLED` | No | `true` | Enable 5-factor change risk assessment |
+| `ITIL_BASELINE_MANAGEMENT_ENABLED` | No | `true` | Enable configuration baseline tracking |
+| `ITIL_CAB_APPROVAL_THRESHOLD` | No | `50` | Risk score threshold requiring CAB approval (0-100) |
+| `ITIL_EXECUTIVE_APPROVAL_THRESHOLD` | No | `75` | Risk score requiring executive approval (0-100) |
+| `ITIL_P1_RESPONSE_MINUTES` | No | `15` | P1 incident response time target (minutes) |
+| `ITIL_P1_RESOLUTION_MINUTES` | No | `240` | P1 incident resolution time target (minutes) |
+| `ITIL_DRIFT_CHECK_ENABLED` | No | `true` | Enable configuration drift detection |
+| `ITIL_DRIFT_SEVERITY_THRESHOLD` | No | `30` | Drift score threshold for alerts (0-100) |
+
+**Example:**
+
+```bash
+ITIL_PRIORITY_CALCULATION_ENABLED=true
+ITIL_CHANGE_RISK_ENABLED=true
+ITIL_CAB_APPROVAL_THRESHOLD=50
+ITIL_EXECUTIVE_APPROVAL_THRESHOLD=75
+ITIL_P1_RESPONSE_MINUTES=15
+ITIL_P1_RESOLUTION_MINUTES=240
+ITIL_DRIFT_CHECK_ENABLED=true
+ITIL_DRIFT_SEVERITY_THRESHOLD=30
+```
+
+**Security Considerations**:
+- Lower CAB thresholds increase change scrutiny but may slow deployments
+- P1 response times should align with SLA commitments
+
+---
+
+### TBM Cost Engine Configuration
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `TBM_COST_ALLOCATION_ENABLED` | No | `true` | Enable automated cost allocation |
+| `TBM_DEPRECIATION_METHOD` | No | `straight_line` | Depreciation method (`straight_line`, `declining_balance`) |
+| `TBM_DEFAULT_DEPRECIATION_YEARS` | No | `3` | Default asset depreciation period (years) |
+| `TBM_CLOUD_SYNC_ENABLED` | No | `true` | Enable automated cloud cost sync |
+| `TBM_CLOUD_SYNC_INTERVAL` | No | `86400000` | Cloud cost sync interval (ms) - 24 hours |
+| `TBM_AWS_COST_EXPLORER_ENABLED` | No | `true` | Enable AWS Cost Explorer integration |
+| `TBM_AZURE_COST_MGMT_ENABLED` | No | `true` | Enable Azure Cost Management integration |
+| `TBM_GCP_BILLING_ENABLED` | No | `true` | Enable GCP Billing integration |
+| `TBM_LICENSE_TRACKING_ENABLED` | No | `true` | Enable software license tracking |
+| `TBM_LICENSE_RENEWAL_ALERT_DAYS` | No | `30` | Alert threshold for license renewal (days) |
+| `TBM_BUDGET_VARIANCE_THRESHOLD` | No | `10` | Budget variance alert threshold (%) |
+| `TBM_COST_ANOMALY_ENABLED` | No | `true` | Enable AI-powered cost anomaly detection |
+
+**Example:**
+
+```bash
+TBM_COST_ALLOCATION_ENABLED=true
+TBM_DEPRECIATION_METHOD=straight_line
+TBM_DEFAULT_DEPRECIATION_YEARS=3
+TBM_CLOUD_SYNC_ENABLED=true
+TBM_CLOUD_SYNC_INTERVAL=86400000
+TBM_AWS_COST_EXPLORER_ENABLED=true
+TBM_AZURE_COST_MGMT_ENABLED=true
+TBM_GCP_BILLING_ENABLED=true
+TBM_LICENSE_TRACKING_ENABLED=true
+TBM_LICENSE_RENEWAL_ALERT_DAYS=30
+TBM_BUDGET_VARIANCE_THRESHOLD=10
+TBM_COST_ANOMALY_ENABLED=true
+```
+
+**Cloud Credential Management**: TBM uses the unified credential system. Configure cloud provider credentials via Web UI or API, not environment variables.
+
+---
+
+### BSM Impact Engine Configuration
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `BSM_ENABLED` | No | `true` | Enable Business Service Mapping engine |
+| `BSM_BATCH_SIZE` | No | `100` | Batch size for impact calculations |
+| `BSM_MAX_BLAST_RADIUS_HOPS` | No | `10` | Maximum graph traversal depth for blast radius |
+| `BSM_TIER_0_THRESHOLD` | No | `1000000` | Tier 0 (mission-critical) annual revenue threshold (USD) |
+| `BSM_TIER_1_THRESHOLD` | No | `500000` | Tier 1 (business-critical) annual revenue threshold (USD) |
+| `BSM_TIER_2_THRESHOLD` | No | `100000` | Tier 2 (important) annual revenue threshold (USD) |
+| `BSM_TIER_3_THRESHOLD` | No | `10000` | Tier 3 (standard) annual revenue threshold (USD) |
+| `BSM_WEIGHT_REVENUE` | No | `0.40` | Revenue weight in impact scoring (0-1) |
+| `BSM_WEIGHT_CUSTOMERS` | No | `0.25` | Customer count weight in impact scoring (0-1) |
+| `BSM_WEIGHT_TRANSACTIONS` | No | `0.15` | Transaction volume weight in impact scoring (0-1) |
+| `BSM_WEIGHT_COMPLIANCE` | No | `0.10` | Compliance weight in impact scoring (0-1) |
+| `BSM_WEIGHT_USERS` | No | `0.10` | User count weight in impact scoring (0-1) |
+| `BSM_RISK_INCIDENT_WEIGHT` | No | `0.30` | Incident frequency weight in risk assessment (0-1) |
+| `BSM_RISK_CHANGE_WEIGHT` | No | `0.25` | Change management weight in risk assessment (0-1) |
+| `BSM_RISK_AVAILABILITY_WEIGHT` | No | `0.25` | Availability weight in risk assessment (0-1) |
+| `BSM_RISK_COMPLIANCE_WEIGHT` | No | `0.10` | Compliance weight in risk assessment (0-1) |
+| `BSM_RISK_AUDIT_WEIGHT` | No | `0.10` | Audit status weight in risk assessment (0-1) |
+| `BSM_BLAST_RADIUS_TIMEOUT` | No | `300000` | Blast radius analysis timeout (ms) - 5 minutes |
+| `BSM_GRAPH_TRAVERSAL_CACHE_TTL` | No | `300` | Graph traversal cache TTL (seconds) |
+
+**Example:**
+
+```bash
+BSM_ENABLED=true
+BSM_BATCH_SIZE=100
+BSM_MAX_BLAST_RADIUS_HOPS=10
+BSM_TIER_0_THRESHOLD=1000000
+BSM_TIER_1_THRESHOLD=500000
+BSM_TIER_2_THRESHOLD=100000
+BSM_TIER_3_THRESHOLD=10000
+BSM_WEIGHT_REVENUE=0.40
+BSM_WEIGHT_CUSTOMERS=0.25
+BSM_WEIGHT_TRANSACTIONS=0.15
+BSM_WEIGHT_COMPLIANCE=0.10
+BSM_WEIGHT_USERS=0.10
+BSM_BLAST_RADIUS_TIMEOUT=300000
+```
+
+**Tuning Guidance**:
+- Adjust tier thresholds based on your organization's revenue scale
+- Weights must sum to 1.0 (normalized automatically if not)
+- Increase `BSM_MAX_BLAST_RADIUS_HOPS` for deeper analysis (slower performance)
+- Reduce timeout for faster results (may incomplete analysis for large graphs)
+
+---
+
+### AI/ML Engine Configuration (Enhanced)
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `AI_ANOMALY_DETECTION_ENABLED` | No | `true` | Enable anomaly detection engine |
+| `AI_ANOMALY_SENSITIVITY` | No | `medium` | Anomaly detection sensitivity (`low`, `medium`, `high`) |
+| `AI_ANOMALY_MIN_CONFIDENCE` | No | `70` | Minimum confidence score for anomaly alerts (0-100) |
+| `AI_ANOMALY_CHECK_INTERVAL` | No | `60` | Anomaly detection interval (minutes) |
+| `AI_ANOMALY_LOOKBACK_DAYS` | No | `30` | Historical lookback period for baseline (days) |
+| `AI_DRIFT_DETECTION_ENABLED` | No | `true` | Enable configuration drift detection |
+| `AI_DRIFT_SEVERITY_THRESHOLD` | No | `30` | Drift score threshold for alerts (0-100) |
+| `AI_DRIFT_AUTO_BASELINE_ENABLED` | No | `true` | Automatically create baselines for new CIs |
+| `AI_IMPACT_PREDICTION_ENABLED` | No | `true` | Enable change impact prediction |
+| `AI_IMPACT_MAX_BLAST_RADIUS` | No | `200` | Maximum CIs to analyze in blast radius |
+| `AI_IMPACT_CRITICALITY_CACHE_TTL` | No | `604800` | Criticality score cache duration (seconds) - 7 days |
+
+**Example:**
+
+```bash
+AI_ANOMALY_DETECTION_ENABLED=true
+AI_ANOMALY_SENSITIVITY=medium
+AI_ANOMALY_MIN_CONFIDENCE=70
+AI_ANOMALY_CHECK_INTERVAL=60
+AI_ANOMALY_LOOKBACK_DAYS=30
+AI_DRIFT_DETECTION_ENABLED=true
+AI_DRIFT_SEVERITY_THRESHOLD=30
+AI_DRIFT_AUTO_BASELINE_ENABLED=true
+AI_IMPACT_PREDICTION_ENABLED=true
+AI_IMPACT_MAX_BLAST_RADIUS=200
+```
+
+**Performance Impact**: High sensitivity and frequent checks increase CPU usage. Tune based on infrastructure size and criticality.
+
+---
+
+### Event Streaming (Kafka) Configuration
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `KAFKA_ENABLED` | No | `false` | Enable Kafka event streaming |
+| `KAFKA_BROKERS` | Yes* | `localhost:9092` | Comma-separated list of Kafka brokers (*required if enabled) |
+| `KAFKA_CLIENT_ID` | No | `cmdb-platform` | Kafka client identifier |
+| `KAFKA_GROUP_ID` | No | `cmdb-consumers` | Default consumer group ID |
+| `KAFKA_CONNECTION_TIMEOUT` | No | `30000` | Connection timeout (ms) |
+| `KAFKA_REQUEST_TIMEOUT` | No | `30000` | Request timeout (ms) |
+| `KAFKA_SSL_ENABLED` | No | `false` | Enable SSL/TLS encryption |
+| `KAFKA_SSL_CA_PATH` | No | - | Path to CA certificate |
+| `KAFKA_SSL_CERT_PATH` | No | - | Path to client certificate |
+| `KAFKA_SSL_KEY_PATH` | No | - | Path to client private key |
+| `KAFKA_SASL_ENABLED` | No | `false` | Enable SASL authentication |
+| `KAFKA_SASL_MECHANISM` | No | `plain` | SASL mechanism (`plain`, `scram-sha-256`, `scram-sha-512`) |
+| `KAFKA_SASL_USERNAME` | No | - | SASL username |
+| `KAFKA_SASL_PASSWORD` | No | - | SASL password |
+| `KAFKA_AUTO_CREATE_TOPICS` | No | `true` | Automatically create topics on startup |
+| `KAFKA_REPLICATION_FACTOR` | No | `1` | Topic replication factor (increase to 3 for production) |
+| `KAFKA_PARTITIONS_DEFAULT` | No | `6` | Default partition count for new topics |
+| `KAFKA_RETENTION_HOURS` | No | `168` | Default message retention (hours) - 7 days |
+| `KAFKA_COMPRESSION_TYPE` | No | `snappy` | Message compression (`none`, `gzip`, `snappy`, `lz4`, `zstd`) |
+
+**Example (Development)**:
+
+```bash
+KAFKA_ENABLED=true
+KAFKA_BROKERS=localhost:9092
+KAFKA_CLIENT_ID=cmdb-platform
+KAFKA_GROUP_ID=cmdb-consumers
+KAFKA_AUTO_CREATE_TOPICS=true
+KAFKA_REPLICATION_FACTOR=1
+```
+
+**Example (Production)**:
+
+```bash
+KAFKA_ENABLED=true
+KAFKA_BROKERS=kafka-1.internal:9092,kafka-2.internal:9092,kafka-3.internal:9092
+KAFKA_CLIENT_ID=cmdb-platform
+KAFKA_SSL_ENABLED=true
+KAFKA_SSL_CA_PATH=/certs/ca.crt
+KAFKA_SSL_CERT_PATH=/certs/client.crt
+KAFKA_SSL_KEY_PATH=/certs/client.key
+KAFKA_SASL_ENABLED=true
+KAFKA_SASL_MECHANISM=scram-sha-512
+KAFKA_SASL_USERNAME=${KAFKA_USERNAME}
+KAFKA_SASL_PASSWORD=${KAFKA_PASSWORD}
+KAFKA_REPLICATION_FACTOR=3
+KAFKA_PARTITIONS_DEFAULT=12
+KAFKA_RETENTION_HOURS=168
+KAFKA_COMPRESSION_TYPE=snappy
+```
+
+**Production Requirements**:
+- Use at least 3 Kafka brokers for high availability
+- Set replication factor to 3 for data durability
+- Enable SSL/TLS and SASL for security
+- Store credentials in Kubernetes secrets or vault
+
+---
+
+### Metabase Business Intelligence Configuration
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `METABASE_ENABLED` | No | `true` | Enable Metabase integration |
+| `METABASE_PORT` | No | `3002` | Metabase web interface port |
+| `METABASE_DATABASE` | No | `metabase` | Metabase application database name |
+| `METABASE_DB_USER` | Yes* | `metabase_user` | Metabase database user (*required if enabled) |
+| `METABASE_DB_PASSWORD` | Yes* | - | Metabase database password (*required if enabled) |
+| `METABASE_ENCRYPTION_KEY` | Yes* | - | Metabase encryption key (min 32 chars) (*required if enabled) |
+| `METABASE_SITE_URL` | No | `http://localhost:3002` | Metabase public URL |
+| `METABASE_READONLY_USER` | Yes* | `metabase_readonly` | Read-only user for CMDB data mart access |
+| `METABASE_READONLY_PASSWORD` | Yes* | - | Read-only user password |
+| `METABASE_AUTO_SYNC_ENABLED` | No | `true` | Enable automatic database schema sync |
+| `METABASE_AUTO_SYNC_SCHEDULE` | No | `0 3 * * *` | Schema sync cron schedule (3 AM daily) |
+
+**Example:**
+
+```bash
+METABASE_ENABLED=true
+METABASE_PORT=3002
+METABASE_DATABASE=metabase
+METABASE_DB_USER=metabase_user
+METABASE_DB_PASSWORD=${METABASE_DB_PASSWORD}
+METABASE_ENCRYPTION_KEY=${METABASE_ENCRYPTION_KEY}
+METABASE_SITE_URL=https://bi.configbuddy.internal
+METABASE_READONLY_USER=metabase_readonly
+METABASE_READONLY_PASSWORD=${METABASE_READONLY_PASSWORD}
+METABASE_AUTO_SYNC_ENABLED=true
+```
+
+**Security Best Practices**:
+- Generate strong encryption key: `openssl rand -base64 32`
+- Use read-only database credentials for Metabase
+- Restrict Metabase port to internal network only
+- Enable HTTPS for production deployments
+
+---
+
 ## Legacy v1.0 Configuration (Deprecated)
 
 ::: warning DEPRECATED

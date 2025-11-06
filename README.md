@@ -10,23 +10,43 @@
 
 ConfigBuddy is an open-source CMDB platform that provides comprehensive infrastructure discovery, relationship mapping, and change management across multi-cloud and on-premise environments.
 
-### Key Features (v2.0)
+**Status**: v3.0 + Agentic AI - Production Ready
 
-- **AI-Powered Discovery**: LLM-based infrastructure discovery with multi-provider support (Anthropic, OpenAI, custom)
-- **Pattern Learning**: Automatically compiles successful discoveries into reusable patterns (10x faster, zero LLM cost)
-- **Hybrid Discovery**: Combines pattern matching with AI fallback for optimal performance and cost
-- **37 Integration Connectors**: 17 TypeScript + 20 JSON-only declarative connectors for ServiceNow, Jira, SCCM, cloud providers, and more
-- **Unified Credential System**: Protocol-based authentication with encrypted storage in PostgreSQL
-- **Discovery Agents**: Smart routing for network protocols (NMAP, SSH, SNMP, Active Directory)
+### Key Features (v3.0)
+
+#### Unified Enterprise Framework (NEW)
+- **ITIL v4 Service Management**: Incident priority calculation, change risk assessment, configuration baselines
+- **TBM v5.0.1 Cost Engine**: 11-tower resource mapping, 3 allocation methods, depreciation tracking
+- **BSM Impact Engine**: Business criticality scoring (Tier 0-4), blast radius analysis, revenue impact
+- **10 Unified KPIs**: MTTR, Cost per Incident, Business Impact Score, Change Success Rate, and more
+- **Complete Service Views**: Enriched incidents, changes, and service health in single API call
+
+#### Multi-Stakeholder Dashboards (NEW)
+- **5 Role-Based Dashboards**: Executive, CIO, ITSM Manager, FinOps, Business Service Owner
+- **120+ Visualizations**: Real-time KPIs, trends, and actionable insights
+- **Metabase BI Integration**: Custom reporting and self-service analytics
+- **Prometheus + Grafana**: Infrastructure monitoring and alerting
+
+#### Agentic AI Discovery
+- **LLM-Powered Discovery**: Multi-provider support (Anthropic Claude, OpenAI GPT, custom models)
+- **Pattern Learning**: Automatically compiles successful discoveries into reusable patterns (10x faster, 90% cost reduction)
+- **Hybrid Routing**: 3-tier discovery (pattern → heuristic → AI) for optimal cost/performance
+- **Cost Controls**: Per-session and monthly budget limits with auto-throttling
+- **Real-time Updates**: WebSocket notifications for discovery progress and pattern compilation
+
+#### AI/ML Engine (NEW)
+- **Anomaly Detection**: Change frequency, relationship, and configuration anomalies
+- **Configuration Drift**: Baseline comparison with auto-remediation workflows
+- **Impact Prediction**: Change impact scoring, criticality assessment, MTTR prediction
+
+#### Core Platform
+- **38 Integration Connectors**: 18 TypeScript + 20 JSON-only declarative connectors
+- **Event Streaming**: Apache Kafka with 24 event topics for real-time data streaming
 - **Graph Database**: Neo4j-powered relationship modeling and impact analysis
 - **Data Mart**: PostgreSQL with TimescaleDB for analytics and reporting
-- **AI/ML Engines**: Anomaly detection, drift detection, and impact analysis
 - **Identity Resolution**: Cross-source entity matching and deduplication
-- **Dynamic Metadata**: Schema-less custom attributes with indexed search
-- **Event Streaming**: Kafka-based event pipeline for real-time processing
-- **Real-time Updates**: WebSocket-based notifications for pattern updates and discoveries
-- **REST & GraphQL APIs**: Comprehensive API layer (20+ endpoints)
-- **React Web UI**: Modern dashboard with advanced visualization and pattern management
+- **REST & GraphQL APIs**: Comprehensive API layer (30+ endpoints)
+- **React Web UI**: Modern dashboard with advanced visualization
 - **CLI Tool**: Command-line interface for operations
 
 ## Architecture
@@ -224,30 +244,63 @@ POSTGRES_PASSWORD=your-postgres-password
 REDIS_HOST=localhost
 REDIS_PORT=6379
 
-# AI/ML Features (v2.0)
-AI_ANOMALY_DETECTION_ENABLED=true
-AI_DRIFT_DETECTION_ENABLED=true
-AI_IMPACT_ANALYSIS_ENABLED=true
-
-# AI Discovery (v2.0)
+# Agentic AI Discovery (v3.0)
 AI_DISCOVERY_ENABLED=true
 AI_DISCOVERY_PROVIDER=anthropic                 # anthropic | openai | custom
 AI_DISCOVERY_MODEL=claude-sonnet-4-20250514
 ANTHROPIC_API_KEY=your-anthropic-api-key-here
+OPENAI_API_KEY=your-openai-api-key-here
 
-# Pattern Learning
+# Pattern Learning (v3.0)
 AI_PATTERN_LEARNING_ENABLED=true
 AI_PATTERN_MIN_SESSIONS=3
-AI_PATTERN_AUTO_APPROVAL_ENABLED=true
+AI_PATTERN_AUTO_APPROVAL_ENABLED=false
+AI_PATTERN_CAB_REVIEW_REQUIRED=true
 
-# Cost Controls
+# Cost Controls (v3.0)
 AI_DISCOVERY_MONTHLY_BUDGET=100.00
 AI_DISCOVERY_MAX_COST_PER_SESSION=0.50
+AI_DISCOVERY_ALERT_THRESHOLD=0.80
+
+# AI/ML Engine (v3.0)
+AI_ANOMALY_DETECTION_ENABLED=true
+AI_DRIFT_DETECTION_ENABLED=true
+AI_IMPACT_PREDICTION_ENABLED=true
+AI_AUTO_BASELINE_ENABLED=true
+
+# ITIL Service Manager (v3.0)
+ITIL_ENABLED=true
+ITIL_DEFAULT_SLA_PRIORITY_1=4h
+ITIL_DEFAULT_SLA_PRIORITY_2=8h
+ITIL_DEFAULT_SLA_PRIORITY_3=24h
+ITIL_CAB_APPROVAL_REQUIRED=true
+
+# TBM Cost Engine (v3.0)
+TBM_ENABLED=true
+TBM_DEFAULT_ALLOCATION_METHOD=usage-based
+TBM_DEPRECIATION_METHOD=straight-line
+TBM_CLOUD_COST_SYNC_ENABLED=true
+
+# BSM Impact Engine (v3.0)
+BSM_ENABLED=true
+BSM_AUTO_CRITICALITY_ENABLED=true
+BSM_REVENUE_TRACKING_ENABLED=true
+
+# Event Streaming (v3.0)
+KAFKA_ENABLED=true
+KAFKA_BROKERS=localhost:9092
+KAFKA_CLIENT_ID=cmdb-platform
+KAFKA_GROUP_ID=cmdb-consumers
+
+# Metabase BI (v3.0)
+METABASE_ENABLED=true
+METABASE_URL=http://localhost:3001
+METABASE_DATABASE_URL=postgresql://cmdb_user:cmdb_password@localhost:5432/cmdb
 ```
 
-### v2.0 Credential Management
+### Credential Management
 
-**IMPORTANT**: ConfigBuddy v2.0 uses a **unified credential system** stored in PostgreSQL.
+**IMPORTANT**: ConfigBuddy uses a **unified credential system** stored in PostgreSQL.
 
 Connector credentials (AWS, Azure, GCP, ServiceNow, etc.) are **NOT** configured via environment variables. Instead:
 
@@ -443,30 +496,27 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## Roadmap
 
-### v2.0 Complete ✅
-- [x] **AI-Powered Discovery** with multi-provider LLM support (Anthropic, OpenAI, custom)
-- [x] **Pattern Learning** - Automatically compiles discoveries into reusable patterns
-- [x] **Hybrid Discovery** - Pattern matching with AI fallback (10x faster, 90% cost reduction)
-- [x] **Real-time Updates** - WebSocket-based notifications for discoveries and patterns
-- [x] 37 Integration Connectors (ServiceNow, Jira, SCCM, cloud providers, etc.)
-- [x] Unified Credential System with protocol-based authentication
-- [x] Discovery Agents with smart routing
-- [x] Identity Resolution Engine
-- [x] AI/ML Engines (anomaly, drift, impact analysis)
-- [x] Dynamic Metadata System
-- [x] Event Streaming (Kafka)
-- [x] React Web UI with advanced components and pattern management
-- [x] Comprehensive API (20+ endpoints)
-- [x] VitePress Documentation Site (30+ pages)
+### v3.0 Complete ✅
+- [x] **Unified Enterprise Framework** - ITIL v4 + TBM v5.0.1 + BSM integration
+- [x] **Multi-Stakeholder Dashboards** - 5 role-based dashboards with 120+ visualizations
+- [x] **Agentic AI Discovery** - LLM-powered discovery with pattern learning
+- [x] **AI/ML Engine** - Anomaly detection, drift detection, impact prediction
+- [x] **Event Streaming** - Apache Kafka with 24 event topics
+- [x] **Metabase BI Integration** - Custom reporting and self-service analytics
+- [x] **Prometheus + Grafana** - Infrastructure monitoring and alerting
+- [x] **10 Unified KPIs** - Cross-framework metrics (MTTR, Cost per Incident, etc.)
+- [x] **Complete Service Views** - Enriched incidents, changes, service health
+- [x] 38 Integration Connectors (18 TypeScript + 20 JSON)
+- [x] VitePress Documentation Site (40+ pages)
 
-### v3.0 Planned
+### v3.1 Planned (Q1 2026)
 - [ ] Real-time collaboration features
-- [ ] Advanced compliance reporting
-- [ ] Custom workflow automation
-- [ ] Plugin marketplace
-- [ ] Multi-tenancy support
-- [ ] Advanced visualization (3D topology maps)
-- [ ] Mobile application
+- [ ] Advanced compliance reporting (SOC2, HIPAA, PCI-DSS)
+- [ ] Custom workflow automation with visual designer
+- [ ] Plugin marketplace for community connectors
+- [ ] Multi-tenancy support with tenant isolation
+- [ ] Advanced visualization (3D topology maps, AR support)
+- [ ] Mobile application (iOS + Android)
 
 ## Documentation
 
@@ -498,20 +548,35 @@ Historical development documentation:
 
 ## Production Status
 
-✅ **Production Ready** - v2.0 Complete
+✅ **Production Ready** - v3.0 + Agentic AI Complete
 
-ConfigBuddy CMDB v2.0 is a production-ready enterprise platform with advanced features:
+ConfigBuddy CMDB v3.0 is a production-ready enterprise platform with advanced features:
 
-- ✅ **AI-Powered Discovery** - LLM-based infrastructure discovery (Anthropic, OpenAI, custom models)
-- ✅ **Pattern Learning** - Auto-compile discoveries into patterns (10x faster, 90% cost reduction)
-- ✅ **Real-time Updates** - WebSocket-based notifications for discoveries and patterns
-- ✅ **37 Integration Connectors** - ServiceNow, Jira, SCCM, cloud providers, and more
-- ✅ **AI/ML Capabilities** - Anomaly detection, drift detection, impact analysis
+### Unified Enterprise Framework
+- ✅ **ITIL v4 Service Management** - Incident priority, change risk, configuration baselines
+- ✅ **TBM v5.0.1 Cost Engine** - 11-tower mapping, 3 allocation methods, depreciation
+- ✅ **BSM Impact Engine** - Business criticality (Tier 0-4), blast radius, revenue impact
+- ✅ **10 Unified KPIs** - Cross-framework metrics with real-time calculation
+
+### Multi-Stakeholder Dashboards
+- ✅ **5 Role-Based Dashboards** - Executive, CIO, ITSM, FinOps, Business Service Owner
+- ✅ **120+ Visualizations** - Real-time KPIs, trends, actionable insights
+- ✅ **Metabase BI** - Custom reporting and self-service analytics
+- ✅ **Prometheus + Grafana** - Infrastructure monitoring and alerting
+
+### AI/ML Capabilities
+- ✅ **Agentic AI Discovery** - LLM-powered with pattern learning (Anthropic, OpenAI, custom)
+- ✅ **AI/ML Engine** - Anomaly detection, drift detection, impact prediction
+- ✅ **Pattern Learning** - Auto-compile discoveries (10x faster, 90% cost reduction)
+- ✅ **Real-time Updates** - WebSocket notifications for discoveries and patterns
+
+### Core Platform
+- ✅ **38 Integration Connectors** - ServiceNow, Jira, SCCM, cloud providers, and more
+- ✅ **Event Streaming** - Apache Kafka with 24 event topics
 - ✅ **Identity Resolution** - Cross-source entity matching and deduplication
-- ✅ **Event Streaming** - Kafka-based real-time event pipeline
 - ✅ **Unified Credentials** - Encrypted credential storage with protocol-based authentication
 - ✅ **Docker & Kubernetes Ready** - Production-grade deployment configurations
-- ✅ **Comprehensive Documentation** - 30+ documentation pages with full-text search
+- ✅ **Comprehensive Documentation** - 40+ documentation pages with full-text search
 - ✅ **Security Hardened** - JWT authentication, role-based access, encrypted secrets
 - ✅ **Performance Optimized** - Redis caching, database indexes, connection pooling
 

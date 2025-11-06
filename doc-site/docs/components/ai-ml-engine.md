@@ -1315,8 +1315,8 @@ CREATE INDEX idx_criticality_score ON ci_criticality_scores(criticality_score DE
 
 ### Architecture Documentation
 - [System Overview](/architecture/system-overview) - ConfigBuddy architecture
-- [Event Streaming](/architecture/event-streaming) - Kafka integration (future)
-- [Database Design](/architecture/database/overview) - Neo4j and PostgreSQL
+- [Event Streaming](/components/event-streaming) - Kafka event-driven infrastructure
+- [Database Design](/architecture/database-design) - Neo4j and PostgreSQL
 
 ### Component Guides
 - [AI Discovery](/components/ai-discovery) - Agentic AI discovery

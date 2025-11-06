@@ -1936,7 +1936,7 @@ try {
 - [TBM Cost Engine](/components/tbm-cost-engine) - Technology Business Management
 - [BSM Impact Engine](/components/bsm-impact-engine) - Business Service Mapping
 - [Multi-Stakeholder Dashboards](/components/dashboards) - Executive dashboards
-- [Unified Data Model](/architecture/unified-data-model) - v3.0 data model
+- [Database Design](/architecture/database-design) - v3.0 unified data model and schema
 
 ---
 

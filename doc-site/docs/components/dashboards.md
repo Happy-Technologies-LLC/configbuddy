@@ -1830,12 +1830,14 @@ ws.onerror = (err) => console.error('❌ WebSocket error:', err);
 
 ## Related Resources
 
-- [Web UI Overview](./web-ui.md) - React application structure
-- [ITIL Service Manager](./itil-service-manager.md) - Incident and change management
-- [TBM Cost Engine](./tbm-cost-engine.md) - Cost allocation and optimization
-- [BSM Impact Engine](./bsm-impact-engine.md) - Business service mapping (coming soon)
-- [API Reference](/api/rest-api.md) - Dashboard REST endpoints
-- [GraphQL API](/api/graphql.md) - Dashboard GraphQL queries
+- [Web UI Overview](/components/web-ui) - React application structure
+- [ITIL Service Manager](/components/itil-service-manager) - Incident and change management
+- [TBM Cost Engine](/components/tbm-cost-engine) - Cost allocation and optimization
+- [BSM Impact Engine](/components/bsm-impact-engine) - Business service mapping and impact analysis
+- [Unified Framework](/components/unified-framework) - Integrated ITIL + TBM + BSM views
+- [Metabase](/components/metabase) - Business intelligence and ad-hoc reporting
+- [Event Streaming](/components/event-streaming) - Real-time data streaming with Kafka
+- [API Reference](/api/overview) - Dashboard REST and GraphQL endpoints
 
 ---
 

@@ -5,11 +5,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 **ConfigBuddy** - Open-source enterprise Configuration Management Database (CMDB) platform
-- **Status**: Production-ready (5 phases complete)
+- **Status**: v3.0 + Agentic AI - Production Ready
 - **Stack**: Node.js 20 LTS + TypeScript 5.x
 - **Architecture**: Microservices with graph database (Neo4j) as primary datastore
 - **License**: 100% open-source components (MIT, Apache 2.0, BSD, GPL)
-- **Version**: v2.0 (Connector Framework Architecture)
+- **Version**: v3.0 (Unified Enterprise Framework + Agentic AI Discovery)
 
 ## Project Organization (Updated Oct 2025)
 
@@ -149,32 +149,39 @@ docker-compose -f infrastructure/docker/docker-compose.yml up -d api-server
 
 **Recommended**: Use `./deploy.sh` script which handles all paths automatically.
 
-## v2.0 Features
+## v3.0 Features (November 2025)
 
-ConfigBuddy v2.0 introduces a major architectural evolution focused on extensibility and declarative configuration:
+ConfigBuddy v3.0 represents a major evolution, adding enterprise-grade service management and AI-powered operations:
 
-### Unified Credential System
-- **Protocol-based authentication**: Single credential record supports multiple auth methods
-- **Affinity matching**: Credentials automatically matched to resources by protocol/port
-- **Dynamic metadata**: Custom fields for vendor-specific auth requirements
-- **Security**: Encrypted storage with Vault integration
+### Agentic AI Discovery
+- **LLM-powered discovery**: Multi-provider support (Anthropic Claude, OpenAI GPT, custom models)
+- **Pattern learning**: Automatically compiles successful discoveries into reusable patterns
+- **Hybrid routing**: 3-tier discovery (pattern → heuristic → AI) for optimal cost/performance
+- **Cost controls**: Per-session and monthly budget limits with auto-throttling
+- **Real-time updates**: WebSocket notifications for discovery progress and pattern compilation
 
-### Connector Ecosystem
-- **38 connectors**: 18 TypeScript (custom logic) + 20 JSON-only (declarative ETL)
-- **Dynamic loading**: Install/update connectors without code changes
-- **Version management**: Semantic versioning with compatibility checking
-- **Registry system**: Browse, search, and install connectors via UI/CLI
+### Unified Enterprise Framework
+- **ITIL v4 Service Management**: Incident priority calculation, change risk assessment, configuration baselines
+- **TBM v5.0.1 Cost Engine**: 11-tower resource mapping, 3 allocation methods, depreciation tracking
+- **BSM Impact Engine**: Business criticality scoring (Tier 0-4), blast radius analysis, revenue impact
+- **Unified KPIs**: 10 cross-framework metrics (MTTR, Cost per Incident, Business Impact Score, etc.)
+- **Complete Service Views**: Single API for enriched incidents, changes, and service health
 
-### Discovery Agent Architecture
-- **Smart routing**: Jobs routed to agents based on network affinity and capabilities
-- **Hybrid discovery**: Agents handle network protocols (NMAP, SSH), API calls route to connectors
-- **Parallel execution**: Multiple agents can scan different network segments simultaneously
-- **Fault tolerance**: Job redistribution if agent goes offline
+### Multi-Stakeholder Dashboards
+- **5 role-based dashboards**: Executive, CIO, ITSM Manager, FinOps, Business Service Owner
+- **120+ visualizations**: Real-time KPIs, trends, and actionable insights
+- **Metabase BI integration**: Custom reporting and self-service analytics
+- **Prometheus + Grafana**: Infrastructure monitoring and alerting
 
-### Dynamic Metadata System
-- **Schema-less fields**: Add custom attributes without database migrations
-- **Indexed search**: Query metadata fields efficiently
-- **Type validation**: Optional JSON Schema validation for metadata consistency
+### AI/ML Engine
+- **Anomaly detection**: Change frequency, relationship, and configuration anomalies
+- **Configuration drift**: Baseline comparison with auto-remediation workflows
+- **Impact prediction**: Change impact scoring, criticality assessment, MTTR prediction
+
+### Event-Driven Architecture
+- **Apache Kafka**: 24 event topics for real-time data streaming
+- **Event processors**: Discovery, cost, impact, and analytics event handlers
+- **Dead letter queues**: Automatic retry and failure handling
 
 ## Project Structure
 
@@ -182,18 +189,33 @@ This is a **monorepo** architecture with clear separation of concerns:
 
 ```
 packages/
-├── common/              # Shared types and utilities
-├── database/            # Database clients (Neo4j, PostgreSQL, Redis)
-├── api-server/          # REST + GraphQL API servers
-├── discovery-engine/    # Connector orchestration and job routing
-├── etl-processor/       # ETL jobs and data transformers
-├── agent/              # Lightweight discovery agent (network protocols)
-├── cli/                # Command-line interface
-└── connectors/         # Connector package directory (TypeScript + JSON)
+├── common/                    # Shared types and utilities
+├── database/                  # Database clients (Neo4j, PostgreSQL, Redis, Kafka)
+├── api-server/                # REST + GraphQL API servers
+├── discovery-engine/          # Connector orchestration and job routing
+├── etl-processor/             # ETL jobs and data transformers
+├── agent/                    # Lightweight discovery agent (network protocols)
+├── cli/                      # Command-line interface
+├── connectors/               # 38 connectors (18 TypeScript + 20 JSON)
+│
+├── ai-discovery/             # ✨ v3.0: Agentic AI discovery with pattern learning
+├── ai-ml-engine/             # ✨ v3.0: Anomaly detection, drift, impact prediction
+├── bsm-impact-engine/        # ✨ v3.0: Business Service Mapping & impact analysis
+├── itil-service-manager/     # ✨ v3.0: ITIL v4 incident & change management
+├── tbm-cost-engine/          # ✨ v3.0: TBM v5.0.1 cost allocation & towers
+├── framework-integration/    # ✨ v3.0: Unified framework with cross-framework KPIs
+├── unified-model/            # ✨ v3.0: Unified data model (ITIL + TBM + BSM)
+├── event-streaming/          # ✨ v3.0: Kafka event streaming (24 topics)
+│
+├── event-processor/          # Event handlers for streaming pipeline
+├── identity-resolution/      # Cross-source entity matching
+├── integration-framework/    # Integration patterns and connectors
+├── integration-hub/          # Hub for external system integrations
+└── data-mapper/             # Data transformation and mapping
 
-web-ui/                 # React dashboard
-doc-site/              # VitePress documentation
-infrastructure/        # Docker, Kubernetes, Terraform configs
+web-ui/                      # React dashboard with 5 stakeholder dashboards
+doc-site/                   # VitePress documentation (40+ pages)
+infrastructure/             # Docker, Kubernetes, Terraform configs
 ```
 
 ## Core Architecture
@@ -443,12 +465,41 @@ Since ConfigBuddy is a new application with no prior production deployments:
 
 ## Testing Strategy
 
+### Core Testing (v2.0 + v3.0)
 - **Unit tests**: All business logic and utilities (Jest)
 - **Integration tests**: Database operations with test containers
 - **Discovery tests**: Mock cloud provider APIs
 - **API tests**: Supertest for REST, GraphQL test client
 
-## Environment Variables (v2.0)
+### v3.0 Testing
+- **AI Discovery tests**: Mock LLM responses, pattern compilation validation
+- **ITIL tests**: Incident priority calculation, change risk assessment
+- **TBM tests**: Cost allocation, tower mapping, depreciation calculations
+- **BSM tests**: Impact scoring, blast radius analysis, criticality classification
+- **Event streaming tests**: Kafka producer/consumer, event schemas, DLQ handling
+- **Unified framework tests**: Cross-framework KPIs, enriched incident/change workflows
+- **Dashboard tests**: Data aggregation, KPI calculations, visualization queries
+
+### Running Tests
+```bash
+# Run all tests
+npm test
+
+# Run v3.0 specific tests
+npm test -- ai-discovery
+npm test -- itil-service-manager
+npm test -- tbm-cost-engine
+npm test -- bsm-impact-engine
+npm test -- framework-integration
+
+# Run integration tests
+npm run test:integration
+
+# Run with coverage
+npm run test:coverage
+```
+
+## Environment Variables (v3.0)
 
 **Key environment variables** (see `.env.example` for complete list):
 
@@ -488,20 +539,72 @@ DISCOVERY_ENABLED=true
 DISCOVERY_DEFAULT_INTERVAL=3600000
 DISCOVERY_BATCH_SIZE=100
 
-# AI/ML Features (v2.0)
+# Agentic AI Discovery (v3.0)
+AI_DISCOVERY_ENABLED=true
+AI_DISCOVERY_PROVIDER=anthropic                 # anthropic | openai | custom
+AI_DISCOVERY_MODEL=claude-sonnet-4-20250514
+ANTHROPIC_API_KEY=your-anthropic-api-key-here
+OPENAI_API_KEY=your-openai-api-key-here
+
+# Pattern Learning (v3.0)
+AI_PATTERN_LEARNING_ENABLED=true
+AI_PATTERN_MIN_SESSIONS=3
+AI_PATTERN_AUTO_APPROVAL_ENABLED=false
+AI_PATTERN_CAB_REVIEW_REQUIRED=true
+
+# Cost Controls (v3.0)
+AI_DISCOVERY_MONTHLY_BUDGET=100.00
+AI_DISCOVERY_MAX_COST_PER_SESSION=0.50
+AI_DISCOVERY_ALERT_THRESHOLD=0.80
+
+# AI/ML Engine (v3.0)
 AI_ANOMALY_DETECTION_ENABLED=true
 AI_DRIFT_DETECTION_ENABLED=true
-AI_IMPACT_ANALYSIS_ENABLED=true
+AI_IMPACT_PREDICTION_ENABLED=true
+AI_AUTO_BASELINE_ENABLED=true
+
+# ITIL Service Manager (v3.0)
+ITIL_ENABLED=true
+ITIL_DEFAULT_SLA_PRIORITY_1=4h
+ITIL_DEFAULT_SLA_PRIORITY_2=8h
+ITIL_DEFAULT_SLA_PRIORITY_3=24h
+ITIL_CAB_APPROVAL_REQUIRED=true
+
+# TBM Cost Engine (v3.0)
+TBM_ENABLED=true
+TBM_DEFAULT_ALLOCATION_METHOD=usage-based
+TBM_DEPRECIATION_METHOD=straight-line
+TBM_CLOUD_COST_SYNC_ENABLED=true
+
+# BSM Impact Engine (v3.0)
+BSM_ENABLED=true
+BSM_AUTO_CRITICALITY_ENABLED=true
+BSM_REVENUE_TRACKING_ENABLED=true
+
+# Event Streaming (v3.0)
+KAFKA_ENABLED=true
+KAFKA_BROKERS=localhost:9092
+KAFKA_CLIENT_ID=cmdb-platform
+KAFKA_GROUP_ID=cmdb-consumers
+KAFKA_RETRY_ENABLED=true
+KAFKA_DLQ_ENABLED=true
+
+# Metabase BI (v3.0)
+METABASE_ENABLED=true
+METABASE_URL=http://localhost:3001
+METABASE_DATABASE_URL=postgresql://cmdb_user:cmdb_password@localhost:5432/cmdb
 
 # Monitoring & Observability
 METRICS_ENABLED=true
 METRICS_PORT=9090
+PROMETHEUS_ENABLED=true
+GRAFANA_ENABLED=true
 AUDIT_LOG_ENABLED=true
 ```
 
-### v2.0 Credential Management
+### Credential Management
 
-**IMPORTANT**: ConfigBuddy v2.0 uses a **unified credential system** stored in PostgreSQL. Connector credentials (AWS, Azure, GCP, ServiceNow, etc.) are **NOT** configured via environment variables.
+**IMPORTANT**: ConfigBuddy uses a **unified credential system** stored in PostgreSQL. Connector credentials (AWS, Azure, GCP, ServiceNow, etc.) are **NOT** configured via environment variables.
 
 **To configure connector credentials**:
 1. Create credential records via Web UI or API
@@ -509,6 +612,24 @@ AUDIT_LOG_ENABLED=true
 3. Credentials support multiple auth methods per provider
 
 **See documentation**: http://localhost:8080/components/credentials
+
+### AI Provider Configuration (v3.0)
+
+For Agentic AI Discovery, configure your LLM provider via environment variables:
+
+**Anthropic Claude (Recommended)**:
+- Set `AI_DISCOVERY_PROVIDER=anthropic`
+- Set `ANTHROPIC_API_KEY` with your API key
+- Supports Claude Sonnet 4 and Opus models
+
+**OpenAI GPT**:
+- Set `AI_DISCOVERY_PROVIDER=openai`
+- Set `OPENAI_API_KEY` with your API key
+- Supports GPT-4 and GPT-4-turbo models
+
+**Custom LLM**:
+- Set `AI_DISCOVERY_PROVIDER=custom`
+- Implement custom provider in `/packages/ai-discovery/src/providers/`
 
 **Legacy v1.0 variables removed**:
 - ❌ `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
@@ -529,11 +650,11 @@ All connector authentication now uses the PostgreSQL credential system with encr
 
 ConfigBuddy has a comprehensive VitePress documentation site that consolidates all project documentation:
 
-- **30+ structured documentation pages** organized by topic (updated Oct 2025)
+- **40+ structured documentation pages** organized by topic (updated November 2025)
 - **Full-text search** with fuzzy matching (Ctrl+K / ⌘K)
 - **Dark mode** and mobile responsive
 - **Docker containerized** for easy deployment
-- **Version-aware** - Covers both v1.0 and v2.0 architectures
+- **Version-aware** - Covers v1.0, v2.0, and v3.0 architectures
 
 #### Documentation Structure
 
@@ -564,13 +685,27 @@ doc-site/docs/
 └── quick-reference/     # CLI commands, SQL queries
 ```
 
-#### Key Documentation Pages (v2.0 Updates)
+#### Key Documentation Pages
+
+**Getting Started**:
+- `/getting-started/v3-quick-start.md` - v3.0 quick start guide with unified framework setup
 
 **Architecture**:
 - `/architecture/connector-framework.md` - Comprehensive connector system guide
-- `/architecture/version-history.md` - Migration guide from v1.0 to v2.0
+- `/architecture/version-history.md` - Migration guide from v1.0 to v2.0 to v3.0
 
-**Components**:
+**v3.0 Components**:
+- `/components/ai-discovery.md` - Agentic AI discovery with pattern learning
+- `/components/ai-ml-engine.md` - Anomaly detection, drift, impact prediction
+- `/components/bsm-impact-engine.md` - Business Service Mapping and impact analysis
+- `/components/itil-service-manager.md` - ITIL v4 incident and change management
+- `/components/tbm-cost-engine.md` - TBM v5.0.1 cost allocation and towers
+- `/components/unified-framework.md` - Unified framework integration
+- `/components/event-streaming.md` - Kafka event streaming architecture
+- `/components/metabase.md` - Metabase BI integration
+- `/components/dashboards.md` - Multi-stakeholder dashboards (5 roles)
+
+**v2.0 Components**:
 - `/components/credentials.md` - Unified credential system with affinity matching
 - `/components/discovery-agents.md` - Agent-based discovery with smart routing
 - `/components/connector-registry.md` - Browse, install, update connectors

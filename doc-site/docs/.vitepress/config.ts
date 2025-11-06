@@ -45,6 +45,8 @@ export default defineConfig({
       {
         text: 'Guides',
         items: [
+          { text: 'AI Discovery', link: '/components/ai-discovery' },
+          { text: 'Pattern Learning', link: '/components/pattern-learning' },
           { text: 'BullMQ Integration', link: '/components/bullmq' },
           { text: 'Credentials Management', link: '/components/credentials' },
           { text: 'Discovery Agents', link: '/components/discovery-agents' },
@@ -150,6 +152,8 @@ export default defineConfig({
         {
           text: 'Discovery & Integration',
           items: [
+            { text: 'AI Discovery', link: '/components/ai-discovery' },
+            { text: 'Pattern Learning', link: '/components/pattern-learning' },
             { text: 'Unified Credentials', link: '/components/credentials' },
             { text: 'Discovery Agents', link: '/components/discovery-agents' },
             { text: 'Discovery Definitions', link: '/components/discovery-definitions' },

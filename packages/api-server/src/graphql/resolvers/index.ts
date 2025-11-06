@@ -8,6 +8,7 @@ import { analyticsResolvers } from './analytics.resolver';
 import { connectorResolvers } from './connector.resolvers';
 import { connectorFieldResolvers } from './connector-fields.resolvers';
 import { reconciliationResolvers } from './reconciliation.resolvers';
+import { itilResolvers } from './itil.resolvers';
 
 /**
  * GraphQL Context type containing database clients and dataloaders
@@ -718,16 +719,24 @@ export const resolvers = {
     ...analyticsResolvers.Query,
     ...connectorResolvers.Query,
     ...reconciliationResolvers.Query,
+    ...itilResolvers.Query,
   },
   Mutation: {
     ...Mutation,
     ...connectorResolvers.Mutation,
     ...reconciliationResolvers.Mutation,
+    ...itilResolvers.Mutation,
   },
-  _CI: CIResolvers,
+  _CI: {
+    ...CIResolvers,
+    ...itilResolvers.CI,
+  },
   _JSON: JSONScalar,
   _AnalyticsQuery: analyticsResolvers.AnalyticsQuery,
   _ReconciliationQuery: reconciliationResolvers.ReconciliationQuery,
   _ReconciliationMutation: reconciliationResolvers.ReconciliationMutation,
+  _Incident: itilResolvers.Incident,
+  _Change: itilResolvers.Change,
+  _ConfigurationBaseline: itilResolvers.ConfigurationBaseline,
   ...connectorFieldResolvers,
 };

@@ -90,6 +90,7 @@ CREATE INDEX IF NOT EXISTS idx_dim_time_fiscal ON cmdb.dim_time(fiscal_year, fis
 
 -- ----------------------------------------
 -- dim_ci: Configuration Item Dimension (SCD Type 2)
+-- Extended for v3.0 with ITIL, TBM, and BSM attributes
 -- ----------------------------------------
 CREATE TABLE IF NOT EXISTS cmdb.dim_ci (
     ci_key SERIAL PRIMARY KEY,
@@ -100,6 +101,29 @@ CREATE TABLE IF NOT EXISTS cmdb.dim_ci (
     environment VARCHAR(50),
     external_id VARCHAR(200),
     metadata JSONB,
+    -- v3.0: ITIL Service Configuration Management attributes
+    itil_attributes JSONB DEFAULT '{
+        "ci_class": "hardware",
+        "lifecycle_stage": "operate",
+        "configuration_status": "active",
+        "version": "1.0.0",
+        "audit_status": "unknown"
+    }'::jsonb,
+    -- v3.0: TBM Cost Allocation attributes
+    tbm_attributes JSONB DEFAULT '{
+        "resource_tower": "compute",
+        "cost_pool": "hardware",
+        "monthly_cost": 0,
+        "cost_allocation_method": "usage_based"
+    }'::jsonb,
+    -- v3.0: Business Service Mapping attributes
+    bsm_attributes JSONB DEFAULT '{
+        "business_criticality": "tier_4",
+        "supports_business_services": [],
+        "customer_facing": false,
+        "compliance_scope": [],
+        "data_classification": "internal"
+    }'::jsonb,
     effective_from TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     effective_to TIMESTAMPTZ DEFAULT '9999-12-31'::TIMESTAMPTZ,
     is_current BOOLEAN NOT NULL DEFAULT TRUE,
@@ -114,6 +138,10 @@ CREATE INDEX IF NOT EXISTS idx_dim_ci_environment ON cmdb.dim_ci(environment);
 CREATE INDEX IF NOT EXISTS idx_dim_ci_external_id ON cmdb.dim_ci(external_id);
 CREATE INDEX IF NOT EXISTS idx_dim_ci_effective_dates ON cmdb.dim_ci(effective_from, effective_to);
 CREATE INDEX IF NOT EXISTS idx_dim_ci_metadata ON cmdb.dim_ci USING GIN(metadata);
+-- v3.0: Indexes for ITIL, TBM, and BSM attributes
+CREATE INDEX IF NOT EXISTS idx_dim_ci_itil_attributes ON cmdb.dim_ci USING GIN(itil_attributes);
+CREATE INDEX IF NOT EXISTS idx_dim_ci_tbm_attributes ON cmdb.dim_ci USING GIN(tbm_attributes);
+CREATE INDEX IF NOT EXISTS idx_dim_ci_bsm_attributes ON cmdb.dim_ci USING GIN(bsm_attributes);
 
 -- ----------------------------------------
 -- dim_location: Location Dimension
@@ -256,6 +284,666 @@ ALTER TABLE cmdb.fact_ci_relationships
     ADD CONSTRAINT fk_rel_from_ci FOREIGN KEY (from_ci_key) REFERENCES cmdb.dim_ci(ci_key),
     ADD CONSTRAINT fk_rel_to_ci FOREIGN KEY (to_ci_key) REFERENCES cmdb.dim_ci(ci_key),
     ADD CONSTRAINT fk_rel_date FOREIGN KEY (date_key) REFERENCES cmdb.dim_time(date_key);
+
+-- ============================================
+-- SECTION 1B: v3.0 UNIFIED DATA MODEL ENTITIES
+-- ============================================
+-- This section implements the v3.0 unified ITIL + TBM + BSM entities:
+-- - Business Services (BSM + ITIL Service)
+-- - Application Services (TBM IT Solution + ITIL Application CI)
+-- - Business Capabilities (TBM Business Layer)
+-- - ITIL-specific operational tables
+-- - TBM-specific cost management tables
+-- - Service dependency relationships
+-- ============================================
+
+-- ----------------------------------------
+-- business_services: Business Service Catalog
+-- Unified view of business services with ITIL, TBM, and BSM attributes
+-- ----------------------------------------
+CREATE TABLE IF NOT EXISTS business_services (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+
+    -- ITIL Service Management attributes
+    itil_attributes JSONB NOT NULL DEFAULT '{
+        "service_owner": "",
+        "service_type": "internal",
+        "service_hours": {"availability": "24x7", "timezone": "UTC"},
+        "sla_targets": {"availability_percentage": 99.9, "response_time_ms": 1000},
+        "support_level": "l2",
+        "incident_count_30d": 0,
+        "change_count_30d": 0,
+        "availability_30d": 100.0
+    }'::jsonb,
+
+    -- TBM Cost Transparency attributes
+    tbm_attributes JSONB NOT NULL DEFAULT '{
+        "total_monthly_cost": 0,
+        "cost_per_user": 0,
+        "cost_per_transaction": 0,
+        "cost_breakdown_by_tower": {},
+        "cost_trend": "stable"
+    }'::jsonb,
+
+    -- Business Service Mapping attributes
+    bsm_attributes JSONB NOT NULL DEFAULT '{
+        "business_criticality": "tier_3",
+        "capabilities_enabled": [],
+        "value_streams": [],
+        "business_impact_score": 0,
+        "risk_rating": "medium",
+        "annual_revenue_supported": 0,
+        "customer_count": 0,
+        "transaction_volume_daily": 0,
+        "compliance_requirements": [],
+        "data_sensitivity": "internal",
+        "sox_scope": false,
+        "pci_scope": false,
+        "recovery_time_objective": 240,
+        "recovery_point_objective": 60,
+        "disaster_recovery_tier": 3
+    }'::jsonb,
+
+    -- Technical ownership
+    technical_owner VARCHAR(255),
+    platform_team VARCHAR(255),
+
+    -- Operational state
+    operational_status VARCHAR(50) NOT NULL DEFAULT 'operational',
+    last_incident TIMESTAMPTZ,
+
+    -- Audit trail
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_by VARCHAR(255) NOT NULL,
+    updated_by VARCHAR(255),
+    last_validated TIMESTAMPTZ,
+
+    CONSTRAINT business_services_name_check CHECK (name IS NOT NULL AND name <> ''),
+    CONSTRAINT business_services_operational_status_check CHECK (
+        operational_status IN ('operational', 'degraded', 'outage', 'maintenance')
+    )
+);
+
+CREATE INDEX idx_business_services_name ON business_services(name);
+CREATE INDEX idx_business_services_operational_status ON business_services(operational_status);
+CREATE INDEX idx_business_services_technical_owner ON business_services(technical_owner);
+CREATE INDEX idx_business_services_created_at ON business_services(created_at DESC);
+CREATE INDEX idx_business_services_itil_attributes ON business_services USING GIN(itil_attributes);
+CREATE INDEX idx_business_services_tbm_attributes ON business_services USING GIN(tbm_attributes);
+CREATE INDEX idx_business_services_bsm_attributes ON business_services USING GIN(bsm_attributes);
+CREATE UNIQUE INDEX idx_business_services_unique_name ON business_services(name);
+
+COMMENT ON TABLE business_services IS 'v3.0 Unified business service catalog with ITIL, TBM, and BSM perspectives';
+
+-- ----------------------------------------
+-- application_services: Application Service Inventory
+-- Maps to TBM IT Solution + ITIL Application CI
+-- ----------------------------------------
+CREATE TABLE IF NOT EXISTS application_services (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+
+    -- TBM IT Solution attributes
+    tbm_attributes JSONB NOT NULL DEFAULT '{
+        "solution_type": "application",
+        "it_tower_alignment": "",
+        "total_monthly_cost": 0,
+        "cost_breakdown": {
+            "infrastructure": 0,
+            "licenses": 0,
+            "labor": 0,
+            "support": 0
+        }
+    }'::jsonb,
+
+    -- ITIL Service attributes
+    itil_attributes JSONB NOT NULL DEFAULT '{
+        "service_type": "technical_service",
+        "service_owner": "",
+        "lifecycle_stage": "operate",
+        "release_version": "1.0.0",
+        "change_schedule": ""
+    }'::jsonb,
+
+    -- Application portfolio management
+    application_attributes JSONB NOT NULL DEFAULT '{
+        "application_type": "web_application",
+        "technology_stack": {
+            "primary_language": "",
+            "frameworks": [],
+            "databases": [],
+            "messaging": [],
+            "caching": [],
+            "monitoring": []
+        },
+        "deployment_model": "cloud_native",
+        "architecture_pattern": "microservices",
+        "product_owner": "",
+        "development_team": "",
+        "vendor_product": false,
+        "vendor_name": null
+    }'::jsonb,
+
+    -- Quality & performance metrics
+    quality_metrics JSONB NOT NULL DEFAULT '{
+        "code_repository": "",
+        "test_coverage_percentage": 0,
+        "defect_density": 0,
+        "availability_percentage": 0,
+        "response_time_p95": 0
+    }'::jsonb,
+
+    -- Business alignment
+    business_value_score INTEGER DEFAULT 0 CHECK (business_value_score >= 0 AND business_value_score <= 100),
+
+    -- Audit trail
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_by VARCHAR(255) NOT NULL,
+    updated_by VARCHAR(255),
+
+    CONSTRAINT application_services_name_check CHECK (name IS NOT NULL AND name <> '')
+);
+
+CREATE INDEX idx_application_services_name ON application_services(name);
+CREATE INDEX idx_application_services_business_value ON application_services(business_value_score DESC);
+CREATE INDEX idx_application_services_created_at ON application_services(created_at DESC);
+CREATE INDEX idx_application_services_tbm_attributes ON application_services USING GIN(tbm_attributes);
+CREATE INDEX idx_application_services_itil_attributes ON application_services USING GIN(itil_attributes);
+CREATE INDEX idx_application_services_app_attributes ON application_services USING GIN(application_attributes);
+CREATE INDEX idx_application_services_quality_metrics ON application_services USING GIN(quality_metrics);
+CREATE UNIQUE INDEX idx_application_services_unique_name ON application_services(name);
+
+COMMENT ON TABLE application_services IS 'v3.0 Application service inventory with TBM IT Solution and ITIL Application CI mapping';
+
+-- ----------------------------------------
+-- business_capabilities: Business Capability Taxonomy
+-- Maps to TBM Business Layer
+-- ----------------------------------------
+CREATE TABLE IF NOT EXISTS business_capabilities (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+
+    -- TBM Business Layer attributes
+    tbm_attributes JSONB NOT NULL DEFAULT '{
+        "business_unit": "",
+        "total_monthly_cost": 0,
+        "cost_per_employee": 0,
+        "budget_annual": 0,
+        "variance_percentage": 0
+    }'::jsonb,
+
+    -- Business context
+    capability_attributes JSONB NOT NULL DEFAULT '{
+        "capability_type": "supporting",
+        "parent_capability_id": null,
+        "strategic_importance": "medium",
+        "maturity_level": "managed",
+        "lifecycle_stage": "maintain",
+        "capability_owner": ""
+    }'::jsonb,
+
+    -- Business value
+    value_attributes JSONB NOT NULL DEFAULT '{
+        "revenue_impact": {
+            "direct_revenue": false,
+            "annual_revenue_supported": 0,
+            "customer_count_impacted": 0,
+            "transaction_volume": 0
+        },
+        "customer_facing": false,
+        "user_count": 0,
+        "regulatory_requirements": [],
+        "competitive_advantage": false
+    }'::jsonb,
+
+    -- Audit trail
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_by VARCHAR(255) NOT NULL,
+    updated_by VARCHAR(255),
+
+    CONSTRAINT business_capabilities_name_check CHECK (name IS NOT NULL AND name <> '')
+);
+
+CREATE INDEX idx_business_capabilities_name ON business_capabilities(name);
+CREATE INDEX idx_business_capabilities_created_at ON business_capabilities(created_at DESC);
+CREATE INDEX idx_business_capabilities_tbm_attributes ON business_capabilities USING GIN(tbm_attributes);
+CREATE INDEX idx_business_capabilities_capability_attributes ON business_capabilities USING GIN(capability_attributes);
+CREATE INDEX idx_business_capabilities_value_attributes ON business_capabilities USING GIN(value_attributes);
+CREATE UNIQUE INDEX idx_business_capabilities_unique_name ON business_capabilities(name);
+
+COMMENT ON TABLE business_capabilities IS 'v3.0 Business capability taxonomy with TBM Business Layer support';
+
+-- ----------------------------------------
+-- service_dependencies: Service Relationship Mapping
+-- Links business services to application services to infrastructure CIs
+-- ----------------------------------------
+CREATE TABLE IF NOT EXISTS service_dependencies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    -- Source entity (polymorphic)
+    source_type VARCHAR(50) NOT NULL,
+    source_id UUID NOT NULL,
+
+    -- Target entity (polymorphic)
+    target_type VARCHAR(50) NOT NULL,
+    target_id UUID NOT NULL,
+
+    -- Relationship metadata
+    dependency_type VARCHAR(50) NOT NULL,
+    dependency_strength DECIMAL(3, 2) DEFAULT 1.0 CHECK (dependency_strength >= 0 AND dependency_strength <= 1.0),
+    is_critical BOOLEAN DEFAULT FALSE,
+
+    -- Discovery metadata
+    discovered_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_verified_at TIMESTAMPTZ,
+    discovered_by VARCHAR(255) NOT NULL DEFAULT 'system',
+
+    -- Audit trail
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT service_dependencies_source_type_check CHECK (
+        source_type IN ('business_capability', 'business_service', 'application_service', 'configuration_item')
+    ),
+    CONSTRAINT service_dependencies_target_type_check CHECK (
+        target_type IN ('business_capability', 'business_service', 'application_service', 'configuration_item')
+    ),
+    CONSTRAINT service_dependencies_dependency_type_check CHECK (
+        dependency_type IN ('DELIVERS', 'ENABLED_BY', 'RUNS_ON', 'DEPENDS_ON', 'USES', 'SUPPORTS')
+    ),
+    CONSTRAINT service_dependencies_unique_dependency UNIQUE (source_type, source_id, target_type, target_id, dependency_type)
+);
+
+CREATE INDEX idx_service_dependencies_source ON service_dependencies(source_type, source_id);
+CREATE INDEX idx_service_dependencies_target ON service_dependencies(target_type, target_id);
+CREATE INDEX idx_service_dependencies_type ON service_dependencies(dependency_type);
+CREATE INDEX idx_service_dependencies_critical ON service_dependencies(is_critical) WHERE is_critical = TRUE;
+CREATE INDEX idx_service_dependencies_discovered_at ON service_dependencies(discovered_at DESC);
+
+COMMENT ON TABLE service_dependencies IS 'v3.0 Service dependency relationships across business capabilities, business services, application services, and infrastructure CIs';
+
+-- ----------------------------------------
+-- itil_baselines: ITIL Configuration Baselines
+-- ----------------------------------------
+CREATE TABLE IF NOT EXISTS itil_baselines (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    baseline_type VARCHAR(50) NOT NULL,
+
+    -- Baseline scope
+    scope JSONB NOT NULL DEFAULT '{
+        "ci_ids": [],
+        "ci_types": [],
+        "environment": null
+    }'::jsonb,
+
+    -- Baseline data
+    baseline_data JSONB NOT NULL,
+
+    -- Approval workflow
+    status VARCHAR(50) NOT NULL DEFAULT 'draft',
+    created_by VARCHAR(255) NOT NULL,
+    approved_by VARCHAR(255),
+    approved_at TIMESTAMPTZ,
+
+    -- Audit trail
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT itil_baselines_name_check CHECK (name IS NOT NULL AND name <> ''),
+    CONSTRAINT itil_baselines_type_check CHECK (
+        baseline_type IN ('configuration', 'security', 'performance', 'compliance')
+    ),
+    CONSTRAINT itil_baselines_status_check CHECK (
+        status IN ('draft', 'pending_approval', 'approved', 'rejected', 'deprecated')
+    )
+);
+
+CREATE INDEX idx_itil_baselines_name ON itil_baselines(name);
+CREATE INDEX idx_itil_baselines_type ON itil_baselines(baseline_type);
+CREATE INDEX idx_itil_baselines_status ON itil_baselines(status);
+CREATE INDEX idx_itil_baselines_created_at ON itil_baselines(created_at DESC);
+CREATE INDEX idx_itil_baselines_approved ON itil_baselines(approved_at DESC) WHERE approved_at IS NOT NULL;
+CREATE INDEX idx_itil_baselines_scope ON itil_baselines USING GIN(scope);
+CREATE UNIQUE INDEX idx_itil_baselines_unique_name ON itil_baselines(name);
+
+COMMENT ON TABLE itil_baselines IS 'v3.0 ITIL configuration baselines for compliance and drift detection';
+
+-- ----------------------------------------
+-- itil_incidents: ITIL Incident Management
+-- ----------------------------------------
+CREATE TABLE IF NOT EXISTS itil_incidents (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    incident_number VARCHAR(50) UNIQUE NOT NULL,
+    title VARCHAR(500) NOT NULL,
+    description TEXT,
+
+    -- ITIL classification
+    category VARCHAR(100),
+    subcategory VARCHAR(100),
+    impact VARCHAR(20) NOT NULL,
+    urgency VARCHAR(20) NOT NULL,
+    priority INTEGER NOT NULL CHECK (priority >= 1 AND priority <= 5),
+
+    -- Affected entities
+    affected_ci_id VARCHAR(255),
+    affected_business_service_id UUID,
+    affected_application_service_id UUID,
+
+    -- Business impact (auto-calculated from BSM)
+    business_impact JSONB DEFAULT '{
+        "estimated_user_impact": 0,
+        "estimated_revenue_impact": 0,
+        "estimated_cost_of_downtime": 0,
+        "affected_services": []
+    }'::jsonb,
+
+    -- Assignment
+    assigned_to VARCHAR(255),
+    assigned_group VARCHAR(255),
+
+    -- Status tracking
+    status VARCHAR(50) NOT NULL DEFAULT 'new',
+    resolution TEXT,
+    resolution_code VARCHAR(100),
+
+    -- Timestamps
+    reported_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    acknowledged_at TIMESTAMPTZ,
+    resolved_at TIMESTAMPTZ,
+    closed_at TIMESTAMPTZ,
+
+    -- Metrics
+    time_to_acknowledge_minutes INTEGER,
+    time_to_resolve_minutes INTEGER,
+
+    -- Reporter
+    reported_by VARCHAR(255) NOT NULL,
+
+    -- Audit trail
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT itil_incidents_impact_check CHECK (impact IN ('critical', 'high', 'medium', 'low')),
+    CONSTRAINT itil_incidents_urgency_check CHECK (urgency IN ('critical', 'high', 'medium', 'low')),
+    CONSTRAINT itil_incidents_status_check CHECK (
+        status IN ('new', 'assigned', 'in_progress', 'pending', 'resolved', 'closed', 'cancelled')
+    )
+);
+
+CREATE INDEX idx_itil_incidents_number ON itil_incidents(incident_number);
+CREATE INDEX idx_itil_incidents_priority ON itil_incidents(priority);
+CREATE INDEX idx_itil_incidents_status ON itil_incidents(status);
+CREATE INDEX idx_itil_incidents_affected_ci ON itil_incidents(affected_ci_id);
+CREATE INDEX idx_itil_incidents_affected_business_service ON itil_incidents(affected_business_service_id);
+CREATE INDEX idx_itil_incidents_affected_app_service ON itil_incidents(affected_application_service_id);
+CREATE INDEX idx_itil_incidents_assigned_to ON itil_incidents(assigned_to);
+CREATE INDEX idx_itil_incidents_reported_at ON itil_incidents(reported_at DESC);
+CREATE INDEX idx_itil_incidents_resolved_at ON itil_incidents(resolved_at DESC) WHERE resolved_at IS NOT NULL;
+CREATE INDEX idx_itil_incidents_business_impact ON itil_incidents USING GIN(business_impact);
+
+COMMENT ON TABLE itil_incidents IS 'v3.0 ITIL incident management with auto-calculated business impact from BSM';
+
+-- ----------------------------------------
+-- itil_changes: ITIL Change Management
+-- ----------------------------------------
+CREATE TABLE IF NOT EXISTS itil_changes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    change_number VARCHAR(50) UNIQUE NOT NULL,
+    title VARCHAR(500) NOT NULL,
+    description TEXT,
+
+    -- ITIL classification
+    change_type VARCHAR(50) NOT NULL,
+    category VARCHAR(100),
+
+    -- Risk assessment (auto-calculated)
+    risk_assessment JSONB DEFAULT '{
+        "overall_risk_score": 0,
+        "risk_level": "medium",
+        "requires_cab_approval": false
+    }'::jsonb,
+
+    -- Business impact analysis (from BSM)
+    business_impact JSONB DEFAULT '{
+        "critical_services_affected": [],
+        "estimated_downtime_minutes": 0,
+        "customer_impact": false,
+        "revenue_at_risk": 0
+    }'::jsonb,
+
+    -- Financial impact (from TBM)
+    financial_impact JSONB DEFAULT '{
+        "implementation_cost": 0,
+        "downtime_cost": 0,
+        "total_cost": 0
+    }'::jsonb,
+
+    -- Affected entities
+    affected_ci_ids TEXT[] DEFAULT ARRAY[]::TEXT[],
+    affected_business_service_ids UUID[] DEFAULT ARRAY[]::UUID[],
+    affected_application_service_ids UUID[] DEFAULT ARRAY[]::UUID[],
+
+    -- Implementation details
+    implementation_plan TEXT,
+    backout_plan TEXT,
+    test_plan TEXT,
+
+    -- Approval workflow
+    approval_status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    approved_by VARCHAR(255),
+    approved_at TIMESTAMPTZ,
+
+    -- Assignment
+    assigned_to VARCHAR(255),
+    assigned_group VARCHAR(255),
+
+    -- Status tracking
+    status VARCHAR(50) NOT NULL DEFAULT 'draft',
+
+    -- Scheduling
+    scheduled_start TIMESTAMPTZ,
+    scheduled_end TIMESTAMPTZ,
+    actual_start TIMESTAMPTZ,
+    actual_end TIMESTAMPTZ,
+
+    -- Outcome
+    outcome VARCHAR(50),
+    closure_notes TEXT,
+
+    -- Requester
+    requested_by VARCHAR(255) NOT NULL,
+
+    -- Audit trail
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    closed_at TIMESTAMPTZ,
+
+    CONSTRAINT itil_changes_type_check CHECK (
+        change_type IN ('standard', 'normal', 'emergency', 'major')
+    ),
+    CONSTRAINT itil_changes_approval_status_check CHECK (
+        approval_status IN ('pending', 'approved', 'rejected', 'cancelled')
+    ),
+    CONSTRAINT itil_changes_status_check CHECK (
+        status IN ('draft', 'pending_approval', 'approved', 'scheduled', 'in_progress', 'implemented', 'closed', 'cancelled')
+    ),
+    CONSTRAINT itil_changes_outcome_check CHECK (
+        outcome IS NULL OR outcome IN ('successful', 'successful_with_issues', 'failed', 'backed_out')
+    )
+);
+
+CREATE INDEX idx_itil_changes_number ON itil_changes(change_number);
+CREATE INDEX idx_itil_changes_type ON itil_changes(change_type);
+CREATE INDEX idx_itil_changes_status ON itil_changes(status);
+CREATE INDEX idx_itil_changes_approval_status ON itil_changes(approval_status);
+CREATE INDEX idx_itil_changes_scheduled_start ON itil_changes(scheduled_start);
+CREATE INDEX idx_itil_changes_assigned_to ON itil_changes(assigned_to);
+CREATE INDEX idx_itil_changes_created_at ON itil_changes(created_at DESC);
+CREATE INDEX idx_itil_changes_risk_assessment ON itil_changes USING GIN(risk_assessment);
+CREATE INDEX idx_itil_changes_business_impact ON itil_changes USING GIN(business_impact);
+CREATE INDEX idx_itil_changes_financial_impact ON itil_changes USING GIN(financial_impact);
+
+COMMENT ON TABLE itil_changes IS 'v3.0 ITIL change management with unified risk and business impact assessment';
+
+-- ----------------------------------------
+-- tbm_cost_pools: TBM Cost Pool Definitions
+-- ----------------------------------------
+CREATE TABLE IF NOT EXISTS tbm_cost_pools (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    cost_pool_type VARCHAR(50) NOT NULL,
+
+    -- Cost allocation rules
+    allocation_rules JSONB NOT NULL DEFAULT '{
+        "allocation_method": "usage_based",
+        "allocation_drivers": [],
+        "allocation_frequency": "monthly"
+    }'::jsonb,
+
+    -- GL mapping
+    gl_account_codes TEXT[] DEFAULT ARRAY[]::TEXT[],
+
+    -- Budget tracking
+    monthly_budget DECIMAL(15, 2) DEFAULT 0,
+    annual_budget DECIMAL(15, 2) DEFAULT 0,
+
+    -- Ownership
+    cost_center VARCHAR(100),
+    business_unit VARCHAR(255),
+    owner VARCHAR(255),
+
+    -- Status
+    is_active BOOLEAN DEFAULT TRUE,
+
+    -- Audit trail
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_by VARCHAR(255) NOT NULL,
+    updated_by VARCHAR(255),
+
+    CONSTRAINT tbm_cost_pools_name_check CHECK (name IS NOT NULL AND name <> ''),
+    CONSTRAINT tbm_cost_pools_type_check CHECK (
+        cost_pool_type IN ('labor_internal', 'labor_external', 'hardware', 'software', 'cloud', 'outside_services', 'facilities', 'telecom')
+    )
+);
+
+CREATE INDEX idx_tbm_cost_pools_name ON tbm_cost_pools(name);
+CREATE INDEX idx_tbm_cost_pools_type ON tbm_cost_pools(cost_pool_type);
+CREATE INDEX idx_tbm_cost_pools_cost_center ON tbm_cost_pools(cost_center);
+CREATE INDEX idx_tbm_cost_pools_business_unit ON tbm_cost_pools(business_unit);
+CREATE INDEX idx_tbm_cost_pools_active ON tbm_cost_pools(is_active) WHERE is_active = TRUE;
+CREATE INDEX idx_tbm_cost_pools_allocation_rules ON tbm_cost_pools USING GIN(allocation_rules);
+CREATE UNIQUE INDEX idx_tbm_cost_pools_unique_name ON tbm_cost_pools(name);
+
+COMMENT ON TABLE tbm_cost_pools IS 'v3.0 TBM cost pool definitions with allocation rules and GL mapping';
+
+-- ----------------------------------------
+-- tbm_depreciation_schedules: Asset Depreciation Tracking
+-- ----------------------------------------
+CREATE TABLE IF NOT EXISTS tbm_depreciation_schedules (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ci_id VARCHAR(255) NOT NULL,
+    ci_name VARCHAR(500),
+
+    -- Purchase details
+    purchase_date DATE NOT NULL,
+    purchase_cost DECIMAL(15, 2) NOT NULL,
+
+    -- Depreciation parameters
+    useful_life_months INTEGER NOT NULL CHECK (useful_life_months > 0),
+    residual_value DECIMAL(15, 2) DEFAULT 0,
+    depreciation_method VARCHAR(50) NOT NULL,
+
+    -- Calculated values
+    monthly_depreciation DECIMAL(15, 2) NOT NULL,
+    accumulated_depreciation DECIMAL(15, 2) DEFAULT 0,
+    current_book_value DECIMAL(15, 2) NOT NULL,
+
+    -- Status
+    is_active BOOLEAN DEFAULT TRUE,
+    fully_depreciated BOOLEAN DEFAULT FALSE,
+    fully_depreciated_at DATE,
+
+    -- Audit trail
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_by VARCHAR(255) NOT NULL,
+
+    CONSTRAINT tbm_depreciation_method_check CHECK (
+        depreciation_method IN ('straight_line', 'declining_balance', 'double_declining_balance')
+    ),
+    CONSTRAINT tbm_depreciation_cost_check CHECK (purchase_cost > 0),
+    CONSTRAINT tbm_depreciation_residual_check CHECK (residual_value >= 0 AND residual_value < purchase_cost)
+);
+
+CREATE INDEX idx_tbm_depreciation_ci_id ON tbm_depreciation_schedules(ci_id);
+CREATE INDEX idx_tbm_depreciation_purchase_date ON tbm_depreciation_schedules(purchase_date);
+CREATE INDEX idx_tbm_depreciation_active ON tbm_depreciation_schedules(is_active) WHERE is_active = TRUE;
+CREATE INDEX idx_tbm_depreciation_fully_depreciated ON tbm_depreciation_schedules(fully_depreciated);
+CREATE UNIQUE INDEX idx_tbm_depreciation_unique_ci ON tbm_depreciation_schedules(ci_id);
+
+COMMENT ON TABLE tbm_depreciation_schedules IS 'v3.0 TBM asset depreciation tracking with multiple depreciation methods';
+
+-- ----------------------------------------
+-- tbm_gl_mappings: General Ledger Account Mappings
+-- ----------------------------------------
+CREATE TABLE IF NOT EXISTS tbm_gl_mappings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    -- Source entity (polymorphic)
+    entity_type VARCHAR(50) NOT NULL,
+    entity_id UUID NOT NULL,
+    entity_name VARCHAR(255),
+
+    -- GL account details
+    gl_account_code VARCHAR(50) NOT NULL,
+    gl_account_name VARCHAR(255) NOT NULL,
+    gl_cost_center VARCHAR(100),
+    gl_business_unit VARCHAR(255),
+
+    -- Mapping rules
+    mapping_rules JSONB DEFAULT '{
+        "allocation_percentage": 100,
+        "allocation_driver": "direct",
+        "notes": ""
+    }'::jsonb,
+
+    -- Effective dates
+    effective_from DATE NOT NULL DEFAULT CURRENT_DATE,
+    effective_to DATE DEFAULT '9999-12-31',
+    is_active BOOLEAN DEFAULT TRUE,
+
+    -- Audit trail
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_by VARCHAR(255) NOT NULL,
+    updated_by VARCHAR(255),
+
+    CONSTRAINT tbm_gl_mappings_entity_type_check CHECK (
+        entity_type IN ('cost_pool', 'business_service', 'application_service', 'business_capability', 'configuration_item')
+    ),
+    CONSTRAINT tbm_gl_mappings_effective_dates_check CHECK (effective_from <= effective_to)
+);
+
+CREATE INDEX idx_tbm_gl_mappings_entity ON tbm_gl_mappings(entity_type, entity_id);
+CREATE INDEX idx_tbm_gl_mappings_gl_account ON tbm_gl_mappings(gl_account_code);
+CREATE INDEX idx_tbm_gl_mappings_cost_center ON tbm_gl_mappings(gl_cost_center);
+CREATE INDEX idx_tbm_gl_mappings_business_unit ON tbm_gl_mappings(gl_business_unit);
+CREATE INDEX idx_tbm_gl_mappings_active ON tbm_gl_mappings(is_active) WHERE is_active = TRUE;
+CREATE INDEX idx_tbm_gl_mappings_effective_dates ON tbm_gl_mappings(effective_from, effective_to);
+CREATE INDEX idx_tbm_gl_mappings_rules ON tbm_gl_mappings USING GIN(mapping_rules);
+
+COMMENT ON TABLE tbm_gl_mappings IS 'v3.0 TBM general ledger account mappings for cost allocation and financial reporting';
 
 -- ============================================
 -- SECTION 2: AUDIT & SECURITY
@@ -1413,6 +2101,285 @@ WHERE enabled = TRUE
   AND revoked_at IS NULL
   AND (expires_at IS NULL OR expires_at > NOW())
 ORDER BY created_at DESC;
+
+-- ============================================
+-- v3.0 ANALYTICAL VIEWS
+-- ============================================
+
+-- Business service summaries
+CREATE OR REPLACE VIEW v_business_service_summary AS
+SELECT
+  bs.id,
+  bs.name,
+  bs.description,
+  bs.operational_status,
+  bs.technical_owner,
+  bs.platform_team,
+  bs.itil_attributes->>'service_owner' AS service_owner,
+  bs.itil_attributes->>'service_type' AS service_type,
+  (bs.itil_attributes->>'availability_30d')::numeric AS availability_30d,
+  (bs.itil_attributes->>'incident_count_30d')::integer AS incident_count_30d,
+  (bs.tbm_attributes->>'total_monthly_cost')::numeric AS total_monthly_cost,
+  bs.tbm_attributes->>'cost_trend' AS cost_trend,
+  bs.bsm_attributes->>'business_criticality' AS business_criticality,
+  (bs.bsm_attributes->>'business_impact_score')::integer AS business_impact_score,
+  bs.bsm_attributes->>'risk_rating' AS risk_rating,
+  (bs.bsm_attributes->>'annual_revenue_supported')::numeric AS annual_revenue_supported,
+  bs.created_at,
+  bs.last_validated,
+  -- Count dependent services
+  (SELECT COUNT(*) FROM service_dependencies sd
+   WHERE sd.source_type = 'business_service' AND sd.source_id = bs.id) AS dependency_count,
+  -- Count incidents
+  (SELECT COUNT(*) FROM itil_incidents ii
+   WHERE ii.affected_business_service_id = bs.id AND ii.status NOT IN ('closed', 'cancelled')) AS open_incident_count
+FROM business_services bs
+ORDER BY bs.created_at DESC;
+
+COMMENT ON VIEW v_business_service_summary IS 'v3.0 Business service summary with key metrics from ITIL, TBM, and BSM';
+
+-- Application service summaries
+CREATE OR REPLACE VIEW v_application_service_summary AS
+SELECT
+  app.id,
+  app.name,
+  app.description,
+  app.tbm_attributes->>'solution_type' AS solution_type,
+  (app.tbm_attributes->>'total_monthly_cost')::numeric AS total_monthly_cost,
+  app.itil_attributes->>'service_type' AS service_type,
+  app.itil_attributes->>'service_owner' AS service_owner,
+  app.itil_attributes->>'lifecycle_stage' AS lifecycle_stage,
+  app.itil_attributes->>'release_version' AS release_version,
+  app.application_attributes->>'application_type' AS application_type,
+  app.application_attributes->>'deployment_model' AS deployment_model,
+  app.application_attributes->>'architecture_pattern' AS architecture_pattern,
+  app.business_value_score,
+  (app.quality_metrics->>'availability_percentage')::numeric AS availability_percentage,
+  (app.quality_metrics->>'test_coverage_percentage')::numeric AS test_coverage_percentage,
+  app.created_at,
+  -- Count supporting infrastructure
+  (SELECT COUNT(*) FROM service_dependencies sd
+   WHERE sd.source_type = 'application_service' AND sd.source_id = app.id
+     AND sd.target_type = 'configuration_item') AS infrastructure_count,
+  -- Count supported business services
+  (SELECT COUNT(*) FROM service_dependencies sd
+   WHERE sd.target_type = 'application_service' AND sd.target_id = app.id
+     AND sd.source_type = 'business_service') AS business_service_count
+FROM application_services app
+ORDER BY app.business_value_score DESC, app.created_at DESC;
+
+COMMENT ON VIEW v_application_service_summary IS 'v3.0 Application service summary with TBM costs and ITIL lifecycle';
+
+-- Business capability summaries
+CREATE OR REPLACE VIEW v_business_capability_summary AS
+SELECT
+  bc.id,
+  bc.name,
+  bc.description,
+  bc.tbm_attributes->>'business_unit' AS business_unit,
+  (bc.tbm_attributes->>'total_monthly_cost')::numeric AS total_monthly_cost,
+  (bc.tbm_attributes->>'cost_per_employee')::numeric AS cost_per_employee,
+  (bc.tbm_attributes->>'budget_annual')::numeric AS budget_annual,
+  (bc.tbm_attributes->>'variance_percentage')::numeric AS variance_percentage,
+  bc.capability_attributes->>'capability_type' AS capability_type,
+  bc.capability_attributes->>'strategic_importance' AS strategic_importance,
+  bc.capability_attributes->>'maturity_level' AS maturity_level,
+  bc.capability_attributes->>'lifecycle_stage' AS lifecycle_stage,
+  bc.capability_attributes->>'capability_owner' AS capability_owner,
+  (bc.value_attributes->'revenue_impact'->>'annual_revenue_supported')::numeric AS annual_revenue_supported,
+  (bc.value_attributes->>'customer_facing')::boolean AS customer_facing,
+  bc.created_at,
+  -- Count supported business services
+  (SELECT COUNT(*) FROM service_dependencies sd
+   WHERE sd.source_type = 'business_capability' AND sd.source_id = bc.id) AS business_service_count
+FROM business_capabilities bc
+ORDER BY (bc.tbm_attributes->>'total_monthly_cost')::numeric DESC, bc.created_at DESC;
+
+COMMENT ON VIEW v_business_capability_summary IS 'v3.0 Business capability summary with TBM cost allocation and value metrics';
+
+-- Service dependency graph view
+CREATE OR REPLACE VIEW v_service_dependency_graph AS
+SELECT
+  sd.id,
+  sd.source_type,
+  sd.source_id,
+  sd.target_type,
+  sd.target_id,
+  sd.dependency_type,
+  sd.dependency_strength,
+  sd.is_critical,
+  sd.discovered_at,
+  sd.last_verified_at,
+  -- Source entity name (polymorphic lookup)
+  CASE
+    WHEN sd.source_type = 'business_capability' THEN (SELECT name FROM business_capabilities WHERE id = sd.source_id)
+    WHEN sd.source_type = 'business_service' THEN (SELECT name FROM business_services WHERE id = sd.source_id)
+    WHEN sd.source_type = 'application_service' THEN (SELECT name FROM application_services WHERE id = sd.source_id)
+    ELSE NULL
+  END AS source_name,
+  -- Target entity name (polymorphic lookup)
+  CASE
+    WHEN sd.target_type = 'business_capability' THEN (SELECT name FROM business_capabilities WHERE id = sd.target_id)
+    WHEN sd.target_type = 'business_service' THEN (SELECT name FROM business_services WHERE id = sd.target_id)
+    WHEN sd.target_type = 'application_service' THEN (SELECT name FROM application_services WHERE id = sd.target_id)
+    ELSE NULL
+  END AS target_name
+FROM service_dependencies sd
+ORDER BY sd.is_critical DESC, sd.dependency_strength DESC;
+
+COMMENT ON VIEW v_service_dependency_graph IS 'v3.0 Service dependency relationships with resolved entity names';
+
+-- ITIL incident summary
+CREATE OR REPLACE VIEW v_itil_incident_summary AS
+SELECT
+  i.id,
+  i.incident_number,
+  i.title,
+  i.category,
+  i.impact,
+  i.urgency,
+  i.priority,
+  i.status,
+  i.affected_ci_id,
+  i.affected_business_service_id,
+  i.affected_application_service_id,
+  (i.business_impact->>'estimated_user_impact')::integer AS estimated_user_impact,
+  (i.business_impact->>'estimated_revenue_impact')::numeric AS estimated_revenue_impact,
+  (i.business_impact->>'estimated_cost_of_downtime')::numeric AS estimated_cost_of_downtime,
+  i.assigned_to,
+  i.assigned_group,
+  i.reported_at,
+  i.acknowledged_at,
+  i.resolved_at,
+  i.time_to_acknowledge_minutes,
+  i.time_to_resolve_minutes,
+  i.reported_by,
+  -- Business service name
+  (SELECT name FROM business_services WHERE id = i.affected_business_service_id) AS business_service_name,
+  -- Application service name
+  (SELECT name FROM application_services WHERE id = i.affected_application_service_id) AS application_service_name
+FROM itil_incidents i
+ORDER BY i.priority, i.reported_at DESC;
+
+COMMENT ON VIEW v_itil_incident_summary IS 'v3.0 ITIL incident summary with business impact metrics';
+
+-- ITIL change summary
+CREATE OR REPLACE VIEW v_itil_change_summary AS
+SELECT
+  c.id,
+  c.change_number,
+  c.title,
+  c.change_type,
+  c.status,
+  c.approval_status,
+  (c.risk_assessment->>'risk_level') AS risk_level,
+  (c.risk_assessment->>'overall_risk_score')::integer AS overall_risk_score,
+  (c.risk_assessment->>'requires_cab_approval')::boolean AS requires_cab_approval,
+  (c.business_impact->>'estimated_downtime_minutes')::integer AS estimated_downtime_minutes,
+  (c.business_impact->>'customer_impact')::boolean AS customer_impact,
+  (c.business_impact->>'revenue_at_risk')::numeric AS revenue_at_risk,
+  (c.financial_impact->>'implementation_cost')::numeric AS implementation_cost,
+  (c.financial_impact->>'total_cost')::numeric AS total_cost,
+  c.assigned_to,
+  c.assigned_group,
+  c.scheduled_start,
+  c.scheduled_end,
+  c.outcome,
+  c.requested_by,
+  array_length(c.affected_ci_ids, 1) AS affected_ci_count,
+  array_length(c.affected_business_service_ids, 1) AS affected_business_service_count,
+  array_length(c.affected_application_service_ids, 1) AS affected_application_service_count
+FROM itil_changes c
+ORDER BY c.scheduled_start DESC, c.created_at DESC;
+
+COMMENT ON VIEW v_itil_change_summary IS 'v3.0 ITIL change summary with risk assessment and business impact';
+
+-- TBM cost pool summary
+CREATE OR REPLACE VIEW v_tbm_cost_pool_summary AS
+SELECT
+  cp.id,
+  cp.name,
+  cp.description,
+  cp.cost_pool_type,
+  cp.monthly_budget,
+  cp.annual_budget,
+  cp.cost_center,
+  cp.business_unit,
+  cp.owner,
+  cp.is_active,
+  cp.allocation_rules->>'allocation_method' AS allocation_method,
+  cp.allocation_rules->>'allocation_frequency' AS allocation_frequency,
+  array_length(cp.gl_account_codes, 1) AS gl_account_count,
+  cp.created_at,
+  -- Count GL mappings
+  (SELECT COUNT(*) FROM tbm_gl_mappings WHERE entity_type = 'cost_pool' AND entity_id = cp.id AND is_active = TRUE) AS active_gl_mapping_count
+FROM tbm_cost_pools cp
+ORDER BY cp.annual_budget DESC, cp.created_at DESC;
+
+COMMENT ON VIEW v_tbm_cost_pool_summary IS 'v3.0 TBM cost pool summary with budget tracking and GL mappings';
+
+-- TBM depreciation tracking
+CREATE OR REPLACE VIEW v_tbm_depreciation_tracking AS
+SELECT
+  ds.id,
+  ds.ci_id,
+  ds.ci_name,
+  ds.purchase_date,
+  ds.purchase_cost,
+  ds.useful_life_months,
+  ds.residual_value,
+  ds.depreciation_method,
+  ds.monthly_depreciation,
+  ds.accumulated_depreciation,
+  ds.current_book_value,
+  ds.is_active,
+  ds.fully_depreciated,
+  ds.fully_depreciated_at,
+  -- Calculate remaining life
+  CASE
+    WHEN ds.fully_depreciated THEN 0
+    ELSE GREATEST(0, ds.useful_life_months - EXTRACT(MONTH FROM AGE(CURRENT_DATE, ds.purchase_date))::integer)
+  END AS remaining_life_months,
+  -- Calculate depreciation percentage
+  CASE
+    WHEN ds.purchase_cost > 0 THEN ROUND((ds.accumulated_depreciation / ds.purchase_cost * 100)::numeric, 2)
+    ELSE 0
+  END AS depreciation_percentage
+FROM tbm_depreciation_schedules ds
+ORDER BY ds.current_book_value DESC, ds.purchase_date DESC;
+
+COMMENT ON VIEW v_tbm_depreciation_tracking IS 'v3.0 TBM depreciation tracking with calculated remaining life and percentages';
+
+-- Unified service health dashboard
+CREATE OR REPLACE VIEW v_unified_service_health AS
+SELECT
+  bs.id AS service_id,
+  bs.name AS service_name,
+  'business_service' AS service_type,
+  -- ITIL metrics
+  (bs.itil_attributes->>'availability_30d')::numeric AS availability_30d,
+  (bs.itil_attributes->>'incident_count_30d')::integer AS incident_count_30d,
+  -- TBM metrics
+  (bs.tbm_attributes->>'total_monthly_cost')::numeric AS total_monthly_cost,
+  bs.tbm_attributes->>'cost_trend' AS cost_trend,
+  -- BSM metrics
+  bs.bsm_attributes->>'business_criticality' AS business_criticality,
+  (bs.bsm_attributes->>'business_impact_score')::integer AS business_impact_score,
+  bs.bsm_attributes->>'risk_rating' AS risk_rating,
+  -- Operational status
+  bs.operational_status,
+  bs.technical_owner,
+  -- Calculated health score (simple weighted average)
+  ROUND((
+    COALESCE((bs.itil_attributes->>'availability_30d')::numeric, 0) * 0.4 +
+    COALESCE((100 - LEAST((bs.itil_attributes->>'incident_count_30d')::integer, 100)), 0) * 0.3 +
+    COALESCE((bs.bsm_attributes->>'business_impact_score')::integer, 0) * 0.3
+  )::numeric, 2) AS health_score
+FROM business_services bs
+WHERE bs.operational_status NOT IN ('outage', 'maintenance')
+ORDER BY health_score DESC, service_name;
+
+COMMENT ON VIEW v_unified_service_health IS 'v3.0 Unified service health dashboard combining ITIL, TBM, and BSM metrics';
 
 -- Credential summaries
 CREATE OR REPLACE VIEW credential_summaries AS

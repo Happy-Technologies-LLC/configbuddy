@@ -1,0 +1,177 @@
+{
+  "name": "Executive Dashboard - ConfigBuddy v3.0",
+  "description": "High-level IT spend, service health, and risk metrics for executive leadership",
+  "parameters": [],
+  "cards": [
+    {
+      "name": "Total IT Spend (Annual)",
+      "description": "Total annual IT spend across all active configuration items",
+      "visualization_settings": {
+        "graph.metrics": ["sum"],
+        "graph.dimensions": [],
+        "card.title": "Total IT Spend (Annual)"
+      },
+      "dataset_query": {
+        "type": "native",
+        "native": {
+          "query": "SELECT SUM(COALESCE((tbm_attributes->>'monthly_cost')::DECIMAL, 0) * 12) AS annual_spend FROM cmdb.dim_ci WHERE is_current = TRUE AND ci_status = 'active'",
+          "template-tags": {}
+        },
+        "database": "ConfigBuddy CMDB"
+      },
+      "display": "scalar",
+      "visualization_type": "scalar"
+    },
+    {
+      "name": "IT Spend by Business Capability",
+      "description": "Annual IT spend broken down by business capability",
+      "visualization_settings": {
+        "graph.metrics": ["annual_cost"],
+        "graph.dimensions": ["business_capability"],
+        "card.title": "IT Spend by Business Capability"
+      },
+      "dataset_query": {
+        "type": "native",
+        "native": {
+          "query": "SELECT business_capability, annual_cost FROM v_executive_cost_summary ORDER BY annual_cost DESC LIMIT 10",
+          "template-tags": {}
+        },
+        "database": "ConfigBuddy CMDB"
+      },
+      "display": "bar",
+      "visualization_type": "bar"
+    },
+    {
+      "name": "Cost Trends (12 Months)",
+      "description": "Monthly cost trends over the past 12 months by TBM tower",
+      "visualization_settings": {
+        "graph.metrics": ["monthly_cost"],
+        "graph.dimensions": ["month", "tbm_resource_tower"],
+        "card.title": "Cost Trends (12 Months)"
+      },
+      "dataset_query": {
+        "type": "native",
+        "native": {
+          "query": "SELECT month, tbm_resource_tower, monthly_cost FROM v_cost_trends WHERE month >= NOW() - INTERVAL '12 months' ORDER BY month",
+          "template-tags": {}
+        },
+        "database": "ConfigBuddy CMDB"
+      },
+      "display": "line",
+      "visualization_type": "line"
+    },
+    {
+      "name": "Service Health by Criticality Tier",
+      "description": "Average service health score by business criticality tier",
+      "visualization_settings": {
+        "graph.metrics": ["health_score"],
+        "graph.dimensions": ["business_criticality"],
+        "card.title": "Service Health by Criticality Tier"
+      },
+      "dataset_query": {
+        "type": "native",
+        "native": {
+          "query": "SELECT business_criticality, ROUND(AVG(health_score), 2) AS avg_health_score FROM v_service_health_scorecard GROUP BY business_criticality ORDER BY business_criticality",
+          "template-tags": {}
+        },
+        "database": "ConfigBuddy CMDB"
+      },
+      "display": "row",
+      "visualization_type": "row"
+    },
+    {
+      "name": "Revenue at Risk",
+      "description": "Top 5 services with revenue at risk from open incidents",
+      "visualization_settings": {
+        "table.columns": [
+          {"name": "business_service", "display_name": "Business Service"},
+          {"name": "open_incidents", "display_name": "Open Incidents"},
+          {"name": "total_revenue_at_risk", "display_name": "Revenue at Risk ($)"},
+          {"name": "pct_revenue_at_risk", "display_name": "% of Annual Revenue"}
+        ],
+        "card.title": "Revenue at Risk"
+      },
+      "dataset_query": {
+        "type": "native",
+        "native": {
+          "query": "SELECT business_service, business_criticality, open_incidents, total_revenue_at_risk, pct_revenue_at_risk FROM v_revenue_at_risk ORDER BY total_revenue_at_risk DESC LIMIT 5",
+          "template-tags": {}
+        },
+        "database": "ConfigBuddy CMDB"
+      },
+      "display": "table",
+      "visualization_type": "table"
+    },
+    {
+      "name": "Top Cost Drivers",
+      "description": "Top 10 configuration items by monthly cost",
+      "visualization_settings": {
+        "table.columns": [
+          {"name": "ci_name", "display_name": "CI Name"},
+          {"name": "ci_type", "display_name": "Type"},
+          {"name": "monthly_cost", "display_name": "Monthly Cost ($)"},
+          {"name": "annual_cost", "display_name": "Annual Cost ($)"}
+        ],
+        "card.title": "Top Cost Drivers"
+      },
+      "dataset_query": {
+        "type": "native",
+        "native": {
+          "query": "SELECT * FROM v_top_cost_drivers LIMIT 10",
+          "template-tags": {}
+        },
+        "database": "ConfigBuddy CMDB"
+      },
+      "display": "table",
+      "visualization_type": "table"
+    },
+    {
+      "name": "Compliance Status",
+      "description": "Compliance status summary by regulatory framework",
+      "visualization_settings": {
+        "graph.metrics": ["compliance_rate"],
+        "graph.dimensions": ["compliance_framework"],
+        "card.title": "Compliance Status by Framework"
+      },
+      "dataset_query": {
+        "type": "native",
+        "native": {
+          "query": "SELECT compliance_framework, compliance_rate FROM v_compliance_summary ORDER BY compliance_rate ASC",
+          "template-tags": {}
+        },
+        "database": "ConfigBuddy CMDB"
+      },
+      "display": "bar",
+      "visualization_type": "bar"
+    },
+    {
+      "name": "Open Incidents by Priority",
+      "description": "Current open incidents grouped by priority",
+      "visualization_settings": {
+        "graph.metrics": ["incident_count"],
+        "graph.dimensions": ["priority"],
+        "card.title": "Open Incidents by Priority"
+      },
+      "dataset_query": {
+        "type": "native",
+        "native": {
+          "query": "SELECT priority, incident_count FROM v_incident_summary WHERE status IN ('new', 'assigned', 'in_progress', 'pending') ORDER BY priority",
+          "template-tags": {}
+        },
+        "database": "ConfigBuddy CMDB"
+      },
+      "display": "pie",
+      "visualization_type": "pie"
+    }
+  ],
+  "layout": [
+    {"row": 0, "col": 0, "sizeX": 4, "sizeY": 2, "cardId": 0},
+    {"row": 0, "col": 4, "sizeX": 8, "sizeY": 4, "cardId": 1},
+    {"row": 2, "col": 0, "sizeX": 12, "sizeY": 4, "cardId": 2},
+    {"row": 6, "col": 0, "sizeX": 6, "sizeY": 3, "cardId": 3},
+    {"row": 6, "col": 6, "sizeX": 6, "sizeY": 3, "cardId": 7},
+    {"row": 9, "col": 0, "sizeX": 12, "sizeY": 4, "cardId": 4},
+    {"row": 13, "col": 0, "sizeX": 6, "sizeY": 4, "cardId": 5},
+    {"row": 13, "col": 6, "sizeX": 6, "sizeY": 4, "cardId": 6}
+  ]
+}

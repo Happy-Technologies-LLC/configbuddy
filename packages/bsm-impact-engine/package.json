@@ -1,0 +1,46 @@
+{
+  "name": "@cmdb/bsm-impact-engine",
+  "version": "3.0.0",
+  "description": "Business Service Mapping Impact Engine for ConfigBuddy v3.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "test": "jest",
+    "test:unit": "jest --testPathPattern=unit",
+    "test:integration": "jest --testPathPattern=integration",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@cmdb/unified-model": "workspace:*",
+    "@cmdb/database": "workspace:*",
+    "@cmdb/event-streaming": "workspace:*",
+    "date-fns": "^2.30.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/jest": "^29.0.0",
+    "typescript": "^5.0.0",
+    "jest": "^29.0.0",
+    "ts-jest": "^29.0.0",
+    "eslint": "^8.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0"
+  },
+  "keywords": [
+    "cmdb",
+    "bsm",
+    "business-service-mapping",
+    "impact-analysis",
+    "blast-radius",
+    "risk-assessment",
+    "configuration-management"
+  ],
+  "author": "ConfigBuddy Team",
+  "license": "MIT"
+}

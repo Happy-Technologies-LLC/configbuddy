@@ -14,6 +14,7 @@ import { typeDefs } from './schema/typeDefs';
 import { analyticsTypeDefs } from './schema/analytics.schema';
 import { connectorTypeDefs } from './schema/connector.schema';
 import { reconciliationTypeDefs } from './schema/reconciliation.schema';
+import { itilTypeDefs } from './schema/itil.schema';
 import { resolvers } from './resolvers';
 import { createCILoader, createRelationshipLoader, createDependentLoader } from './dataloaders/ci-loader';
 import { GraphQLContext } from './resolvers';
@@ -31,7 +32,7 @@ export async function createGraphQLServer(app: express.Application) {
 
   // Create Apollo Server with schema and resolvers
   const server = new ApolloServer<GraphQLContext>({
-    typeDefs: [typeDefs, analyticsTypeDefs, connectorTypeDefs, reconciliationTypeDefs],
+    typeDefs: [typeDefs, analyticsTypeDefs, connectorTypeDefs, reconciliationTypeDefs, itilTypeDefs],
     resolvers,
     plugins: [
       // Proper shutdown for HTTP server

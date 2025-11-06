@@ -1,0 +1,579 @@
+# ITIL v4 Service Management GraphQL Schema Extension
+
+# ============================================================================
+# ITIL Configuration Item Extensions
+# ============================================================================
+
+extend type CI {
+  """ITIL-specific attributes for this configuration item"""
+  itilAttributes: ITILAttributes
+
+  """History of changes to this configuration item"""
+  history(limit: Int = 100): [CIHistoryEvent!]!
+
+  """Incidents affecting this configuration item"""
+  incidents(status: IncidentStatus, limit: Int = 50): [Incident!]!
+
+  """Changes affecting this configuration item"""
+  changes(status: ChangeStatus, limit: Int = 50): [Change!]!
+}
+
+"""ITIL-specific attributes for configuration items"""
+type ITILAttributes {
+  """ITIL CI class classification"""
+  ciClass: ITILClass!
+
+  """Current lifecycle stage"""
+  lifecycleStage: ITILLifecycle!
+
+  """Current configuration status"""
+  configurationStatus: ITILConfigStatus!
+
+  """Version number of this CI"""
+  version: String
+
+  """ID of the baseline this CI belongs to"""
+  baselineId: String
+
+  """Date of last audit"""
+  lastAudited: String
+
+  """Result of last audit"""
+  auditStatus: AuditStatus
+
+  """Date when next audit is due"""
+  nextAuditDate: String
+}
+
+"""ITIL CI class classifications"""
+enum ITILClass {
+  HARDWARE
+  SOFTWARE
+  SERVICE
+  NETWORK
+  FACILITY
+  DOCUMENTATION
+  PERSONNEL
+}
+
+"""ITIL lifecycle stages"""
+enum ITILLifecycle {
+  PLANNING
+  DESIGN
+  BUILD
+  TEST
+  DEPLOY
+  OPERATE
+  RETIRE
+}
+
+"""ITIL configuration status values"""
+enum ITILConfigStatus {
+  PLANNED
+  ORDERED
+  IN_DEVELOPMENT
+  ACTIVE
+  MAINTENANCE
+  RETIRED
+  DISPOSED
+}
+
+"""Configuration audit status"""
+enum AuditStatus {
+  COMPLIANT
+  NON_COMPLIANT
+  UNKNOWN
+}
+
+"""Configuration item history event"""
+type CIHistoryEvent {
+  id: ID!
+  ciId: String!
+  changedAt: String!
+  changedBy: String!
+  changeType: String!
+  attributeName: String!
+  oldValue: String
+  newValue: String
+  reason: String
+}
+
+# ============================================================================
+# Incidents
+# ============================================================================
+
+"""ITIL incident record"""
+type Incident {
+  id: ID!
+  incidentNumber: String!
+  affectedCI: CI!
+  description: String!
+  reportedBy: String!
+  reportedAt: String!
+  priority: Int!
+  impact: ImpactLevel!
+  urgency: UrgencyLevel!
+  status: IncidentStatus!
+  assignedTo: String
+  resolvedAt: String
+  resolvedBy: String
+  resolution: String
+  estimatedUserImpact: Int!
+  estimatedRevenueImpact: Float!
+  symptoms: [String!]!
+  affectedBusinessServices: [BusinessService!]!
+}
+
+"""Impact level classification"""
+enum ImpactLevel {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+"""Urgency level classification"""
+enum UrgencyLevel {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+"""Incident status values"""
+enum IncidentStatus {
+  NEW
+  ASSIGNED
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+"""Business service impacted by incidents/changes"""
+type BusinessService {
+  id: ID!
+  name: String!
+  description: String
+  tier: Int!
+  revenueImpact: Float!
+  userCount: Int!
+  criticality: CriticalityLevel!
+}
+
+"""Business service criticality level"""
+enum CriticalityLevel {
+  TIER_0
+  TIER_1
+  TIER_2
+  TIER_3
+}
+
+# ============================================================================
+# Changes
+# ============================================================================
+
+"""ITIL change record"""
+type Change {
+  id: ID!
+  changeNumber: String!
+  changeType: ChangeType!
+  description: String!
+  affectedCIs: [CI!]!
+  requestedBy: String!
+  requestedAt: String!
+  plannedStart: String!
+  plannedDuration: Int!
+  actualDuration: Int
+  status: ChangeStatus!
+  riskAssessment: ChangeRiskAssessment
+  implementedAt: String
+  implementedBy: String
+  result: ChangeResult
+  implementationPlan: String!
+  backoutPlan: String
+  testPlan: String
+  closureNotes: String
+  closedBy: String
+  closedAt: String
+}
+
+"""Change type classification"""
+enum ChangeType {
+  STANDARD
+  NORMAL
+  EMERGENCY
+}
+
+"""Change status values"""
+enum ChangeStatus {
+  REQUESTED
+  APPROVED
+  SCHEDULED
+  IN_PROGRESS
+  IMPLEMENTED
+  CLOSED
+  CANCELLED
+}
+
+"""Change result classification"""
+enum ChangeResult {
+  SUCCESS
+  PARTIAL_SUCCESS
+  FAILED
+  ROLLED_BACK
+}
+
+"""Change risk assessment"""
+type ChangeRiskAssessment {
+  riskScore: Float!
+  riskLevel: RiskLevel!
+  requiresCABApproval: Boolean!
+  affectedBusinessServices: [BusinessService!]!
+  affectedCICount: Int!
+  estimatedDowntime: Int!
+  estimatedUserImpact: Int!
+  estimatedRevenueAtRisk: Float!
+  recommendations: [String!]!
+  mitigationStrategies: [String!]!
+}
+
+"""Risk level classification"""
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  VERY_HIGH
+}
+
+# ============================================================================
+# Baselines
+# ============================================================================
+
+"""Configuration baseline snapshot"""
+type ConfigurationBaseline {
+  id: ID!
+  name: String!
+  description: String
+  ciIds: [String!]!
+  cis: [CI!]!
+  snapshotDate: String!
+  createdBy: String!
+}
+
+"""Baseline comparison result"""
+type BaselineComparison {
+  baseline: ConfigurationBaseline!
+  comparisonDate: String!
+  driftedCIs: [DriftedCI!]!
+  totalDriftCount: Int!
+  driftPercentage: Float!
+}
+
+"""Configuration item with drift from baseline"""
+type DriftedCI {
+  ci: CI!
+  changedAttributes: [AttributeChange!]!
+  severity: DriftSeverity!
+}
+
+"""Individual attribute change"""
+type AttributeChange {
+  attributeName: String!
+  baselineValue: String
+  currentValue: String
+  changedAt: String
+}
+
+"""Configuration drift severity"""
+enum DriftSeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+# ============================================================================
+# Metrics
+# ============================================================================
+
+"""Configuration accuracy metrics"""
+type ConfigurationAccuracy {
+  accuracy: Float!
+  compliantCount: Int!
+  totalAudited: Int!
+  timestamp: String!
+}
+
+"""Incident summary metrics"""
+type IncidentMetrics {
+  totalIncidents: Int!
+  byStatus: [IncidentStatusCount!]!
+  byPriority: [IncidentPriorityCount!]!
+  mttr: Float!
+  mtbf: Float!
+}
+
+"""Incident count by status"""
+type IncidentStatusCount {
+  status: IncidentStatus!
+  count: Int!
+}
+
+"""Incident count by priority"""
+type IncidentPriorityCount {
+  priority: Int!
+  count: Int!
+}
+
+"""Change success rate metrics"""
+type ChangeMetrics {
+  totalChanges: Int!
+  successfulChanges: Int!
+  failedChanges: Int!
+  successRate: Float!
+  byType: [ChangeTypeCount!]!
+}
+
+"""Change count by type"""
+type ChangeTypeCount {
+  changeType: ChangeType!
+  count: Int!
+  successRate: Float!
+}
+
+# ============================================================================
+# Pagination Types
+# ============================================================================
+
+"""Paginated configuration items"""
+type ConfigurationItemPage {
+  items: [CI!]!
+  total: Int!
+  page: Int!
+  limit: Int!
+  pages: Int!
+}
+
+"""Paginated incidents"""
+type IncidentPage {
+  items: [Incident!]!
+  total: Int!
+  page: Int!
+  limit: Int!
+  pages: Int!
+}
+
+"""Paginated changes"""
+type ChangePage {
+  items: [Change!]!
+  total: Int!
+  page: Int!
+  limit: Int!
+  pages: Int!
+}
+
+# ============================================================================
+# Query Extensions
+# ============================================================================
+
+extend type Query {
+  # Configuration Items
+  """Get configuration items with ITIL filters"""
+  configurationItems(
+    lifecycle: ITILLifecycle
+    status: ITILConfigStatus
+    ciType: CIType
+    page: Int = 1
+    limit: Int = 50
+  ): ConfigurationItemPage!
+
+  """Get a single configuration item by ID"""
+  configurationItem(id: ID!): CI
+
+  """Get CI change history"""
+  ciHistory(id: ID!, limit: Int = 100): [CIHistoryEvent!]!
+
+  """Get CIs that are due for audit"""
+  cisDueForAudit(limit: Int = 100): [CI!]!
+
+  """Get configuration accuracy metric"""
+  configurationAccuracy: ConfigurationAccuracy!
+
+  # Incidents
+  """Get incidents with filters"""
+  incidents(
+    status: IncidentStatus
+    priority: Int
+    affectedCIId: String
+    page: Int = 1
+    limit: Int = 50
+  ): IncidentPage!
+
+  """Get a single incident by ID"""
+  incident(id: ID!): Incident
+
+  """Get incident metrics summary"""
+  incidentMetrics: IncidentMetrics!
+
+  # Changes
+  """Get changes with filters"""
+  changes(
+    status: ChangeStatus
+    changeType: ChangeType
+    requestedBy: String
+    page: Int = 1
+    limit: Int = 50
+  ): ChangePage!
+
+  """Get a single change by ID"""
+  change(id: ID!): Change
+
+  """Get change metrics summary"""
+  changeMetrics: ChangeMetrics!
+
+  # Baselines
+  """Get all configuration baselines"""
+  baselines(limit: Int = 100): [ConfigurationBaseline!]!
+
+  """Get a single baseline by ID"""
+  baseline(id: ID!): ConfigurationBaseline
+
+  """Compare current state to a baseline"""
+  baselineComparison(id: ID!): BaselineComparison!
+}
+
+# ============================================================================
+# Mutation Extensions
+# ============================================================================
+
+extend type Mutation {
+  # Configuration Management
+  """Update CI lifecycle stage"""
+  updateLifecycleStage(id: ID!, stage: ITILLifecycle!): CI!
+
+  """Update CI configuration status"""
+  updateConfigurationStatus(id: ID!, status: ITILConfigStatus!): CI!
+
+  """Schedule an audit for a CI"""
+  scheduleAudit(
+    id: ID!
+    auditDate: String!
+    auditor: String
+    notes: String
+  ): CI!
+
+  """Complete an audit for a CI"""
+  completeAudit(
+    id: ID!
+    auditStatus: AuditStatus!
+    findings: String
+    completedBy: String!
+  ): CI!
+
+  # Incidents
+  """Create a new incident (with automatic priority calculation)"""
+  createIncident(input: CreateIncidentInput!): IncidentWithPriority!
+
+  """Update an existing incident"""
+  updateIncident(id: ID!, input: UpdateIncidentInput!): Incident!
+
+  """Resolve an incident"""
+  resolveIncident(id: ID!, resolution: String!, resolvedBy: String!): Incident!
+
+  # Changes
+  """Create a new change request"""
+  createChange(input: CreateChangeInput!): Change!
+
+  """Update an existing change"""
+  updateChange(id: ID!, input: UpdateChangeInput!): Change!
+
+  """Approve a change request"""
+  approveChange(id: ID!): Change!
+
+  """Implement an approved change"""
+  implementChange(id: ID!): Change!
+
+  """Close a change with result"""
+  closeChange(id: ID!, result: ChangeResult!, notes: String, closedBy: String!): Change!
+
+  # Baselines
+  """Create a new configuration baseline"""
+  createBaseline(
+    name: String!
+    ciIds: [ID!]!
+    description: String
+    createdBy: String!
+  ): ConfigurationBaseline!
+
+  """Delete a baseline"""
+  deleteBaseline(id: ID!): Boolean!
+
+  """Restore a CI from a baseline"""
+  restoreFromBaseline(
+    ciId: ID!
+    baselineId: ID!
+    restoreAttributes: [String!]
+    performedBy: String!
+  ): CI!
+}
+
+# ============================================================================
+# Input Types
+# ============================================================================
+
+"""Input for creating a new incident"""
+input CreateIncidentInput {
+  affectedCIId: ID!
+  description: String!
+  reportedBy: String!
+  symptoms: [String!]
+  detectedAt: String
+}
+
+"""Input for updating an incident"""
+input UpdateIncidentInput {
+  status: IncidentStatus
+  assignedTo: String
+  priority: Int
+}
+
+"""Input for creating a new change"""
+input CreateChangeInput {
+  changeType: ChangeType!
+  description: String!
+  affectedCIIds: [ID!]!
+  requestedBy: String!
+  plannedStart: String!
+  plannedDuration: Int!
+  implementationPlan: String!
+  backoutPlan: String
+  testPlan: String
+}
+
+"""Input for updating a change"""
+input UpdateChangeInput {
+  status: ChangeStatus
+  implementedBy: String
+  actualDuration: Int
+}
+
+# ============================================================================
+# Result Types
+# ============================================================================
+
+"""Incident creation result with priority calculation"""
+type IncidentWithPriority {
+  incident: Incident!
+  priorityCalculation: PriorityCalculation!
+}
+
+"""Priority calculation details"""
+type PriorityCalculation {
+  priority: Int!
+  impact: ImpactLevel!
+  urgency: UrgencyLevel!
+  reasoning: String!
+  affectedBusinessServices: [BusinessService!]!
+  estimatedUserImpact: Int!
+  estimatedRevenueImpact: Float!
+}

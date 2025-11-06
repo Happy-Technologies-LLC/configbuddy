@@ -22,6 +22,7 @@ import { unifiedCredentialRoutes } from './routes/unified-credential.routes';
 import { reconciliationRoutes } from './routes/reconciliation.routes';
 import { aiPatternRoutes } from './routes/ai-pattern.routes';
 import { swaggerRoutes } from './routes/swagger.routes';
+import { itilRoutes } from './routes/itil.routes';
 
 export class RestAPIServer {
   private app: Express;
@@ -85,6 +86,7 @@ export class RestAPIServer {
     this.app.use('/api/v1/analytics', analyticsRoutes);
     this.app.use('/api/v1/anomalies', anomalyRoutes);
     this.app.use('/api/v1/reconciliation', reconciliationRoutes);
+    this.app.use('/api/v1/itil', itilRoutes);
     this.app.use('/api/v1/ai', aiPatternRoutes);
     this.app.use('/api/v1', jobsRoutes);
   }

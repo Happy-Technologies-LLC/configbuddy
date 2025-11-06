@@ -242,6 +242,28 @@ services:
       retries: 5
       start_period: 30s
 
+  # Kafka UI
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: cmdb-kafka-ui
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    networks:
+      - cmdb_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # API Server
   api-server:
     build:
@@ -389,6 +411,54 @@ services:
       retries: 3
       start_period: 10s
 
+  # Metabase - Business Intelligence & Ad-Hoc Reporting
+  metabase:
+    image: metabase/metabase:v0.48.0
+    container_name: cmdb-metabase
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${METABASE_PORT:-3002}:3000"
+    environment:
+      # Metabase application database (PostgreSQL)
+      MB_DB_TYPE: postgres
+      MB_DB_DBNAME: ${METABASE_DATABASE:-metabase}
+      MB_DB_PORT: 5432
+      MB_DB_USER: ${METABASE_DB_USER:-metabase_user}
+      MB_DB_PASS: ${METABASE_DB_PASSWORD}
+      MB_DB_HOST: postgres
+      # Site configuration
+      MB_SITE_NAME: "ConfigBuddy v3.0 Analytics"
+      MB_SITE_URL: ${METABASE_SITE_URL:-http://localhost:3002}
+      # Security
+      MB_ENCRYPTION_SECRET_KEY: ${METABASE_ENCRYPTION_KEY}
+      # Disable telemetry
+      MB_ANON_TRACKING_ENABLED: false
+      MB_CHECK_FOR_UPDATES: false
+      # Email configuration (optional)
+      MB_EMAIL_SMTP_HOST: ${SMTP_HOST:-}
+      MB_EMAIL_SMTP_PORT: ${SMTP_PORT:-587}
+      MB_EMAIL_SMTP_USERNAME: ${SMTP_USERNAME:-}
+      MB_EMAIL_SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MB_EMAIL_FROM_ADDRESS: ${SMTP_FROM_ADDRESS:-noreply@configbuddy.local}
+      # Java options for memory tuning
+      JAVA_OPTS: "-Xmx2g -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+    volumes:
+      - metabase_data:/metabase-data
+      # Mount initialization scripts and dashboards
+      - ../../infrastructure/metabase/dashboards:/metabase-dashboards:ro
+      - ../../infrastructure/metabase/questions:/metabase-questions:ro
+    networks:
+      - cmdb_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
 networks:
   cmdb_network:
     driver: bridge
@@ -402,3 +472,4 @@ volumes:
   zookeeper_data:
   kafka_data:
   grafana_data:
+  metabase_data:

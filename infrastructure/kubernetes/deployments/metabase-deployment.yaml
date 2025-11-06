@@ -1,0 +1,138 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metabase
+  namespace: configbuddy-cmdb
+  labels:
+    app: metabase
+    component: analytics
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: metabase
+  template:
+    metadata:
+      labels:
+        app: metabase
+        component: analytics
+    spec:
+      containers:
+        - name: metabase
+          image: metabase/metabase:v0.48.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+              name: http
+              protocol: TCP
+          env:
+            - name: MB_DB_TYPE
+              value: "postgres"
+            - name: MB_DB_HOST
+              value: "postgres-primary.configbuddy-cmdb.svc.cluster.local"
+            - name: MB_DB_PORT
+              value: "5432"
+            - name: MB_DB_DBNAME
+              value: "metabase"
+            - name: MB_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: cmdb-secrets
+                  key: postgres-user
+            - name: MB_DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: cmdb-secrets
+                  key: postgres-password
+            - name: MB_JETTY_HOST
+              value: "0.0.0.0"
+            - name: MB_JETTY_PORT
+              value: "3000"
+            - name: MB_EMOJI_IN_LOGS
+              value: "false"
+            - name: JAVA_OPTS
+              value: "-Xmx2g -XX:+UseG1GC"
+            # ConfigBuddy v3.0 Integration
+            - name: MB_SITE_NAME
+              value: "ConfigBuddy Analytics"
+            - name: MB_SITE_URL
+              value: "http://metabase.configbuddy-cmdb.svc.cluster.local:3000"
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "2Gi"
+            limits:
+              cpu: "2"
+              memory: "4Gi"
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - name: plugins
+              mountPath: /plugins
+      volumes:
+        - name: plugins
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: metabase
+  namespace: configbuddy-cmdb
+  labels:
+    app: metabase
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    app: metabase
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: metabase
+  namespace: configbuddy-cmdb
+  labels:
+    app: metabase
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+spec:
+  tls:
+    - hosts:
+        - metabase.configbuddy.io
+      secretName: metabase-tls
+  rules:
+    - host: metabase.configbuddy.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: metabase
+                port:
+                  number: 3000

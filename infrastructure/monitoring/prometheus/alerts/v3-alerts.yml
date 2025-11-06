@@ -1,0 +1,386 @@
+# ConfigBuddy v3.0 Alert Rules
+# Alerts for ITIL, TBM, BSM, AI Discovery, and Kafka
+
+groups:
+  # AI Discovery Alerts
+  - name: ai_discovery_alerts
+    interval: 5m
+    rules:
+      - alert: AIDiscoveryCostBudgetExceeded
+        expr: sum(increase(cmdb_ai_discovery_cost_dollars[30d])) > 5000
+        for: 1h
+        labels:
+          severity: warning
+          component: ai-discovery
+          framework: ai
+        annotations:
+          summary: "AI Discovery monthly budget exceeded"
+          description: "AI Discovery costs have exceeded $5000 for the month. Current: ${{ $value | humanize }}"
+          runbook: "Check AI provider usage, review discovery frequency, consider optimizing prompts"
+
+      - alert: AIDiscoveryCostSpike
+        expr: rate(cmdb_ai_discovery_cost_dollars[1h]) > 10
+        for: 15m
+        labels:
+          severity: critical
+          component: ai-discovery
+          framework: ai
+        annotations:
+          summary: "Sudden spike in AI Discovery costs"
+          description: "AI Discovery costs spiking at ${{ $value | humanize }}/hour"
+          runbook: "Investigate unexpected AI API calls, check for runaway discovery jobs"
+
+      - alert: AIDiscoveryHighErrorRate
+        expr: rate(cmdb_ai_discovery_errors_total[5m]) / rate(cmdb_ai_discovery_sessions_total[5m]) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+          component: ai-discovery
+        annotations:
+          summary: "High error rate in AI Discovery"
+          description: "AI Discovery error rate is {{ $value | humanizePercentage }}%"
+
+      - alert: AIPatternLearningFailing
+        expr: cmdb_ai_pattern_learning_success_rate:rate5m < 80
+        for: 15m
+        labels:
+          severity: warning
+          component: ai-discovery
+        annotations:
+          summary: "AI Pattern Learning success rate low"
+          description: "Pattern learning success rate: {{ $value | humanize }}%"
+
+  # BSM Business Impact Alerts
+  - name: bsm_impact_alerts
+    interval: 1m
+    rules:
+      - alert: Tier0ServiceDown
+        expr: up{tier="Tier-0"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: bsm
+          framework: bsm
+          page: true
+        annotations:
+          summary: "CRITICAL: Tier 0 service down"
+          description: "Tier 0 service {{ $labels.service_name }} is DOWN. Immediate action required!"
+          runbook: "Follow Tier 0 incident response procedure. Notify executives."
+
+      - alert: HighRevenueAtRisk
+        expr: cmdb_bsm_revenue_at_risk:sum > 1000000
+        for: 5m
+        labels:
+          severity: critical
+          component: bsm
+          framework: bsm
+          page: true
+        annotations:
+          summary: "Revenue at risk exceeds $1M"
+          description: "Total revenue at risk: ${{ $value | humanize }}"
+          runbook: "Review impacted services, engage business stakeholders"
+
+      - alert: BlastRadiusCalculationSlow
+        expr: histogram_quantile(0.95, rate(cmdb_bsm_blast_radius_duration_seconds_bucket[5m])) > 300
+        for: 10m
+        labels:
+          severity: warning
+          component: bsm
+        annotations:
+          summary: "Blast radius calculations are slow"
+          description: "p95 calculation time: {{ $value | humanizeDuration }}"
+          runbook: "Check Neo4j performance, review graph size, optimize queries"
+
+      - alert: CriticalComplianceViolation
+        expr: count(cmdb_bsm_compliance_violation{severity="critical"}) > 0
+        for: 1m
+        labels:
+          severity: critical
+          component: bsm
+          framework: compliance
+        annotations:
+          summary: "Critical compliance violation detected"
+          description: "{{ $value }} critical compliance violations detected"
+          runbook: "Engage compliance team immediately"
+
+      - alert: SinglePointOfFailureDetected
+        expr: rate(cmdb_bsm_spof_detected_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          component: bsm
+        annotations:
+          summary: "Single point of failure detected"
+          description: "SPOF detected in service dependency chain"
+          runbook: "Review architecture, implement redundancy"
+
+  # TBM Cost Alerts
+  - name: tbm_cost_alerts
+    interval: 5m
+    rules:
+      - alert: CloudCostAnomaly
+        expr: rate(cmdb_tbm_cost_anomalies_detected_total[1h]) > 0
+        for: 15m
+        labels:
+          severity: warning
+          component: tbm
+          framework: tbm
+        annotations:
+          summary: "Cloud cost anomaly detected"
+          description: "Unusual cost pattern detected in {{ $labels.provider }}"
+          runbook: "Review cloud resource usage, check for unauthorized resources"
+
+      - alert: BudgetVarianceHigh
+        expr: abs((sum(cmdb_tbm_actual_cost_monthly) - sum(cmdb_tbm_budget_monthly)) / sum(cmdb_tbm_budget_monthly)) > 0.15
+        for: 1h
+        labels:
+          severity: warning
+          component: tbm
+          framework: tbm
+        annotations:
+          summary: "Budget variance exceeds 15%"
+          description: "Budget variance: {{ $value | humanizePercentage }}%"
+          runbook: "Review cost allocations, adjust budget or investigate overspend"
+
+      - alert: UnderutilizedResourcesHigh
+        expr: sum(cmdb_tbm_underutilized_cost_monthly) > 50000
+        for: 24h
+        labels:
+          severity: info
+          component: tbm
+        annotations:
+          summary: "High underutilized resource costs"
+          description: "Wasting ${{ $value | humanize }}/month on underutilized resources"
+          runbook: "Review resource utilization, rightsize or terminate resources"
+
+      - alert: LicenseRenewalDue
+        expr: cmdb_tbm_license_renewal_days_remaining < 30 and cmdb_tbm_license_renewal_days_remaining > 0
+        for: 24h
+        labels:
+          severity: warning
+          component: tbm
+        annotations:
+          summary: "License renewal due soon"
+          description: "License {{ $labels.license_name }} expires in {{ $value }} days"
+          runbook: "Contact vendor for renewal, update budget"
+
+      - alert: CostAllocationLow
+        expr: cmdb_tbm_allocation_efficiency:ratio < 70
+        for: 1h
+        labels:
+          severity: warning
+          component: tbm
+        annotations:
+          summary: "Cost allocation efficiency low"
+          description: "Only {{ $value | humanize }}% of costs are allocated"
+          runbook: "Review allocation rules, update CI mappings"
+
+  # ITIL Service Management Alerts
+  - name: itil_service_alerts
+    interval: 1m
+    rules:
+      - alert: HighPriorityIncidentBacklog
+        expr: sum(cmdb_itil_incidents_open{priority=~"P1|P2"}) > 10
+        for: 15m
+        labels:
+          severity: critical
+          component: itil
+          framework: itil
+        annotations:
+          summary: "High priority incident backlog"
+          description: "{{ $value }} high priority incidents open"
+          runbook: "Escalate to incident management team, review resource allocation"
+
+      - alert: SLABreachRisk
+        expr: sum by (priority) (cmdb_itil_sla_met_count) / sum by (priority) (cmdb_itil_sla_total_count) < 0.95
+        for: 1h
+        labels:
+          severity: warning
+          component: itil
+        annotations:
+          summary: "SLA compliance below target"
+          description: "SLA compliance for {{ $labels.priority }}: {{ $value | humanizePercentage }}%"
+          runbook: "Review incident response times, adjust SLA targets or resources"
+
+      - alert: ChangeFailureRateHigh
+        expr: rate(cmdb_itil_changes_completed_total{status="failed"}[24h]) / rate(cmdb_itil_changes_completed_total[24h]) > 0.05
+        for: 2h
+        labels:
+          severity: warning
+          component: itil
+        annotations:
+          summary: "Change failure rate exceeds 5%"
+          description: "Change failure rate: {{ $value | humanizePercentage }}%"
+          runbook: "Review change approval process, improve testing procedures"
+
+      - alert: ConfigurationDriftHigh
+        expr: rate(cmdb_itil_drift_detected_total[5m]) > 10
+        for: 15m
+        labels:
+          severity: warning
+          component: itil
+        annotations:
+          summary: "High rate of configuration drift"
+          description: "{{ $value }} configuration drifts detected per minute"
+          runbook: "Review change management process, check for unauthorized changes"
+
+      - alert: BaselineComplianceLow
+        expr: sum(cmdb_itil_cis_compliant) / sum(cmdb_itil_cis_total) < 0.90
+        for: 1h
+        labels:
+          severity: warning
+          component: itil
+        annotations:
+          summary: "Baseline compliance below 90%"
+          description: "Baseline compliance: {{ $value | humanizePercentage }}%"
+          runbook: "Review non-compliant CIs, update baselines or remediate"
+
+      - alert: MTTRExceeded
+        expr: avg(cmdb_itil_incident_resolution_minutes) > 240
+        for: 1h
+        labels:
+          severity: warning
+          component: itil
+        annotations:
+          summary: "Mean Time to Resolution exceeds 4 hours"
+          description: "Current MTTR: {{ $value | humanizeDuration }}"
+          runbook: "Review incident response process, improve tooling/automation"
+
+  # Kafka Event Streaming Alerts
+  - name: kafka_alerts
+    interval: 1m
+    rules:
+      - alert: KafkaBrokerDown
+        expr: up{job="kafka-jmx"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: kafka
+          page: true
+        annotations:
+          summary: "Kafka broker is down"
+          description: "Kafka broker {{ $labels.broker }} is down"
+          runbook: "Check broker logs, restart if needed, verify cluster health"
+
+      - alert: KafkaConsumerLagHigh
+        expr: consumer_group:cmdb_kafka_consumer_lag:max > 100000
+        for: 10m
+        labels:
+          severity: warning
+          component: kafka
+        annotations:
+          summary: "Kafka consumer lag is high"
+          description: "Consumer group {{ $labels.consumer_group }} lag: {{ $value }} records"
+          runbook: "Scale consumers, check processing performance, review backpressure"
+
+      - alert: KafkaConsumerLagCritical
+        expr: consumer_group:cmdb_kafka_consumer_lag:max > 500000
+        for: 5m
+        labels:
+          severity: critical
+          component: kafka
+          page: true
+        annotations:
+          summary: "CRITICAL: Kafka consumer lag exceeds 500K"
+          description: "Consumer group {{ $labels.consumer_group }} lag: {{ $value }} records"
+          runbook: "Immediate action: scale consumers, check for stuck consumers"
+
+      - alert: KafkaUnderReplicatedPartitions
+        expr: sum(kafka_topic_partition_under_replicated_partition) > 0
+        for: 5m
+        labels:
+          severity: critical
+          component: kafka
+        annotations:
+          summary: "Kafka has under-replicated partitions"
+          description: "{{ $value }} under-replicated partitions detected"
+          runbook: "Check broker health, verify replication factor, review ISR"
+
+      - alert: KafkaOfflinePartitions
+        expr: sum(kafka_controller_offline_partitions_count) > 0
+        for: 1m
+        labels:
+          severity: critical
+          component: kafka
+          page: true
+        annotations:
+          summary: "Kafka has offline partitions"
+          description: "{{ $value }} offline partitions detected"
+          runbook: "CRITICAL: Data loss risk. Check broker status, review controller logs"
+
+      - alert: KafkaEventProcessingLatencyHigh
+        expr: topic:cmdb_kafka_latency_ms:p95 > 5000
+        for: 10m
+        labels:
+          severity: warning
+          component: kafka
+        annotations:
+          summary: "Kafka event processing latency high"
+          description: "p95 latency: {{ $value }}ms for {{ $labels.topic }}"
+          runbook: "Review consumer performance, check downstream dependencies"
+
+  # Discovery Enrichment Alerts
+  - name: discovery_enrichment_alerts
+    interval: 5m
+    rules:
+      - alert: ITILEnrichmentFailing
+        expr: rate(cmdb_itil_enrichment_errors_total[5m]) / rate(cmdb_itil_enrichment_total[5m]) > 0.1
+        for: 15m
+        labels:
+          severity: warning
+          component: discovery
+          framework: itil
+        annotations:
+          summary: "ITIL enrichment error rate high"
+          description: "ITIL enrichment error rate: {{ $value | humanizePercentage }}%"
+          runbook: "Check ITIL service manager logs, verify database connectivity"
+
+      - alert: TBMEnrichmentFailing
+        expr: rate(cmdb_tbm_enrichment_errors_total[5m]) / rate(cmdb_tbm_enrichment_total[5m]) > 0.1
+        for: 15m
+        labels:
+          severity: warning
+          component: discovery
+          framework: tbm
+        annotations:
+          summary: "TBM enrichment error rate high"
+          description: "TBM enrichment error rate: {{ $value | humanizePercentage }}%"
+          runbook: "Check TBM cost engine logs, verify cloud cost API connectivity"
+
+      - alert: BSMEnrichmentFailing
+        expr: rate(cmdb_bsm_enrichment_errors_total[5m]) / rate(cmdb_bsm_enrichment_total[5m]) > 0.1
+        for: 15m
+        labels:
+          severity: warning
+          component: discovery
+          framework: bsm
+        annotations:
+          summary: "BSM enrichment error rate high"
+          description: "BSM enrichment error rate: {{ $value | humanizePercentage }}%"
+          runbook: "Check BSM impact engine logs, verify Neo4j graph queries"
+
+  # Metabase Analytics Alerts
+  - name: metabase_alerts
+    interval: 5m
+    rules:
+      - alert: MetabaseDown
+        expr: up{job="metabase"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          component: metabase
+        annotations:
+          summary: "Metabase analytics platform is down"
+          description: "Metabase has been down for 5 minutes"
+          runbook: "Check Metabase container logs, verify database connectivity"
+
+      - alert: MetabaseSlowQueries
+        expr: histogram_quantile(0.95, rate(metabase_query_duration_seconds_bucket[5m])) > 60
+        for: 10m
+        labels:
+          severity: warning
+          component: metabase
+        annotations:
+          summary: "Metabase queries are slow"
+          description: "p95 query time: {{ $value | humanizeDuration }}"
+          runbook: "Review dashboard queries, optimize SQL, check database performance"

@@ -104,13 +104,43 @@ spec:
                   name: cloud-credentials
                   key: gcp-project-id
                   optional: true
+            # v3.0 Environment Variables
+            - name: ENABLE_ITIL_ENRICHMENT
+              value: "true"
+            - name: ENABLE_TBM_ENRICHMENT
+              value: "true"
+            - name: ENABLE_BSM_ENRICHMENT
+              value: "true"
+            - name: ENABLE_AI_DISCOVERY
+              value: "true"
+            # AI Provider Configuration
+            - name: AI_PROVIDER
+              value: "openai"
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ai-credentials
+                  key: openai-api-key
+                  optional: true
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ai-credentials
+                  key: anthropic-api-key
+                  optional: true
+            - name: AI_DISCOVERY_ENABLED
+              value: "true"
+            - name: AI_ANOMALY_DETECTION_ENABLED
+              value: "true"
+            - name: AI_PATTERN_LEARNING_ENABLED
+              value: "true"
           resources:
             requests:
-              cpu: "1"
-              memory: "2Gi"
-            limits:
               cpu: "2"
               memory: "4Gi"
+            limits:
+              cpu: "4"
+              memory: "8Gi"
 ---
 apiVersion: v1
 kind: Service

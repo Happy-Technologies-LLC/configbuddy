@@ -34,11 +34,165 @@ This guide provides links to all monitoring dashboards, key metrics to watch, an
 
 ## Grafana Dashboards
 
+### v3.0 Dashboards
+
+ConfigBuddy v3.0 introduces comprehensive monitoring for ITIL, TBM, BSM, AI Discovery, and Kafka event streaming.
+
+#### v3.0 Platform Overview
+
+**URL**: http://localhost:3001/d/v3-platform-overview/v3-platform-overview
+
+**Purpose**: Unified v3.0 system health across all frameworks
+
+**Key Panels**:
+- Platform health status (all services)
+- ITIL incidents by priority
+- TBM IT spend by tower
+- BSM critical services (Tier 0-1)
+- AI Discovery cost trends
+- Kafka event throughput
+- Change success rate by risk level
+- Revenue at risk
+- Configuration drift detection
+- Kafka consumer lag
+- AI anomalies by severity
+
+**When to Use**: Primary dashboard for v3.0 monitoring, comprehensive view of all frameworks
+
+#### v3.0 AI Discovery & Pattern Learning
+
+**URL**: http://localhost:3001/d/v3-ai-discovery/ai-discovery
+
+**Purpose**: Monitor AI-powered discovery costs, usage, and performance
+
+**Key Panels**:
+- AI discovery cost by provider (OpenAI, Anthropic, etc.)
+- Monthly AI budget status with thresholds
+- Token usage by provider
+- Pattern learning success rate
+- Patterns learned by industry
+- Anomaly detection by severity
+- AI session duration heatmap
+- Model response latency
+- Cost per discovery session
+- AI discovery error rate
+
+**Critical Metrics**:
+- Monthly budget: $5,000 threshold
+- Success rate: >80% expected
+- Response latency: <10s target
+- Error rate: <5% acceptable
+
+#### v3.0 BSM Business Impact
+
+**URL**: http://localhost:3001/d/v3-bsm-impact/bsm-impact
+
+**Purpose**: Monitor business criticality, revenue at risk, and impact scoring
+
+**Key Panels**:
+- Services by criticality tier (Tier 0-4)
+- Total revenue at risk ($)
+- Blast radius calculation performance
+- Business impact scores (Top 10 services)
+- Customer impact (users affected)
+- Compliance risk by framework (GDPR, HIPAA, etc.)
+- Risk rating distribution
+- Tier 0 service health
+- Downtime cost per hour
+- Single point of failure detection
+- MTTR by criticality tier
+- Blast radius calculation rate
+
+**Alert Thresholds**:
+- Revenue at risk: >$1M = critical alert
+- Tier 0 down: immediate page
+- Blast radius calc: >5min = warning
+
+#### v3.0 TBM Cost Transparency
+
+**URL**: http://localhost:3001/d/v3-tbm-cost/tbm-cost
+
+**Purpose**: FinOps dashboard for cost allocation, cloud spend, and budget tracking
+
+**Key Panels**:
+- Total IT spend by resource tower
+- Monthly IT spend trend
+- Cloud cost by provider (AWS, Azure, GCP)
+- On-prem vs cloud cost split
+- Cost allocation efficiency
+- Top 10 cost drivers
+- Cost by business capability
+- License renewal alerts (90 days)
+- Underutilized resources ($)
+- Budget variance %
+- Depreciation by asset type
+- Cloud cost anomaly detection
+
+**FinOps Targets**:
+- Allocation efficiency: >90%
+- Budget variance: ±10%
+- Underutilized waste: <$50K/month
+
+#### v3.0 ITIL Service Management
+
+**URL**: http://localhost:3001/d/v3-itil-service-mgmt/itil
+
+**Purpose**: ITSM operations monitoring - incidents, changes, baselines
+
+**Key Panels**:
+- Open incidents by priority
+- Incident creation rate (24h)
+- Mean Time to Resolution (MTTR)
+- Changes by risk level
+- Change success rate
+- Failed changes (last 7 days)
+- Configuration baseline compliance
+- Configuration drift detection rate
+- CIs by lifecycle stage
+- SLA compliance by priority
+- Audit compliance status
+- Top CIs with most incidents
+- Change window optimization savings
+
+**ITIL Targets**:
+- MTTR: <4 hours
+- Change success: >95%
+- SLA compliance: >95%
+- Baseline compliance: >90%
+
+#### v3.0 Kafka Event Streaming
+
+**URL**: http://localhost:3001/d/v3-kafka-streaming/kafka
+
+**Purpose**: Monitor Kafka cluster health, throughput, and consumer lag
+
+**Key Panels**:
+- Kafka brokers up (should be 3/3)
+- Total event throughput (events/sec)
+- Total consumer lag
+- Event throughput by topic
+- Consumer lag by group
+- Event processing latency (p95)
+- Broker disk usage
+- Messages per topic (24h)
+- Failed message processing
+- Topics by message size
+- Under-replicated partitions (should be 0)
+- Offline partitions (should be 0)
+
+**Critical Kafka Metrics**:
+- Brokers up: 3/3 required
+- Consumer lag: <100K acceptable, >500K critical
+- Under-replicated: 0 required
+- Offline partitions: 0 required
+
+### v2.0 Dashboards (Legacy)
+
 ### 1. Overview Dashboard
 
 **URL**: http://localhost:3001/d/overview/configbuddy-overview
 
-**Purpose**: High-level system health at a glance
+**Purpose**: High-level system health at a glance (v2.0 base platform)
 
 **Key Panels**:
 - **Service Status**: Up/down status of all services

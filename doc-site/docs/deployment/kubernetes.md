@@ -38,39 +38,51 @@ helm install configbuddy configbuddy/configbuddy \\
 Create `custom-values.yaml`:
 
 ```yaml
-# ConfigBuddy Helm Values
+# ConfigBuddy Helm Values (v3.0)
 
 # Global settings
 global:
   storageClass: "gp3"  # AWS EBS gp3
   domain: "cmdb.example.com"
 
-# API Server
+# API Server (v3.0 - increased for ITIL/TBM/BSM)
 api:
   replicaCount: 3
   resources:
     requests:
-      memory: "512Mi"
-      cpu: "500m"
-    limits:
       memory: "2Gi"
-      cpu: "2000m"
+      cpu: "1000m"
+    limits:
+      memory: "4Gi"
+      cpu: "4000m"
   autoscaling:
     enabled: true
     minReplicas: 3
     maxReplicas: 10
     targetCPUUtilizationPercentage: 70
+  env:
+    # v3.0 Features
+    ENABLE_ITIL: "true"
+    ENABLE_TBM: "true"
+    ENABLE_BSM: "true"
+    ENABLE_AI_DISCOVERY: "true"
 
-# Discovery Engine
+# Discovery Engine (v3.0 - increased for AI discovery)
 discovery:
   replicaCount: 2
   resources:
     requests:
-      memory: "1Gi"
-      cpu: "1000m"
-    limits:
       memory: "4Gi"
+      cpu: "2000m"
+    limits:
+      memory: "8Gi"
       cpu: "4000m"
+  env:
+    # v3.0 Enrichment
+    ENABLE_ITIL_ENRICHMENT: "true"
+    ENABLE_TBM_ENRICHMENT: "true"
+    ENABLE_BSM_ENRICHMENT: "true"
+    ENABLE_AI_DISCOVERY: "true"
 
 # Neo4j Database
 neo4j:
@@ -110,6 +122,31 @@ redis:
     limits:
       memory: "2Gi"
       cpu: "1000m"
+
+# Kafka (v3.0 - Event Streaming)
+kafka:
+  enabled: true
+  replicas: 3
+  persistence:
+    size: 100Gi
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "1000m"
+    limits:
+      memory: "2Gi"
+      cpu: "2000m"
+
+# Metabase (v3.0 - Business Intelligence)
+metabase:
+  enabled: true
+  resources:
+    requests:
+      memory: "2Gi"
+      cpu: "500m"
+    limits:
+      memory: "4Gi"
+      cpu: "2000m"
 
 # Ingress
 ingress:
@@ -194,7 +231,7 @@ kubectl apply -f k8s/ingress/
 kubectl get pods -n configbuddy
 ```
 
-Expected output:
+Expected output (v3.0):
 ```
 NAME                                READY   STATUS    RESTARTS   AGE
 configbuddy-api-xxx                 1/1     Running   0          5m
@@ -203,6 +240,10 @@ configbuddy-etl-xxx                 1/1     Running   0          5m
 configbuddy-neo4j-0                 1/1     Running   0          5m
 configbuddy-postgresql-0            1/1     Running   0          5m
 configbuddy-redis-0                 1/1     Running   0          5m
+configbuddy-kafka-0                 1/1     Running   0          5m
+configbuddy-kafka-1                 1/1     Running   0          5m
+configbuddy-kafka-2                 1/1     Running   0          5m
+configbuddy-metabase-xxx            1/1     Running   0          5m
 configbuddy-web-ui-xxx              1/1     Running   0          5m
 ```
 

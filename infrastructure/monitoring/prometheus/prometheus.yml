@@ -163,6 +163,7 @@ scrape_configs:
           - 'http://api-server:3000/ready'
           - 'http://discovery-engine:3001/health'
           - 'http://etl-processor:3002/health'
+          - 'http://metabase:3000/api/health'
         labels:
           component: 'health-check'
     relabel_configs:
@@ -172,6 +173,88 @@ scrape_configs:
         target_label: instance
       - target_label: __address__
         replacement: blackbox-exporter:9115
+
+  # ConfigBuddy v3.0 - ITIL Service Manager Metrics
+  - job_name: 'cmdb-itil-manager'
+    metrics_path: '/metrics/itil'
+    scrape_interval: 30s
+    static_configs:
+      - targets:
+          - 'api-server:3000'
+        labels:
+          service: 'itil-service-manager'
+          component: 'itil'
+          framework: 'itil-v4'
+
+  # ConfigBuddy v3.0 - TBM Cost Engine Metrics
+  - job_name: 'cmdb-tbm-engine'
+    metrics_path: '/metrics/tbm'
+    scrape_interval: 60s
+    static_configs:
+      - targets:
+          - 'api-server:3000'
+        labels:
+          service: 'tbm-cost-engine'
+          component: 'tbm'
+          framework: 'tbm-v5'
+
+  # ConfigBuddy v3.0 - BSM Impact Engine Metrics
+  - job_name: 'cmdb-bsm-engine'
+    metrics_path: '/metrics/bsm'
+    scrape_interval: 30s
+    static_configs:
+      - targets:
+          - 'api-server:3000'
+        labels:
+          service: 'bsm-impact-engine'
+          component: 'bsm'
+          framework: 'bsm'
+
+  # ConfigBuddy v3.0 - AI Discovery Metrics
+  - job_name: 'cmdb-ai-discovery'
+    metrics_path: '/metrics/ai'
+    scrape_interval: 60s
+    static_configs:
+      - targets:
+          - 'discovery-engine:3001'
+        labels:
+          service: 'ai-discovery'
+          component: 'discovery'
+          feature: 'ai-powered'
+
+  # ConfigBuddy v3.0 - Unified Framework Metrics
+  - job_name: 'cmdb-unified-framework'
+    metrics_path: '/metrics/unified'
+    scrape_interval: 30s
+    static_configs:
+      - targets:
+          - 'api-server:3000'
+        labels:
+          service: 'unified-framework'
+          component: 'integration'
+
+  # Kafka Metrics (JMX Exporter)
+  - job_name: 'kafka-jmx'
+    static_configs:
+      - targets:
+          - 'kafka-0.kafka:7071'
+          - 'kafka-1.kafka:7071'
+          - 'kafka-2.kafka:7071'
+        labels:
+          service: 'kafka'
+          component: 'event-streaming'
+          cluster: 'configbuddy-kafka'
+
+  # Metabase Analytics Platform
+  - job_name: 'metabase'
+    metrics_path: '/api/health'
+    scrape_interval: 60s
+    static_configs:
+      - targets:
+          - 'metabase:3000'
+        labels:
+          service: 'metabase'
+          component: 'analytics'
 
 # Recording rules for aggregations
 # These pre-compute frequently used queries
@@ -221,6 +304,95 @@ recording_rules:
           sum by (job_type) (rate(cmdb_etl_jobs_total{status="success"}[5m]))
           /
           sum by (job_type) (rate(cmdb_etl_jobs_total[5m])) * 100
+
+  # v3.0 - ITIL Metrics Aggregations
+  - name: 'itil_aggregations'
+    interval: 1m
+    rules:
+      # Incident creation rate
+      - record: priority:cmdb_itil_incidents_created:rate5m
+        expr: sum by (priority) (rate(cmdb_itil_incidents_created_total[5m]))
+
+      # Change success rate
+      - record: risk:cmdb_itil_changes_success_rate:rate5m
+        expr: |
+          sum by (risk_level) (rate(cmdb_itil_changes_completed_total{status="success"}[5m]))
+          /
+          sum by (risk_level) (rate(cmdb_itil_changes_completed_total[5m])) * 100
+
+      # Drift detection rate
+      - record: cmdb_itil_drift_detection_rate:rate5m
+        expr: rate(cmdb_itil_drift_detected_total[5m])
+
+  # v3.0 - TBM Cost Metrics Aggregations
+  - name: 'tbm_aggregations'
+    interval: 5m
+    rules:
+      # Total IT spend by tower
+      - record: tower:cmdb_tbm_total_cost:sum
+        expr: sum by (tower) (cmdb_tbm_resource_cost_monthly)
+
+      # Cost allocation efficiency
+      - record: cmdb_tbm_allocation_efficiency:ratio
+        expr: |
+          sum(cmdb_tbm_costs_allocated_total)
+          /
+          sum(cmdb_tbm_costs_total) * 100
+
+      # Cloud cost trends
+      - record: provider:cmdb_tbm_cloud_cost:rate1h
+        expr: rate(cmdb_tbm_cloud_cost_total[1h]) by (provider)
+
+  # v3.0 - BSM Impact Metrics Aggregations
+  - name: 'bsm_aggregations'
+    interval: 1m
+    rules:
+      # Critical services count
+      - record: tier:cmdb_bsm_services:count
+        expr: count by (tier) (cmdb_bsm_service_criticality)
+
+      # Revenue at risk
+      - record: cmdb_bsm_revenue_at_risk:sum
+        expr: sum(cmdb_bsm_revenue_at_risk_dollars)
+
+      # Blast radius calculation rate
+      - record: cmdb_bsm_blast_radius_calculations:rate5m
+        expr: rate(cmdb_bsm_blast_radius_calculations_total[5m])
+
+  # v3.0 - AI Discovery Metrics Aggregations
+  - name: 'ai_discovery_aggregations'
+    interval: 5m
+    rules:
+      # AI discovery cost per day
+      - record: provider:cmdb_ai_discovery_cost_daily:sum
+        expr: sum by (provider) (increase(cmdb_ai_discovery_cost_dollars[24h]))
+
+      # Pattern learning success rate
+      - record: cmdb_ai_pattern_learning_success_rate:rate5m
+        expr: |
+          rate(cmdb_ai_patterns_learned_total{status="success"}[5m])
+          /
+          rate(cmdb_ai_patterns_learned_total[5m]) * 100
+
+      # Anomaly detection rate
+      - record: severity:cmdb_ai_anomalies_detected:rate5m
+        expr: sum by (severity) (rate(cmdb_ai_anomalies_detected_total[5m]))
+
+  # v3.0 - Kafka Event Streaming Aggregations
+  - name: 'kafka_aggregations'
+    interval: 1m
+    rules:
+      # Event throughput by topic
+      - record: topic:cmdb_kafka_events:rate5m
+        expr: sum by (topic) (rate(kafka_topic_partition_current_offset[5m]))
+
+      # Consumer lag
+      - record: consumer_group:cmdb_kafka_consumer_lag:max
+        expr: max by (consumer_group) (kafka_consumer_lag_records)
+
+      # Event processing latency
+      - record: topic:cmdb_kafka_latency_ms:p95
+        expr: histogram_quantile(0.95, rate(kafka_event_processing_duration_seconds_bucket[5m])) by (topic)
 
 # Remote write configuration (for long-term storage)
 remote_write:

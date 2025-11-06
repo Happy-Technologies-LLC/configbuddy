@@ -1,0 +1,156 @@
+# ServiceMonitor CRDs for Prometheus Operator
+# These enable automatic service discovery and metrics scraping
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: api-server
+  namespace: configbuddy-cmdb
+  labels:
+    app: api-server
+    prometheus: configbuddy
+spec:
+  selector:
+    matchLabels:
+      app: api-server
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: discovery-engine
+  namespace: configbuddy-cmdb
+  labels:
+    app: discovery-engine
+    prometheus: configbuddy
+spec:
+  selector:
+    matchLabels:
+      app: discovery-engine
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod
+        - sourceLabels: [__meta_kubernetes_pod_node_name]
+          targetLabel: node
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: etl-processor
+  namespace: configbuddy-cmdb
+  labels:
+    app: etl-processor
+    prometheus: configbuddy
+spec:
+  selector:
+    matchLabels:
+      app: etl-processor
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kafka
+  namespace: configbuddy-cmdb
+  labels:
+    app: kafka
+    prometheus: configbuddy
+spec:
+  selector:
+    matchLabels:
+      app: kafka
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: broker
+        - sourceLabels: [__address__]
+          targetLabel: instance
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: metabase
+  namespace: configbuddy-cmdb
+  labels:
+    app: metabase
+    prometheus: configbuddy
+spec:
+  selector:
+    matchLabels:
+      app: metabase
+  endpoints:
+    - port: http
+      path: /api/health
+      interval: 60s
+      scrapeTimeout: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: neo4j
+  namespace: configbuddy-cmdb
+  labels:
+    app: neo4j
+    prometheus: configbuddy
+spec:
+  selector:
+    matchLabels:
+      app: neo4j
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: postgresql
+  namespace: configbuddy-cmdb
+  labels:
+    app: postgresql
+    prometheus: configbuddy
+spec:
+  selector:
+    matchLabels:
+      app: postgres-exporter
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: redis
+  namespace: configbuddy-cmdb
+  labels:
+    app: redis
+    prometheus: configbuddy
+spec:
+  selector:
+    matchLabels:
+      app: redis-exporter
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s

@@ -48,9 +48,23 @@ export default defineConfig({
           { text: 'AI Discovery', link: '/components/ai-discovery' },
           { text: 'Pattern Learning', link: '/components/pattern-learning' },
           { text: 'BullMQ Integration', link: '/components/bullmq' },
+          { text: 'Event Streaming', link: '/components/event-streaming' },
           { text: 'Credentials Management', link: '/components/credentials' },
           { text: 'Discovery Agents', link: '/components/discovery-agents' },
           { text: 'Operations', link: '/operations/daily-operations' }
+        ]
+      },
+      {
+        text: 'v3.0 Features',
+        items: [
+          { text: 'Unified Framework', link: '/components/unified-framework' },
+          { text: 'BSM Impact Engine', link: '/components/bsm-impact-engine' },
+          { text: 'TBM Cost Engine', link: '/components/tbm-cost-engine' },
+          { text: 'ITIL Service Manager', link: '/components/itil-service-manager' },
+          { text: 'AI/ML Engine', link: '/components/ai-ml-engine' },
+          { text: 'Event Streaming', link: '/components/event-streaming' },
+          { text: 'Metabase BI', link: '/components/metabase' },
+          { text: 'Multi-Stakeholder Dashboards', link: '/components/dashboards' }
         ]
       },
       {
@@ -143,6 +157,7 @@ export default defineConfig({
           text: 'Core Components',
           items: [
             { text: 'BullMQ Integration', link: '/components/bullmq' },
+            { text: 'Event Streaming (Kafka)', link: '/components/event-streaming' },
             { text: 'Web UI', link: '/components/web-ui' },
             { text: 'Data Mart', link: '/components/data-mart' },
             { text: 'Authentication', link: '/components/authentication' },
@@ -167,6 +182,19 @@ export default defineConfig({
             { text: 'Discovery Engine', link: '/components/discovery-engine' },
             { text: 'ETL Processor', link: '/components/etl-processor' },
             { text: 'CLI Tools', link: '/components/cli' }
+          ]
+        },
+        {
+          text: 'v3.0 Features',
+          items: [
+            { text: 'Unified Framework Integration', link: '/components/unified-framework' },
+            { text: 'BSM Impact Engine', link: '/components/bsm-impact-engine' },
+            { text: 'TBM Cost Engine', link: '/components/tbm-cost-engine' },
+            { text: 'ITIL Service Manager', link: '/components/itil-service-manager' },
+            { text: 'AI/ML Engine', link: '/components/ai-ml-engine' },
+            { text: 'Event Streaming', link: '/components/event-streaming' },
+            { text: 'Metabase BI', link: '/components/metabase' },
+            { text: 'Multi-Stakeholder Dashboards', link: '/components/dashboards' }
           ]
         }
       ],

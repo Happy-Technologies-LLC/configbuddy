@@ -81,13 +81,38 @@ spec:
                   key: redis-password
             - name: KAFKA_BROKERS
               value: "kafka-0.kafka.configbuddy-cmdb.svc.cluster.local:9092,kafka-1.kafka.configbuddy-cmdb.svc.cluster.local:9092,kafka-2.kafka.configbuddy-cmdb.svc.cluster.local:9092"
+            # v3.0 Environment Variables
+            - name: ENABLE_ITIL
+              value: "true"
+            - name: ENABLE_TBM
+              value: "true"
+            - name: ENABLE_BSM
+              value: "true"
+            - name: ENABLE_AI_DISCOVERY
+              value: "true"
+            # Cloud Cost Integration
+            - name: AWS_COST_EXPLORER_ENABLED
+              value: "true"
+            - name: AZURE_COST_MGMT_ENABLED
+              value: "true"
+            - name: GCP_BILLING_ENABLED
+              value: "true"
+            # Metabase Integration
+            - name: METABASE_URL
+              value: "http://metabase.configbuddy-cmdb.svc.cluster.local:3000"
+            - name: METABASE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: cmdb-secrets
+                  key: metabase-api-key
+                  optional: true
           resources:
             requests:
-              cpu: "500m"
-              memory: "1Gi"
-            limits:
-              cpu: "2"
+              cpu: "1"
               memory: "2Gi"
+            limits:
+              cpu: "4"
+              memory: "4Gi"
           livenessProbe:
             httpGet:
               path: /api/v1/health

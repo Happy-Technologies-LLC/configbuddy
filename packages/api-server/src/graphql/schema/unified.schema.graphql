@@ -1,0 +1,763 @@
+# Unified Framework Integration GraphQL Schema
+# Combines ITIL + TBM + BSM for complete service views
+
+# ============================================================================
+# Complete Service View
+# ============================================================================
+
+"""
+Complete service view combining all three frameworks
+"""
+type CompleteServiceView {
+  """Service identifier"""
+  serviceId: ID!
+
+  """Service name"""
+  serviceName: String!
+
+  """Service description"""
+  serviceDescription: String!
+
+  """ITIL service management metrics"""
+  itil: ITILMetrics!
+
+  """TBM cost transparency metrics"""
+  tbm: TBMCosts!
+
+  """BSM business impact metrics"""
+  bsm: BSMImpact!
+
+  """Unified KPIs across all frameworks"""
+  kpis: UnifiedKPIs!
+
+  """Underlying business service record"""
+  businessService: BusinessService!
+
+  """Timestamp when this view was generated"""
+  generatedAt: String!
+
+  """Cache TTL in seconds"""
+  cacheTTL: Int!
+}
+
+# ============================================================================
+# Unified KPIs
+# ============================================================================
+
+"""
+Unified key performance indicators
+"""
+type UnifiedKPIs {
+  """Service health score (0-100)"""
+  serviceHealth: Float!
+
+  """Cost efficiency metrics"""
+  costEfficiency: CostEfficiency!
+
+  """Risk score (0-100)"""
+  riskScore: Float!
+
+  """Value score (revenue/cost ratio)"""
+  valueScore: Float!
+
+  """Compliance score (0-100)"""
+  complianceScore: Float!
+
+  """Service availability percentage"""
+  availability: Float!
+
+  """Return on IT investment"""
+  roi: Float!
+
+  """Mean time to resolution (minutes)"""
+  mttr: Float!
+
+  """Mean time between failures (hours)"""
+  mtbf: Float!
+
+  """Change success rate (0-100)"""
+  changeSuccessRate: Float!
+}
+
+"""
+Cost efficiency metrics
+"""
+type CostEfficiency {
+  """Cost per transaction"""
+  costPerTransaction: Float!
+
+  """Cost per active user"""
+  costPerUser: Float!
+
+  """Cost as percentage of revenue"""
+  costPerRevenue: Float!
+
+  """Cost trend indicator"""
+  trend: CostTrend!
+
+  """Budget variance (positive = under budget)"""
+  budgetVariance: Float!
+}
+
+enum CostTrend {
+  INCREASING
+  STABLE
+  DECREASING
+}
+
+# ============================================================================
+# ITIL Metrics
+# ============================================================================
+
+"""
+ITIL service management metrics
+"""
+type ITILMetrics {
+  """Service name"""
+  serviceName: String!
+
+  """Number of open incidents"""
+  openIncidents: Int!
+
+  """Average mean time to resolution (minutes)"""
+  averageMTTR: Float!
+
+  """Number of changes in last 30 days"""
+  changesLast30Days: Int!
+
+  """Change success rate (0-1)"""
+  changeSuccessRate: Float!
+
+  """Configuration accuracy (0-1)"""
+  configurationAccuracy: Float!
+
+  """Service availability (0-1)"""
+  availability: Float!
+
+  """Last audit date"""
+  lastAuditDate: String
+
+  """Audit compliance status"""
+  auditStatus: AuditComplianceStatus!
+
+  """Number of critical incidents (30 days)"""
+  criticalIncidents: Int!
+
+  """Number of CIs in baseline"""
+  baselinedCIs: Int!
+
+  """Number of CIs with configuration drift"""
+  driftedCIs: Int!
+
+  """Average baseline compliance (0-100)"""
+  baselineCompliance: Float!
+}
+
+enum AuditComplianceStatus {
+  COMPLIANT
+  NON_COMPLIANT
+  UNKNOWN
+}
+
+# ============================================================================
+# TBM Costs
+# ============================================================================
+
+"""
+TBM cost transparency metrics
+"""
+type TBMCosts {
+  """Total monthly cost"""
+  monthlyCost: Float!
+
+  """Cost breakdown by TBM tower"""
+  costByTower: [TowerCost!]!
+
+  """Cost breakdown by cost pool"""
+  costByPool: [PoolCost!]!
+
+  """Cost trend over time"""
+  costTrend: CostTrend!
+
+  """Budget variance"""
+  budgetVariance: Float!
+
+  """Allocated cost percentage (0-100)"""
+  allocationPercentage: Float!
+
+  """Largest cost contributors"""
+  topCostDrivers: [CostDriver!]!
+
+  """Year-over-year cost change percentage"""
+  yoyChange: Float!
+
+  """Month-over-month cost change percentage"""
+  momChange: Float!
+}
+
+type TowerCost {
+  tower: String!
+  cost: Float!
+}
+
+type PoolCost {
+  pool: String!
+  cost: Float!
+}
+
+type CostDriver {
+  ciId: ID!
+  ciName: String!
+  cost: Float!
+  percentage: Float!
+}
+
+# ============================================================================
+# BSM Impact
+# ============================================================================
+
+"""
+BSM business impact metrics
+"""
+type BSMImpact {
+  """Business criticality tier"""
+  criticality: BusinessCriticality!
+
+  """Overall impact score (0-100)"""
+  impactScore: Float!
+
+  """Annual revenue supported"""
+  annualRevenue: Float!
+
+  """Number of customers served"""
+  customerCount: Int!
+
+  """Number of active users"""
+  userCount: Int!
+
+  """Daily transaction volume"""
+  transactionVolume: Int!
+
+  """Compliance frameworks in scope"""
+  complianceScope: [String!]!
+
+  """Overall risk level"""
+  riskLevel: RiskLevel!
+
+  """Customer-facing service indicator"""
+  customerFacing: Boolean!
+
+  """Revenue at risk per hour of downtime"""
+  revenueAtRiskPerHour: Float!
+
+  """Estimated customers impacted by outage"""
+  customersImpactedByOutage: Int!
+
+  """Recovery time objective (minutes)"""
+  rto: Int!
+
+  """Recovery point objective (minutes)"""
+  rpo: Int!
+}
+
+enum BusinessCriticality {
+  TIER_0
+  TIER_1
+  TIER_2
+  TIER_3
+  TIER_4
+}
+
+enum RiskLevel {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+# ============================================================================
+# Enriched Incident
+# ============================================================================
+
+"""
+Incident enriched with ITIL + TBM + BSM data
+"""
+type EnrichedIncident {
+  """Incident ID"""
+  id: ID!
+
+  """Incident title"""
+  title: String!
+
+  """Incident description"""
+  description: String!
+
+  """Affected CI ID"""
+  affectedCIId: ID!
+
+  """Affected CI name"""
+  affectedCIName: String!
+
+  """Reported by"""
+  reportedBy: String!
+
+  """Category"""
+  category: String
+
+  """Subcategory"""
+  subcategory: String
+
+  """Symptoms"""
+  symptoms: [String!]!
+
+  """ITIL priority calculation"""
+  itilPriority: IncidentPriority!
+
+  """Business impact analysis"""
+  businessImpact: ImpactAnalysis!
+
+  """Blast radius analysis"""
+  blastRadius: BlastRadiusAnalysis!
+
+  """Estimated revenue impact"""
+  estimatedRevenueImpact: Float!
+
+  """Estimated customer impact"""
+  estimatedCustomerImpact: Int!
+
+  """Downtime cost per hour"""
+  downtimeCostPerHour: Float!
+
+  """Total estimated cost"""
+  totalEstimatedCost: Float!
+
+  """Response team members"""
+  responseTeam: [String!]!
+
+  """Escalation required flag"""
+  escalationRequired: Boolean!
+
+  """Executive notification required flag"""
+  executiveNotificationRequired: Boolean!
+
+  """Recommended actions"""
+  recommendedActions: [String!]!
+
+  """Target response time (minutes)"""
+  targetResponseTime: Int!
+
+  """Target resolution time (minutes)"""
+  targetResolutionTime: Int!
+
+  """Timestamp when enrichment was calculated"""
+  enrichedAt: String!
+}
+
+type IncidentPriority {
+  priority: Int!
+  impact: String!
+  urgency: String!
+  reasoning: String!
+  requiresEscalation: Boolean!
+}
+
+type ImpactAnalysis {
+  serviceId: ID!
+  serviceName: String!
+  criticality: BusinessCriticality!
+  impactScore: Float!
+  annualRevenueAtRisk: Float!
+  revenueAtRiskPerHour: Float!
+  customersImpacted: Int!
+  usersImpacted: Int!
+  transactionsImpacted: Int!
+  customerFacing: Boolean!
+  complianceFrameworks: [String!]!
+  complianceImpact: ComplianceImpactLevel!
+  riskRating: RiskLevel!
+}
+
+enum ComplianceImpactLevel {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+  NONE
+}
+
+type BlastRadiusAnalysis {
+  sourceId: ID!
+  sourceName: String!
+  totalCIsImpacted: Int!
+  totalServicesImpacted: Int!
+  totalCustomersImpacted: Int!
+  totalUsersImpacted: Int!
+  totalRevenueAtRisk: Float!
+  maxDependencyDepth: Int!
+  analyzedAt: String!
+}
+
+# ============================================================================
+# Unified Change Risk
+# ============================================================================
+
+"""
+Unified change risk assessment
+"""
+type UnifiedChangeRisk {
+  """Change ID"""
+  changeId: ID!
+
+  """Change title"""
+  changeTitle: String!
+
+  """Change type"""
+  changeType: ChangeType!
+
+  """ITIL risk assessment"""
+  itilRisk: ChangeRiskAssessment!
+
+  """Business impact analysis"""
+  businessImpact: ImpactAnalysis!
+
+  """Cost estimation"""
+  costEstimate: CostEstimate!
+
+  """Approval requirements"""
+  approvalRequirements: ApprovalRequirements!
+
+  """Requires CAB approval"""
+  requiresCABApproval: Boolean!
+
+  """Requires executive approval"""
+  requiresExecutiveApproval: Boolean!
+
+  """Requires financial approval"""
+  requiresFinancialApproval: Boolean!
+
+  """Overall risk level"""
+  overallRiskLevel: OverallRiskLevel!
+
+  """Risk-adjusted recommendations"""
+  recommendations: [String!]!
+
+  """Optimal change window"""
+  optimalChangeWindow: OptimalChangeWindow
+
+  """Timestamp when assessment was performed"""
+  assessedAt: String!
+}
+
+enum ChangeType {
+  STANDARD
+  NORMAL
+  EMERGENCY
+  MAJOR
+}
+
+type ChangeRiskAssessment {
+  overallRiskScore: Float!
+  riskLevel: String!
+  requiresCABApproval: Boolean!
+}
+
+type CostEstimate {
+  laborCost: Float!
+  estimatedDowntimeMinutes: Int!
+  downtimeCost: Float!
+  rollbackCost: Float!
+  testingCost: Float!
+  totalCost: Float!
+  riskAdjustedCost: Float!
+  confidence: ConfidenceLevel!
+}
+
+enum ConfidenceLevel {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+type ApprovalRequirements {
+  cabApproval: Boolean!
+  businessOwnerApproval: Boolean!
+  technicalOwnerApproval: Boolean!
+  executiveApproval: Boolean!
+  financeApproval: Boolean!
+  securityApproval: Boolean!
+  complianceApproval: Boolean!
+  estimatedApprovalDuration: Int!
+  approvalReasons: [String!]!
+}
+
+enum OverallRiskLevel {
+  VERY_HIGH
+  HIGH
+  MEDIUM
+  LOW
+}
+
+type OptimalChangeWindow {
+  start: String!
+  end: String!
+  reason: String!
+}
+
+# ============================================================================
+# Service Dashboard
+# ============================================================================
+
+"""
+Complete dashboard data for a service
+"""
+type ServiceDashboard {
+  """Complete service view"""
+  service: CompleteServiceView!
+
+  """Recent incidents (30 days)"""
+  recentIncidents: [RecentIncident!]!
+
+  """Recent changes (30 days)"""
+  recentChanges: [RecentChange!]!
+
+  """Cost trends (12 months)"""
+  costTrends: [CostTrendPoint!]!
+
+  """Health trends (30 days)"""
+  healthTrends: [HealthTrendPoint!]!
+
+  """Alerts and warnings"""
+  alerts: [ServiceAlert!]!
+
+  """Generated timestamp"""
+  generatedAt: String!
+}
+
+type RecentIncident {
+  id: ID!
+  title: String!
+  priority: Int!
+  status: String!
+  createdAt: String!
+  resolvedAt: String
+}
+
+type RecentChange {
+  id: ID!
+  title: String!
+  changeType: String!
+  status: String!
+  scheduledStart: String!
+  outcome: String
+}
+
+type CostTrendPoint {
+  month: String!
+  cost: Float!
+  change: Float!
+}
+
+type HealthTrendPoint {
+  date: String!
+  healthScore: Float!
+  availability: Float!
+}
+
+type ServiceAlert {
+  severity: AlertSeverity!
+  message: String!
+  timestamp: String!
+}
+
+enum AlertSeverity {
+  CRITICAL
+  WARNING
+  INFO
+}
+
+# ============================================================================
+# Inputs
+# ============================================================================
+
+"""
+Input for creating enriched incident
+"""
+input CreateEnrichedIncidentInput {
+  affectedCIId: ID!
+  title: String!
+  description: String!
+  reportedBy: String!
+  category: String
+  subcategory: String
+  symptoms: [String!]
+}
+
+"""
+Input for assessing unified change risk
+"""
+input AssessUnifiedChangeRiskInput {
+  affectedCIIds: [ID!]!
+  title: String!
+  description: String!
+  changeType: ChangeType!
+  category: String
+  plannedStart: String!
+  plannedEnd: String!
+  implementationPlan: String!
+  backoutPlan: String!
+  testPlan: String
+  requestedBy: String!
+}
+
+"""
+Filters for querying services
+"""
+input UnifiedQueryFilters {
+  serviceIds: [ID!]
+  criticality: [BusinessCriticality!]
+  operationalStatus: [String!]
+  costRange: CostRangeInput
+  healthScoreRange: ScoreRangeInput
+  riskLevel: [RiskLevel!]
+  complianceFrameworks: [String!]
+  technicalOwner: String
+  businessOwner: String
+  search: String
+  sortBy: SortField
+  sortDirection: SortDirection
+  limit: Int
+  offset: Int
+}
+
+input CostRangeInput {
+  min: Float
+  max: Float
+}
+
+input ScoreRangeInput {
+  min: Float
+  max: Float
+}
+
+enum SortField {
+  NAME
+  COST
+  HEALTH
+  RISK
+  REVENUE
+  CRITICALITY
+}
+
+enum SortDirection {
+  ASC
+  DESC
+}
+
+# ============================================================================
+# Queries
+# ============================================================================
+
+extend type Query {
+  """Get complete service view with all frameworks"""
+  completeServiceView(serviceId: ID!, useCache: Boolean): CompleteServiceView!
+
+  """Get unified KPIs for a service"""
+  unifiedKPIs(serviceId: ID!): UnifiedKPIs!
+
+  """Get service dashboard data"""
+  serviceDashboard(serviceId: ID!): ServiceDashboard!
+
+  """Query services with unified filters"""
+  queryServices(filters: UnifiedQueryFilters): [CompleteServiceView!]!
+
+  """Get top services by cost"""
+  topServicesByCost(limit: Int): [CompleteServiceView!]!
+
+  """Get top services by risk"""
+  topServicesByRisk(limit: Int): [CompleteServiceView!]!
+
+  """Get top services by value"""
+  topServicesByValue(limit: Int): [CompleteServiceView!]!
+
+  """Get service health details"""
+  serviceHealthDetails(serviceId: ID!): ServiceHealthDetails!
+
+  """Get risk score details"""
+  riskScoreDetails(serviceId: ID!): RiskScoreDetails!
+
+  """Get value score details"""
+  valueScoreDetails(serviceId: ID!): ValueScoreDetails!
+}
+
+# ============================================================================
+# Mutations
+# ============================================================================
+
+extend type Mutation {
+  """Create enriched incident with ITIL + TBM + BSM analysis"""
+  createEnrichedIncident(input: CreateEnrichedIncidentInput!): EnrichedIncident!
+
+  """Assess unified change risk across all frameworks"""
+  assessUnifiedChangeRisk(input: AssessUnifiedChangeRiskInput!): UnifiedChangeRisk!
+}
+
+# ============================================================================
+# Detail Types
+# ============================================================================
+
+type ServiceHealthDetails {
+  overallScore: Float!
+  availabilityScore: Float!
+  incidentScore: Float!
+  changeScore: Float!
+  complianceScore: Float!
+  performanceScore: Float!
+  operationalStatus: String!
+  trend: Trend!
+  calculatedAt: String!
+}
+
+type RiskScoreDetails {
+  overallScore: Float!
+  changeRisk: Float!
+  criticalityRisk: Float!
+  incidentRisk: Float!
+  driftRisk: Float!
+  complianceRisk: Float!
+  riskLevel: RiskLevel!
+  trend: Trend!
+  topRiskFactors: [String!]!
+  calculatedAt: String!
+}
+
+type ValueScoreDetails {
+  overallScore: Float!
+  annualRevenue: Float!
+  annualCost: Float!
+  roiPercentage: Float!
+  valueClassification: ValueClassification!
+  revenuePerDollar: Float!
+  costOptimizationOpportunities: [String!]!
+  trend: Trend!
+  calculatedAt: String!
+}
+
+enum Trend {
+  IMPROVING
+  STABLE
+  DEGRADING
+}
+
+enum ValueClassification {
+  HIGH_VALUE
+  MEDIUM_VALUE
+  LOW_VALUE
+  COST_CENTER
+}
+
+# Placeholder for BusinessService type (should be defined in main schema)
+type BusinessService {
+  id: ID!
+  name: String!
+  description: String!
+}

@@ -1,0 +1,189 @@
+{
+  "name": "FinOps Dashboard - Cost Optimization",
+  "description": "Cloud spend, cost allocation, unit economics, and optimization opportunities for FinOps teams",
+  "parameters": [],
+  "cards": [
+    {
+      "name": "Cloud vs On-Prem Costs",
+      "description": "Cost comparison between cloud and on-premises infrastructure",
+      "visualization_settings": {
+        "graph.metrics": ["monthly_cost"],
+        "graph.dimensions": ["deployment_model"],
+        "card.title": "Cloud vs On-Prem Costs"
+      },
+      "dataset_query": {
+        "type": "native",
+        "native": {
+          "query": "SELECT deployment_model, monthly_cost, pct_of_total FROM v_cloud_vs_onprem_costs ORDER BY monthly_cost DESC",
+          "template-tags": {}
+        },
+        "database": "ConfigBuddy CMDB"
+      },
+      "display": "pie",
+      "visualization_type": "pie"
+    },
+    {
+      "name": "Cost by TBM Tower",
+      "description": "Monthly cost breakdown by TBM resource tower",
+      "visualization_settings": {
+        "graph.metrics": ["total_monthly_cost"],
+        "graph.dimensions": ["tbm_resource_tower"],
+        "card.title": "Cost by TBM Tower"
+      },
+      "dataset_query": {
+        "type": "native",
+        "native": {
+          "query": "SELECT tbm_resource_tower, total_monthly_cost, pct_of_total_cost FROM v_cost_by_tower GROUP BY tbm_resource_tower, total_monthly_cost, pct_of_total_cost ORDER BY total_monthly_cost DESC",
+          "template-tags": {}
+        },
+        "database": "ConfigBuddy CMDB"
+      },
+      "display": "bar",
+      "visualization_type": "bar"
+    },
+    {
+      "name": "Unit Economics - Top Services",
+      "description": "Unit economics for top business services by revenue ratio",
+      "visualization_settings": {
+        "table.columns": [
+          {"name": "business_service", "display_name": "Service"},
+          {"name": "monthly_cost", "display_name": "Monthly Cost ($)"},
+          {"name": "cost_per_transaction", "display_name": "Cost per Transaction ($)"},
+          {"name": "cost_per_customer", "display_name": "Cost per Customer ($)"},
+          {"name": "revenue_ratio", "display_name": "Revenue Ratio"}
+        ],
+        "card.title": "Unit Economics - Top Services"
+      },
+      "dataset_query": {
+        "type": "native",
+        "native": {
+          "query": "SELECT business_service, monthly_cost, cost_per_transaction, cost_per_customer, revenue_ratio FROM v_unit_economics WHERE revenue_ratio > 0 ORDER BY revenue_ratio DESC LIMIT 10",
+          "template-tags": {}
+        },
+        "database": "ConfigBuddy CMDB"
+      },
+      "display": "table",
+      "visualization_type": "table"
+    },
+    {
+      "name": "Budget Variance by Cost Center",
+      "description": "Budget variance analysis by cost center",
+      "visualization_settings": {
+        "table.columns": [
+          {"name": "cost_center", "display_name": "Cost Center"},
+          {"name": "monthly_budget", "display_name": "Budget ($)"},
+          {"name": "actual_monthly_cost", "display_name": "Actual ($)"},
+          {"name": "monthly_variance", "display_name": "Variance ($)"},
+          {"name": "variance_pct", "display_name": "Variance (%)"}
+        ],
+        "card.title": "Budget Variance by Cost Center"
+      },
+      "dataset_query": {
+        "type": "native",
+        "native": {
+          "query": "SELECT cost_center, cost_pool_name, monthly_budget, actual_monthly_cost, monthly_variance, variance_pct FROM v_cost_allocation_summary ORDER BY ABS(variance_pct) DESC LIMIT 10",
+          "template-tags": {}
+        },
+        "database": "ConfigBuddy CMDB"
+      },
+      "display": "table",
+      "visualization_type": "table"
+    },
+    {
+      "name": "Cost Trends by Environment",
+      "description": "Monthly cost trends segmented by environment",
+      "visualization_settings": {
+        "graph.metrics": ["monthly_cost"],
+        "graph.dimensions": ["month", "environment"],
+        "card.title": "Cost Trends by Environment"
+      },
+      "dataset_query": {
+        "type": "native",
+        "native": {
+          "query": "SELECT month, environment, SUM(monthly_cost) AS monthly_cost FROM v_cost_trends WHERE month >= NOW() - INTERVAL '6 months' GROUP BY month, environment ORDER BY month",
+          "template-tags": {}
+        },
+        "database": "ConfigBuddy CMDB"
+      },
+      "display": "line",
+      "visualization_type": "line"
+    },
+    {
+      "name": "Depreciation Summary",
+      "description": "Asset depreciation summary with remaining book value",
+      "visualization_settings": {
+        "table.columns": [
+          {"name": "ci_name", "display_name": "Asset"},
+          {"name": "ci_type", "display_name": "Type"},
+          {"name": "current_book_value", "display_name": "Book Value ($)"},
+          {"name": "remaining_months", "display_name": "Remaining Months"},
+          {"name": "depreciation_pct", "display_name": "Depreciated (%)"}
+        ],
+        "card.title": "Depreciation Summary"
+      },
+      "dataset_query": {
+        "type": "native",
+        "native": {
+          "query": "SELECT ci_name, ci_type, current_book_value, remaining_months, depreciation_pct FROM v_depreciation_summary WHERE fully_depreciated = FALSE ORDER BY current_book_value DESC LIMIT 10",
+          "template-tags": {}
+        },
+        "database": "ConfigBuddy CMDB"
+      },
+      "display": "table",
+      "visualization_type": "table"
+    },
+    {
+      "name": "Cost Optimization Opportunities",
+      "description": "Top opportunities for cost optimization based on utilization",
+      "visualization_settings": {
+        "table.columns": [
+          {"name": "ci_name", "display_name": "CI Name"},
+          {"name": "ci_type", "display_name": "Type"},
+          {"name": "monthly_cost", "display_name": "Monthly Cost ($)"},
+          {"name": "utilization_pct", "display_name": "Utilization (%)"},
+          {"name": "potential_savings", "display_name": "Potential Savings ($)"}
+        ],
+        "card.title": "Cost Optimization Opportunities"
+      },
+      "dataset_query": {
+        "type": "native",
+        "native": {
+          "query": "SELECT ci_name, ci_type, COALESCE((tbm_attributes->>'monthly_cost')::DECIMAL, 0) AS monthly_cost, COALESCE((metadata->>'utilization_pct')::DECIMAL, 0) AS utilization_pct, COALESCE((tbm_attributes->>'monthly_cost')::DECIMAL, 0) * (1 - COALESCE((metadata->>'utilization_pct')::DECIMAL, 0) / 100) AS potential_savings FROM cmdb.dim_ci WHERE is_current = TRUE AND ci_status = 'active' AND (metadata->>'utilization_pct')::DECIMAL < 50 ORDER BY potential_savings DESC LIMIT 10",
+          "template-tags": {}
+        },
+        "database": "ConfigBuddy CMDB"
+      },
+      "display": "table",
+      "visualization_type": "table"
+    },
+    {
+      "name": "Cost Distribution by CI Type",
+      "description": "Cost distribution across different CI types",
+      "visualization_settings": {
+        "graph.metrics": ["total_monthly_cost"],
+        "graph.dimensions": ["ci_type"],
+        "card.title": "Cost Distribution by CI Type"
+      },
+      "dataset_query": {
+        "type": "native",
+        "native": {
+          "query": "SELECT ci_type, SUM(total_monthly_cost) AS total_monthly_cost FROM v_cost_by_tower GROUP BY ci_type ORDER BY total_monthly_cost DESC LIMIT 8",
+          "template-tags": {}
+        },
+        "database": "ConfigBuddy CMDB"
+      },
+      "display": "pie",
+      "visualization_type": "pie"
+    }
+  ],
+  "layout": [
+    {"row": 0, "col": 0, "sizeX": 6, "sizeY": 4, "cardId": 0},
+    {"row": 0, "col": 6, "sizeX": 6, "sizeY": 4, "cardId": 7},
+    {"row": 4, "col": 0, "sizeX": 12, "sizeY": 4, "cardId": 1},
+    {"row": 8, "col": 0, "sizeX": 12, "sizeY": 4, "cardId": 2},
+    {"row": 12, "col": 0, "sizeX": 12, "sizeY": 4, "cardId": 3},
+    {"row": 16, "col": 0, "sizeX": 12, "sizeY": 4, "cardId": 4},
+    {"row": 20, "col": 0, "sizeX": 6, "sizeY": 4, "cardId": 5},
+    {"row": 20, "col": 6, "sizeX": 6, "sizeY": 4, "cardId": 6}
+  ]
+}

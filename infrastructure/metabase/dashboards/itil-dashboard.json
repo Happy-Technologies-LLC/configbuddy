@@ -1,0 +1,245 @@
+{
+  "name": "ITIL Service Management Dashboard",
+  "description": "Incident management, change management, configuration accuracy, and SLA compliance metrics",
+  "parameters": [],
+  "cards": [
+    {
+      "name": "Open Incidents by Priority",
+      "description": "Current open incidents grouped by priority level",
+      "visualization_settings": {
+        "graph.metrics": ["incident_count"],
+        "graph.dimensions": ["priority"],
+        "card.title": "Open Incidents by Priority"
+      },
+      "dataset_query": {
+        "type": "native",
+        "native": {
+          "query": "SELECT priority, SUM(incident_count) AS incident_count FROM v_incident_summary WHERE status IN ('new', 'assigned', 'in_progress', 'pending') GROUP BY priority ORDER BY priority",
+          "template-tags": {}
+        },
+        "database": "ConfigBuddy CMDB"
+      },
+      "display": "bar",
+      "visualization_type": "bar"
+    },
+    {
+      "name": "Incident Trends (90 Days)",
+      "description": "Incident count trends over the past 90 days",
+      "visualization_settings": {
+        "graph.metrics": ["incident_count"],
+        "graph.dimensions": ["month", "priority"],
+        "card.title": "Incident Trends (90 Days)"
+      },
+      "dataset_query": {
+        "type": "native",
+        "native": {
+          "query": "SELECT month, priority, incident_count FROM v_incident_trends WHERE month >= NOW() - INTERVAL '3 months' ORDER BY month, priority",
+          "template-tags": {}
+        },
+        "database": "ConfigBuddy CMDB"
+      },
+      "display": "line",
+      "visualization_type": "line"
+    },
+    {
+      "name": "Change Success Rates",
+      "description": "Change success rates by change type over time",
+      "visualization_settings": {
+        "table.columns": [
+          {"name": "month", "display_name": "Month"},
+          {"name": "change_type", "display_name": "Change Type"},
+          {"name": "total_changes", "display_name": "Total"},
+          {"name": "successful_changes", "display_name": "Successful"},
+          {"name": "failed_changes", "display_name": "Failed"},
+          {"name": "success_rate", "display_name": "Success Rate (%)"}
+        ],
+        "card.title": "Change Success Rates"
+      },
+      "dataset_query": {
+        "type": "native",
+        "native": {
+          "query": "SELECT month, change_type, total_changes, successful_changes, failed_changes, success_rate FROM v_change_success_rates WHERE month >= NOW() - INTERVAL '6 months' ORDER BY month DESC, change_type",
+          "template-tags": {}
+        },
+        "database": "ConfigBuddy CMDB"
+      },
+      "display": "table",
+      "visualization_type": "table"
+    },
+    {
+      "name": "Upcoming Changes",
+      "description": "Scheduled changes in the next 30 days",
+      "visualization_settings": {
+        "table.columns": [
+          {"name": "change_number", "display_name": "Change #"},
+          {"name": "title", "display_name": "Title"},
+          {"name": "change_type", "display_name": "Type"},
+          {"name": "scheduled_start", "display_name": "Scheduled Start"},
+          {"name": "risk_level", "display_name": "Risk"},
+          {"name": "affected_service_count", "display_name": "Affected Services"}
+        ],
+        "card.title": "Upcoming Changes (Next 30 Days)"
+      },
+      "dataset_query": {
+        "type": "native",
+        "native": {
+          "query": "SELECT change_number, title, change_type, scheduled_start, risk_level, affected_service_count FROM v_change_calendar WHERE scheduled_start BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days' ORDER BY scheduled_start",
+          "template-tags": {}
+        },
+        "database": "ConfigBuddy CMDB"
+      },
+      "display": "table",
+      "visualization_type": "table"
+    },
+    {
+      "name": "Configuration Accuracy",
+      "description": "Configuration item accuracy and audit compliance by CI class",
+      "visualization_settings": {
+        "table.columns": [
+          {"name": "itil_ci_class", "display_name": "CI Class"},
+          {"name": "ci_count", "display_name": "Total CIs"},
+          {"name": "compliant_count", "display_name": "Compliant"},
+          {"name": "non_compliant_count", "display_name": "Non-Compliant"},
+          {"name": "compliance_rate", "display_name": "Compliance Rate (%)"}
+        ],
+        "card.title": "Configuration Accuracy"
+      },
+      "dataset_query": {
+        "type": "native",
+        "native": {
+          "query": "SELECT itil_ci_class, ci_count, compliant_count, non_compliant_count, compliance_rate FROM v_configuration_accuracy ORDER BY ci_count DESC",
+          "template-tags": {}
+        },
+        "database": "ConfigBuddy CMDB"
+      },
+      "display": "table",
+      "visualization_type": "table"
+    },
+    {
+      "name": "SLA Compliance",
+      "description": "SLA compliance by business service (last 30 days)",
+      "visualization_settings": {
+        "table.columns": [
+          {"name": "business_service_name", "display_name": "Service"},
+          {"name": "sla_target_availability", "display_name": "Target (%)"},
+          {"name": "actual_availability_30d", "display_name": "Actual (%)"},
+          {"name": "sla_met", "display_name": "SLA Met"},
+          {"name": "recent_incident_count", "display_name": "Incidents"}
+        ],
+        "card.title": "SLA Compliance (Last 30 Days)"
+      },
+      "dataset_query": {
+        "type": "native",
+        "native": {
+          "query": "SELECT business_service_name, sla_target_availability, actual_availability_30d, sla_met, recent_incident_count FROM v_sla_compliance ORDER BY sla_met ASC, actual_availability_30d ASC LIMIT 10",
+          "template-tags": {}
+        },
+        "database": "ConfigBuddy CMDB"
+      },
+      "display": "table",
+      "visualization_type": "table"
+    },
+    {
+      "name": "Service Health Scorecard",
+      "description": "Comprehensive service health scores with availability and incidents",
+      "visualization_settings": {
+        "table.columns": [
+          {"name": "business_service_name", "display_name": "Service"},
+          {"name": "operational_status", "display_name": "Status"},
+          {"name": "health_score", "display_name": "Health Score"},
+          {"name": "availability_30d", "display_name": "Availability (%)"},
+          {"name": "incident_count_30d", "display_name": "Incidents"}
+        ],
+        "card.title": "Service Health Scorecard"
+      },
+      "dataset_query": {
+        "type": "native",
+        "native": {
+          "query": "SELECT business_service_name, operational_status, health_score, availability_30d, incident_count_30d FROM v_service_health_scorecard ORDER BY health_score ASC LIMIT 10",
+          "template-tags": {}
+        },
+        "database": "ConfigBuddy CMDB"
+      },
+      "display": "table",
+      "visualization_type": "table"
+    },
+    {
+      "name": "MTTR Analysis",
+      "description": "Mean Time To Repair by business service",
+      "visualization_settings": {
+        "graph.metrics": ["mttr_hours"],
+        "graph.dimensions": ["business_service_name"],
+        "card.title": "MTTR by Service (Hours)"
+      },
+      "dataset_query": {
+        "type": "native",
+        "native": {
+          "query": "SELECT business_service_name, mttr_hours FROM v_mttr_mtbf_analysis ORDER BY mttr_hours DESC LIMIT 10",
+          "template-tags": {}
+        },
+        "database": "ConfigBuddy CMDB"
+      },
+      "display": "bar",
+      "visualization_type": "bar"
+    },
+    {
+      "name": "Incident Resolution Time",
+      "description": "Average incident resolution time by priority",
+      "visualization_settings": {
+        "table.columns": [
+          {"name": "priority", "display_name": "Priority"},
+          {"name": "incident_count", "display_name": "Count"},
+          {"name": "avg_resolution_minutes", "display_name": "Avg Resolution (min)"},
+          {"name": "total_revenue_impact", "display_name": "Revenue Impact ($)"}
+        ],
+        "card.title": "Incident Resolution Time by Priority"
+      },
+      "dataset_query": {
+        "type": "native",
+        "native": {
+          "query": "SELECT priority, incident_count, ROUND(avg_resolution_minutes, 2) AS avg_resolution_minutes, total_revenue_impact FROM v_incident_summary WHERE status IN ('resolved', 'closed') GROUP BY priority, incident_count, avg_resolution_minutes, total_revenue_impact ORDER BY priority",
+          "template-tags": {}
+        },
+        "database": "ConfigBuddy CMDB"
+      },
+      "display": "table",
+      "visualization_type": "table"
+    },
+    {
+      "name": "Configuration Baseline Drift",
+      "description": "Configuration baseline compliance status",
+      "visualization_settings": {
+        "table.columns": [
+          {"name": "baseline_name", "display_name": "Baseline"},
+          {"name": "baseline_type", "display_name": "Type"},
+          {"name": "matching_ci_count", "display_name": "Total CIs"},
+          {"name": "compliant_ci_count", "display_name": "Compliant CIs"},
+          {"name": "approved_at", "display_name": "Approved Date"}
+        ],
+        "card.title": "Configuration Baseline Drift"
+      },
+      "dataset_query": {
+        "type": "native",
+        "native": {
+          "query": "SELECT baseline_name, baseline_type, matching_ci_count, compliant_ci_count, approved_at FROM v_baseline_drift_detection ORDER BY approved_at DESC LIMIT 5",
+          "template-tags": {}
+        },
+        "database": "ConfigBuddy CMDB"
+      },
+      "display": "table",
+      "visualization_type": "table"
+    }
+  ],
+  "layout": [
+    {"row": 0, "col": 0, "sizeX": 6, "sizeY": 4, "cardId": 0},
+    {"row": 0, "col": 6, "sizeX": 6, "sizeY": 4, "cardId": 7},
+    {"row": 4, "col": 0, "sizeX": 12, "sizeY": 4, "cardId": 1},
+    {"row": 8, "col": 0, "sizeX": 12, "sizeY": 4, "cardId": 2},
+    {"row": 12, "col": 0, "sizeX": 12, "sizeY": 4, "cardId": 3},
+    {"row": 16, "col": 0, "sizeX": 6, "sizeY": 4, "cardId": 4},
+    {"row": 16, "col": 6, "sizeX": 6, "sizeY": 4, "cardId": 5},
+    {"row": 20, "col": 0, "sizeX": 12, "sizeY": 4, "cardId": 6},
+    {"row": 24, "col": 0, "sizeX": 6, "sizeY": 4, "cardId": 8},
+    {"row": 24, "col": 6, "sizeX": 6, "sizeY": 4, "cardId": 9}
+  ]
+}

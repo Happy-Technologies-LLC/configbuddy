@@ -21,6 +21,13 @@ const Connectors = React.lazy(() => import('./pages/Connectors'));
 const ConnectorCatalog = React.lazy(() => import('./pages/ConnectorCatalog'));
 const Login = React.lazy(() => import('./pages/Login'));
 
+// v3.0 Phase 4 - Multi-Stakeholder Dashboards
+const ExecutiveDashboard = React.lazy(() => import('./pages/dashboards/ExecutiveDashboard'));
+const CIODashboard = React.lazy(() => import('./pages/dashboards/CIODashboard'));
+const ITSMDashboard = React.lazy(() => import('./pages/dashboards/ITSMDashboard'));
+const FinOpsDashboard = React.lazy(() => import('./pages/dashboards/FinOpsDashboard'));
+const BusinessServiceDashboard = React.lazy(() => import('./pages/dashboards/BusinessServiceDashboard'));
+
 // v2.0 Components
 import { HealthDashboard } from './components/health/HealthDashboard';
 import { AnomalyDetectionView } from './components/anomalies/AnomalyDetectionView';
@@ -187,6 +194,58 @@ const App: React.FC = () => {
                   <ProtectedRoute>
                     <MainLayout>
                       <AnomalyDetectionView />
+                    </MainLayout>
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* v3.0 Phase 4 - Multi-Stakeholder Dashboards */}
+              <Route
+                path="/dashboards/executive"
+                element={
+                  <ProtectedRoute>
+                    <MainLayout>
+                      <ExecutiveDashboard />
+                    </MainLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboards/cio"
+                element={
+                  <ProtectedRoute>
+                    <MainLayout>
+                      <CIODashboard />
+                    </MainLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboards/itsm"
+                element={
+                  <ProtectedRoute>
+                    <MainLayout>
+                      <ITSMDashboard />
+                    </MainLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboards/finops"
+                element={
+                  <ProtectedRoute>
+                    <MainLayout>
+                      <FinOpsDashboard />
+                    </MainLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboards/business-service"
+                element={
+                  <ProtectedRoute>
+                    <MainLayout>
+                      <BusinessServiceDashboard />
                     </MainLayout>
                   </ProtectedRoute>
                 }

@@ -1,0 +1,39 @@
+{
+  "name": "@cmdb/framework-integration",
+  "version": "3.0.0",
+  "description": "Unified interface combining ITIL + TBM + BSM frameworks for ConfigBuddy v3.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "test": "jest",
+    "test:unit": "jest --testPathPattern=tests/unit",
+    "test:integration": "jest --testPathPattern=tests/integration"
+  },
+  "dependencies": {
+    "@cmdb/common": "workspace:*",
+    "@cmdb/database": "workspace:*",
+    "@cmdb/unified-model": "workspace:*",
+    "@cmdb/itil-service-manager": "workspace:*",
+    "@cmdb/tbm-cost-engine": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "jest": "^29.0.0",
+    "@types/jest": "^29.0.0"
+  },
+  "keywords": [
+    "cmdb",
+    "itil",
+    "tbm",
+    "bsm",
+    "service-management",
+    "cost-transparency",
+    "business-impact",
+    "unified-interface"
+  ],
+  "author": "ConfigBuddy Team",
+  "license": "MIT"
+}

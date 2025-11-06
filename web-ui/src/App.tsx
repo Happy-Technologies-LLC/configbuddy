@@ -19,6 +19,7 @@ const Credentials = React.lazy(() => import('./pages/Credentials'));
 const CredentialSets = React.lazy(() => import('./pages/CredentialSets'));
 const Connectors = React.lazy(() => import('./pages/Connectors'));
 const ConnectorCatalog = React.lazy(() => import('./pages/ConnectorCatalog'));
+const PatternLearning = React.lazy(() => import('./pages/PatternLearning'));
 const Login = React.lazy(() => import('./pages/Login'));
 
 // v3.0 Phase 4 - Multi-Stakeholder Dashboards
@@ -194,6 +195,16 @@ const App: React.FC = () => {
                   <ProtectedRoute>
                     <MainLayout>
                       <AnomalyDetectionView />
+                    </MainLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/ai/patterns"
+                element={
+                  <ProtectedRoute>
+                    <MainLayout>
+                      <PatternLearning />
                     </MainLayout>
                   </ProtectedRoute>
                 }

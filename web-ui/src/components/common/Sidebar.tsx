@@ -10,6 +10,8 @@ import {
   Activity,
   AlertTriangle,
   Package,
+  Brain,
+  Sparkles,
 } from 'lucide-react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
@@ -86,6 +88,16 @@ const menuCategories: MenuCategory[] = [
         text: 'Connector Catalog',
         icon: <Package className="h-5 w-5" />,
         path: '/connectors/catalog',
+      },
+    ],
+  },
+  {
+    title: 'AI & Analytics',
+    items: [
+      {
+        text: 'Pattern Learning',
+        icon: <Sparkles className="h-5 w-5" />,
+        path: '/ai/patterns',
       },
     ],
   },

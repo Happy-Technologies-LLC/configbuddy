@@ -1,4 +1,5 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
+import { Server as HTTPServer } from 'http';
 import helmet from 'helmet';
 import cors from 'cors';
 import compression from 'compression';
@@ -19,12 +20,14 @@ import { connectorRoutes } from './routes/connector.routes';
 import { connectorConfigRoutes } from './routes/connector-config.routes';
 import { unifiedCredentialRoutes } from './routes/unified-credential.routes';
 import { reconciliationRoutes } from './routes/reconciliation.routes';
+import { aiPatternRoutes } from './routes/ai-pattern.routes';
 import { swaggerRoutes } from './routes/swagger.routes';
 import { itilRoutes } from './routes/itil.routes';
 
 export class RestAPIServer {
   private app: Express;
   private port: number;
+  private httpServer: HTTPServer | null = null;
 
   constructor(port: number = 3000) {
     this.app = express();
@@ -84,6 +87,7 @@ export class RestAPIServer {
     this.app.use('/api/v1/anomalies', anomalyRoutes);
     this.app.use('/api/v1/reconciliation', reconciliationRoutes);
     this.app.use('/api/v1/itil', itilRoutes);
+    this.app.use('/api/v1/ai', aiPatternRoutes);
     this.app.use('/api/v1', jobsRoutes);
   }
 
@@ -97,9 +101,14 @@ export class RestAPIServer {
     });
   }
 
-  start(): void {
-    this.app.listen(this.port, () => {
+  start(): HTTPServer {
+    this.httpServer = this.app.listen(this.port, () => {
       logger.info(`REST API Server listening on port ${this.port}`);
     });
+    return this.httpServer;
+  }
+
+  getHttpServer(): HTTPServer | null {
+    return this.httpServer;
   }
 }

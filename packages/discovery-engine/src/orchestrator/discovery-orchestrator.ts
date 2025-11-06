@@ -7,21 +7,78 @@ import { SSHDiscoveryWorker } from '../workers/ssh-discovery.worker';
 import { NmapDiscoveryWorker } from '../workers/nmap-discovery.worker';
 import { ActiveDirectoryDiscoveryWorker } from '../workers/active-directory-discovery.worker';
 import { getInternalAPIClient } from '../api/internal-api-client';
+// AI Discovery Integration (Phase 1-3)
+import {
+  HybridDiscoveryOrchestrator,
+  PatternStorageService,
+  getDefaultLLMConfig,
+} from '@cmdb/ai-discovery';
 
 export class DiscoveryOrchestrator {
   private apiClient = getInternalAPIClient();
   private postgresClient = getPostgresClient();
   private credentialService = getUnifiedCredentialService(getPostgresClient().pool);
   private workersRegistered = false;
+  // AI Discovery (Phase 1-3)
+  private hybridOrchestrator: HybridDiscoveryOrchestrator | null = null;
+  private patternStorage: PatternStorageService | null = null;
 
   /**
    * Start the discovery orchestrator (registers workers)
    */
   async start(): Promise<void> {
     if (!this.workersRegistered) {
+      // Initialize AI discovery if enabled
+      this.initializeAIDiscovery();
+
       this.registerWorkers();
       this.workersRegistered = true;
       logger.info('Discovery orchestrator started');
+    }
+  }
+
+  /**
+   * Initialize AI Discovery components (Phase 1-3)
+   */
+  private initializeAIDiscovery(): void {
+    const aiEnabled = process.env.AI_DISCOVERY_ENABLED === 'true';
+
+    if (!aiEnabled) {
+      logger.info('AI Discovery is disabled');
+      return;
+    }
+
+    try {
+      // Initialize pattern storage
+      this.patternStorage = new PatternStorageService();
+
+      // Warm up cache with active patterns for better performance
+      this.patternStorage.warmupCache().catch(err => {
+        logger.warn('Cache warmup failed (non-critical)', { error: err });
+      });
+
+      // Initialize hybrid orchestrator with config from environment
+      const llmConfig = getDefaultLLMConfig();
+      const hybridConfig = {
+        aiEnabled: process.env.AI_DISCOVERY_ENABLED === 'true',
+        patternMatchingEnabled: process.env.AI_HYBRID_DISCOVERY_ENABLED !== 'false',
+        monthlyBudget: parseFloat(process.env.AI_DISCOVERY_MONTHLY_BUDGET || '100'),
+        maxCostPerSession: parseFloat(process.env.AI_DISCOVERY_MAX_COST_PER_SESSION || '0.50'),
+      };
+
+      this.hybridOrchestrator = new HybridDiscoveryOrchestrator(hybridConfig, llmConfig);
+
+      logger.info('AI Discovery initialized', {
+        provider: llmConfig.provider,
+        model: llmConfig.model,
+        patternMatching: hybridConfig.patternMatchingEnabled,
+        monthlyBudget: hybridConfig.monthlyBudget,
+      });
+    } catch (error) {
+      logger.error('Failed to initialize AI Discovery', { error });
+      logger.warn('AI Discovery will be disabled');
+      this.hybridOrchestrator = null;
+      this.patternStorage = null;
     }
   }
 
@@ -195,11 +252,23 @@ export class DiscoveryOrchestrator {
   async getAllWorkerStatuses(): Promise<any[]> {
     // Return status for infrastructure protocol discovery workers only
     // Cloud provider discovery (AWS, Azure, GCP) is handled by connector framework in v2.0
-    return [
+    const workers = [
       { name: QUEUE_NAMES._DISCOVERY_SSH, running: this.workersRegistered, concurrency: 5 },
       { name: QUEUE_NAMES._DISCOVERY_NMAP, running: this.workersRegistered, concurrency: 3 },
       { name: 'discovery-active-directory', running: this.workersRegistered, concurrency: 2 },
     ];
+
+    // Add AI discovery worker if initialized (Phase 1-3)
+    if (this.hybridOrchestrator) {
+      workers.push({
+        name: 'discovery-ai',
+        running: this.workersRegistered,
+        concurrency: 2,
+        aiEnabled: true,
+      });
+    }
+
+    return workers;
   }
 
   async scheduleDiscovery(job: DiscoveryJob): Promise<void> {
@@ -429,6 +498,91 @@ export class DiscoveryOrchestrator {
       { concurrency: 3 }
     );
 
+    // AI Discovery Worker (Phase 1-3)
+    if (this.hybridOrchestrator) {
+      queueManager.registerWorker(
+        'discovery-ai',
+        async (job) => {
+          const jobId = job.data.jobId || job.data.id;
+          const config = job.data.config || job.data._config;
+          const definition_id = job.data.definition_id;
+          const cis: DiscoveredCI[] = [];
+
+          try {
+            await job.updateProgress(0);
+
+            if (definition_id) {
+              await this.updateDefinitionRunStatus(definition_id, jobId, 'running');
+            }
+
+            logger.info('Starting AI discovery', { jobId, config: this.sanitizeConfig(config) });
+
+            await job.updateProgress(10);
+
+            // Extract target from config
+            const targetHost = config?.targetHost || config?.host;
+            const targetPort = config?.targetPort || config?.port || 22;
+
+            if (!targetHost) {
+              throw new Error('AI discovery requires targetHost in config');
+            }
+
+            // Prepare discovery context
+            const context = {
+              targetHost,
+              targetPort,
+              credentials: config?.credentials,
+              scanResult: config?.scanResult, // Optional initial scan data
+            };
+
+            await job.updateProgress(25);
+
+            // Execute hybrid discovery (pattern matching + AI)
+            const result = await this.hybridOrchestrator!.discover(context);
+
+            await job.updateProgress(75);
+
+            logger.info('AI discovery completed', {
+              jobId,
+              method: result.method,
+              confidence: result.confidence,
+              cisFound: result.discoveredCIs.length,
+              cost: result.cost,
+            });
+
+            // Add discovered CIs
+            cis.push(...result.discoveredCIs);
+
+            // Persist CIs to database
+            await this.persistCIs(cis);
+
+            await job.updateProgress(100);
+
+            if (definition_id) {
+              await this.updateDefinitionRunStatus(definition_id, jobId, 'completed', cis.length);
+            }
+
+            return {
+              discovered: cis.length,
+              method: result.method,
+              confidence: result.confidence,
+              cost: result.cost,
+              sessionId: result.session?.sessionId,
+            };
+          } catch (error) {
+            logger.error('AI discovery failed', { jobId, error });
+            if (definition_id) {
+              await this.updateDefinitionRunStatus(definition_id, jobId, 'failed', 0, error);
+            }
+            throw error;
+          }
+        },
+        { concurrency: 2 } // Lower concurrency for AI (API rate limits)
+      );
+
+      logger.info('AI discovery worker registered');
+    }
+
     logger.info('All discovery workers registered');
   }
 
@@ -506,6 +660,10 @@ export class DiscoveryOrchestrator {
         return QUEUE_NAMES._DISCOVERY_NMAP;
       case 'active-directory':
         return 'discovery-active-directory';
+      // AI Discovery (Phase 1-3)
+      case 'ai':
+      case 'hybrid':
+        return 'discovery-ai';
       // Cloud providers (AWS, Azure, GCP) are handled by connector framework in v2.0
       case 'aws':
       case 'azure':

@@ -3,7 +3,7 @@
  * Fetches cost data from various sources (cloud providers, GL, asset database)
  */
 
-import { getRedisClient } from '@cmdb/database';
+import { getRedisClient, getPostgresClient } from '@cmdb/database';
 import { logger } from '@cmdb/common';
 import { CIType } from '@cmdb/unified-model';
 import { DepreciationSchedule } from '@cmdb/unified-model';
@@ -215,41 +215,127 @@ export class CostLookupService {
   }
 
   /**
-   * Lookup AWS resource cost
+   * Lookup AWS resource cost from PostgreSQL tbm_cost_pools table
+   * Falls back to estimation if not found
    */
   private async lookupAWSCost(
     resourceId: string,
     resourceType: string,
     metadata?: Record<string, any>
   ): Promise<number> {
-    // In production, this would call AWS Cost Explorer API or Pricing API
-    // For now, use estimations based on instance type and region
+    try {
+      // Try to fetch from PostgreSQL tbm_cost_pools (populated by cost sync jobs)
+      const pgClient = getPostgresClient();
+      const pool = pgClient.getPool();
 
-    if (!metadata) {
+      // Query for resource-specific cost
+      const result = await pool.query(
+        `
+        SELECT monthly_cost, metadata
+        FROM tbm_cost_pools
+        WHERE source_system = 'aws'
+          AND pool_name = $1
+          AND fiscal_period = to_char(CURRENT_DATE, 'YYYY-MM')
+        ORDER BY updated_at DESC
+        LIMIT 1
+        `,
+        [`AWS-Resource-${resourceId}`]
+      );
+
+      if (result.rows.length > 0) {
+        const cost = parseFloat(result.rows[0].monthly_cost);
+        logger.debug('[CostLookupService] Found AWS cost in PostgreSQL', {
+          resourceId,
+          cost,
+          source: 'tbm_cost_pools',
+        });
+        return cost;
+      }
+
+      // If resource-specific cost not found, try service-level cost
+      if (metadata?.service) {
+        const serviceResult = await pool.query(
+          `
+          SELECT monthly_cost
+          FROM tbm_cost_pools
+          WHERE source_system = 'aws'
+            AND pool_name = $1
+            AND fiscal_period = to_char(CURRENT_DATE, 'YYYY-MM')
+          ORDER BY updated_at DESC
+          LIMIT 1
+          `,
+          [`AWS-${metadata.service}`]
+        );
+
+        if (serviceResult.rows.length > 0) {
+          const serviceCost = parseFloat(serviceResult.rows[0].monthly_cost);
+          logger.debug('[CostLookupService] Found AWS service cost in PostgreSQL', {
+            service: metadata.service,
+            cost: serviceCost,
+            source: 'tbm_cost_pools',
+          });
+          // Return a prorated portion (assuming 10 resources per service as default)
+          return serviceCost / 10;
+        }
+      }
+
+      logger.debug('[CostLookupService] No PostgreSQL cost found, using estimation', {
+        resourceId,
+        resourceType,
+      });
+
+      // Fall back to estimation if not found in PostgreSQL
+      if (!metadata) {
+        return 0;
+      }
+
+      // EC2 instances
+      if (resourceType === 'instance' || resourceType === 'virtual-machine') {
+        return this.estimateEC2Cost(metadata);
+      }
+
+      // EBS volumes
+      if (resourceType === 'volume' || resourceType === 'storage') {
+        return this.estimateEBSCost(metadata);
+      }
+
+      // RDS databases
+      if (resourceType === 'database') {
+        return this.estimateRDSCost(metadata);
+      }
+
+      // S3 buckets
+      if (resourceType === 's3-bucket') {
+        return this.estimateS3Cost(metadata);
+      }
+
+      return 0;
+    } catch (error) {
+      logger.warn('[CostLookupService] Error querying PostgreSQL for AWS cost, using estimation', {
+        resourceId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      // Fall back to estimation on error
+      if (!metadata) {
+        return 0;
+      }
+
+      if (resourceType === 'instance' || resourceType === 'virtual-machine') {
+        return this.estimateEC2Cost(metadata);
+      }
+      if (resourceType === 'volume' || resourceType === 'storage') {
+        return this.estimateEBSCost(metadata);
+      }
+      if (resourceType === 'database') {
+        return this.estimateRDSCost(metadata);
+      }
+      if (resourceType === 's3-bucket') {
+        return this.estimateS3Cost(metadata);
+      }
+
       return 0;
     }
-
-    // EC2 instances
-    if (resourceType === 'instance' || resourceType === 'virtual-machine') {
-      return this.estimateEC2Cost(metadata);
-    }
-
-    // EBS volumes
-    if (resourceType === 'volume' || resourceType === 'storage') {
-      return this.estimateEBSCost(metadata);
-    }
-
-    // RDS databases
-    if (resourceType === 'database') {
-      return this.estimateRDSCost(metadata);
-    }
-
-    // S3 buckets
-    if (resourceType === 's3-bucket') {
-      return this.estimateS3Cost(metadata);
-    }
-
-    return 0;
   }
 
   /**
@@ -369,80 +455,237 @@ export class CostLookupService {
   }
 
   /**
-   * Lookup Azure resource cost
+   * Lookup Azure resource cost from PostgreSQL tbm_cost_pools table
+   * Falls back to estimation if not found
    */
   private async lookupAzureCost(
     resourceId: string,
     resourceType: string,
     metadata?: Record<string, any>
   ): Promise<number> {
-    // In production, this would call Azure Cost Management API
-    // For now, use similar estimation logic to AWS
+    try {
+      // Try to fetch from PostgreSQL tbm_cost_pools
+      const pgClient = getPostgresClient();
+      const pool = pgClient.getPool();
 
-    if (!metadata) {
+      // Query for resource-specific cost
+      const result = await pool.query(
+        `
+        SELECT monthly_cost, metadata
+        FROM tbm_cost_pools
+        WHERE source_system = 'azure'
+          AND pool_name = $1
+          AND fiscal_period = to_char(CURRENT_DATE, 'YYYY-MM')
+        ORDER BY updated_at DESC
+        LIMIT 1
+        `,
+        [`Azure-Resource-${resourceId}`]
+      );
+
+      if (result.rows.length > 0) {
+        const cost = parseFloat(result.rows[0].monthly_cost);
+        logger.debug('[CostLookupService] Found Azure cost in PostgreSQL', {
+          resourceId,
+          cost,
+          source: 'tbm_cost_pools',
+        });
+        return cost;
+      }
+
+      // Try service-level cost
+      if (metadata?.service || metadata?.type) {
+        const serviceName = metadata.service || metadata.type;
+        const serviceResult = await pool.query(
+          `
+          SELECT monthly_cost
+          FROM tbm_cost_pools
+          WHERE source_system = 'azure'
+            AND pool_name = $1
+            AND fiscal_period = to_char(CURRENT_DATE, 'YYYY-MM')
+          ORDER BY updated_at DESC
+          LIMIT 1
+          `,
+          [`Azure-${serviceName}`]
+        );
+
+        if (serviceResult.rows.length > 0) {
+          const serviceCost = parseFloat(serviceResult.rows[0].monthly_cost);
+          logger.debug('[CostLookupService] Found Azure service cost in PostgreSQL', {
+            service: serviceName,
+            cost: serviceCost,
+            source: 'tbm_cost_pools',
+          });
+          return serviceCost / 10; // Prorated
+        }
+      }
+
+      logger.debug('[CostLookupService] No PostgreSQL cost found for Azure, using estimation', {
+        resourceId,
+        resourceType,
+      });
+
+      // Fall back to estimation
+      if (!metadata) {
+        return 0;
+      }
+
+      // Virtual machines
+      if (resourceType === 'virtual-machine') {
+        const vmSize = metadata.vmSize || metadata.size || 'Standard_B2s';
+        const vmPrices: Record<string, number> = {
+          Standard_B1s: 7.5,
+          Standard_B2s: 30,
+          Standard_D2s_v3: 70,
+          Standard_D4s_v3: 140,
+        };
+        return vmPrices[vmSize] || 50;
+      }
+
+      // Storage accounts
+      if (resourceType === 'storage') {
+        const sizeGB = metadata.size || 100;
+        return Math.round(sizeGB * 0.02 * 100) / 100;
+      }
+
+      return 0;
+    } catch (error) {
+      logger.warn('[CostLookupService] Error querying PostgreSQL for Azure cost', {
+        resourceId,
+        error: error instanceof Error ? error.message : String(error),
+      });
       return 0;
     }
-
-    // Virtual machines
-    if (resourceType === 'virtual-machine') {
-      const vmSize = metadata.vmSize || metadata.size || 'Standard_B2s';
-      // Simplified Azure VM pricing
-      const vmPrices: Record<string, number> = {
-        Standard_B1s: 7.5,
-        Standard_B2s: 30,
-        Standard_D2s_v3: 70,
-        Standard_D4s_v3: 140,
-      };
-      return vmPrices[vmSize] || 50;
-    }
-
-    // Storage accounts
-    if (resourceType === 'storage') {
-      const sizeGB = metadata.size || 100;
-      return Math.round(sizeGB * 0.02 * 100) / 100; // $0.02/GB/month
-    }
-
-    return 0;
   }
 
   /**
-   * Lookup GCP resource cost
+   * Lookup GCP resource cost from PostgreSQL tbm_cost_pools table
+   * Falls back to estimation if not found
    */
   private async lookupGCPCost(
     resourceId: string,
     resourceType: string,
     metadata?: Record<string, any>
   ): Promise<number> {
-    // In production, this would call GCP Cloud Billing API
-    // For now, use similar estimation logic
+    try {
+      // Try to fetch from PostgreSQL tbm_cost_pools
+      const pgClient = getPostgresClient();
+      const pool = pgClient.getPool();
 
-    if (!metadata) {
+      // Query for resource-specific cost
+      const result = await pool.query(
+        `
+        SELECT monthly_cost, metadata
+        FROM tbm_cost_pools
+        WHERE source_system = 'gcp'
+          AND pool_name = $1
+          AND fiscal_period = to_char(CURRENT_DATE, 'YYYY-MM')
+        ORDER BY updated_at DESC
+        LIMIT 1
+        `,
+        [`GCP-Resource-${resourceId}`]
+      );
+
+      if (result.rows.length > 0) {
+        const cost = parseFloat(result.rows[0].monthly_cost);
+        logger.debug('[CostLookupService] Found GCP cost in PostgreSQL', {
+          resourceId,
+          cost,
+          source: 'tbm_cost_pools',
+        });
+        return cost;
+      }
+
+      // Try SKU-level cost
+      if (metadata?.skuId) {
+        const skuResult = await pool.query(
+          `
+          SELECT monthly_cost
+          FROM tbm_cost_pools
+          WHERE source_system = 'gcp'
+            AND pool_name = $1
+            AND fiscal_period = to_char(CURRENT_DATE, 'YYYY-MM')
+          ORDER BY updated_at DESC
+          LIMIT 1
+          `,
+          [`GCP-SKU-${metadata.skuId}`]
+        );
+
+        if (skuResult.rows.length > 0) {
+          const skuCost = parseFloat(skuResult.rows[0].monthly_cost);
+          logger.debug('[CostLookupService] Found GCP SKU cost in PostgreSQL', {
+            skuId: metadata.skuId,
+            cost: skuCost,
+            source: 'tbm_cost_pools',
+          });
+          return skuCost;
+        }
+      }
+
+      // Try service-level cost
+      if (metadata?.service) {
+        const serviceResult = await pool.query(
+          `
+          SELECT monthly_cost
+          FROM tbm_cost_pools
+          WHERE source_system = 'gcp'
+            AND pool_name = $1
+            AND fiscal_period = to_char(CURRENT_DATE, 'YYYY-MM')
+          ORDER BY updated_at DESC
+          LIMIT 1
+          `,
+          [`GCP-${metadata.service}`]
+        );
+
+        if (serviceResult.rows.length > 0) {
+          const serviceCost = parseFloat(serviceResult.rows[0].monthly_cost);
+          logger.debug('[CostLookupService] Found GCP service cost in PostgreSQL', {
+            service: metadata.service,
+            cost: serviceCost,
+            source: 'tbm_cost_pools',
+          });
+          return serviceCost / 10; // Prorated
+        }
+      }
+
+      logger.debug('[CostLookupService] No PostgreSQL cost found for GCP, using estimation', {
+        resourceId,
+        resourceType,
+      });
+
+      // Fall back to estimation
+      if (!metadata) {
+        return 0;
+      }
+
+      // Compute instances
+      if (resourceType === 'instance' || resourceType === 'virtual-machine') {
+        const machineType = metadata.machineType || 'n1-standard-1';
+        const machinePrices: Record<string, number> = {
+          'f1-micro': 5,
+          'g1-small': 18,
+          'n1-standard-1': 25,
+          'n1-standard-2': 50,
+          'n1-standard-4': 100,
+        };
+        return machinePrices[machineType] || 40;
+      }
+
+      // Persistent disks
+      if (resourceType === 'disk' || resourceType === 'storage') {
+        const sizeGB = metadata.sizeGb || 100;
+        const diskType = metadata.diskType || 'pd-standard';
+        const pricePerGB = diskType === 'pd-ssd' ? 0.17 : 0.04;
+        return Math.round(sizeGB * pricePerGB * 100) / 100;
+      }
+
+      return 0;
+    } catch (error) {
+      logger.warn('[CostLookupService] Error querying PostgreSQL for GCP cost', {
+        resourceId,
+        error: error instanceof Error ? error.message : String(error),
+      });
       return 0;
     }
-
-    // Compute instances
-    if (resourceType === 'instance' || resourceType === 'virtual-machine') {
-      const machineType = metadata.machineType || 'n1-standard-1';
-      // Simplified GCP pricing
-      const machinePrices: Record<string, number> = {
-        'f1-micro': 5,
-        'g1-small': 18,
-        'n1-standard-1': 25,
-        'n1-standard-2': 50,
-        'n1-standard-4': 100,
-      };
-      return machinePrices[machineType] || 40;
-    }
-
-    // Persistent disks
-    if (resourceType === 'disk' || resourceType === 'storage') {
-      const sizeGB = metadata.sizeGb || 100;
-      const diskType = metadata.diskType || 'pd-standard';
-      const pricePerGB = diskType === 'pd-ssd' ? 0.17 : 0.04;
-      return Math.round(sizeGB * pricePerGB * 100) / 100;
-    }
-
-    return 0;
   }
 
   /**

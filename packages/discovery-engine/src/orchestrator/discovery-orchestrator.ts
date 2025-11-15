@@ -9,6 +9,7 @@ import { ActiveDirectoryDiscoveryWorker } from '../workers/active-directory-disc
 import { getInternalAPIClient } from '../api/internal-api-client';
 import { ITILEnricher } from '../enrichment/itil-enricher';
 import { TBMEnricher } from '../enrichment/tbm-enricher';
+import { BSMEnricher } from '../enrichment/bsm-enricher';
 // AI Discovery Integration (Phase 1-3)
 import {
   HybridDiscoveryOrchestrator,
@@ -22,6 +23,7 @@ export class DiscoveryOrchestrator {
   private credentialService = getUnifiedCredentialService(getPostgresClient().pool);
   private itilEnricher = new ITILEnricher();
   private tbmEnricher = new TBMEnricher();
+  private bsmEnricher = new BSMEnricher();
   private workersRegistered = false;
   // AI Discovery (Phase 1-3)
   private hybridOrchestrator: HybridDiscoveryOrchestrator | null = null;
@@ -631,6 +633,11 @@ export class DiscoveryOrchestrator {
     logger.info('Enriching CIs with TBM cost attributes before persistence');
     enrichedCIs = await this.tbmEnricher.enrichWithTBM(enrichedCIs);
     logger.info(`Successfully enriched ${enrichedCIs.length} CIs with TBM attributes`);
+
+    // Enrich CIs with BSM attributes (v3.0)
+    logger.info('Enriching CIs with BSM impact attributes before persistence');
+    enrichedCIs = await this.bsmEnricher.enrichWithBSM(enrichedCIs);
+    logger.info(`Successfully enriched ${enrichedCIs.length} CIs with BSM attributes`);
 
     for (const ci of enrichedCIs) {
       try {

@@ -12,6 +12,11 @@ import {
   Package,
   Brain,
   Sparkles,
+  TrendingUp,
+  Users,
+  DollarSign,
+  Shield,
+  Target,
 } from 'lucide-react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
@@ -38,6 +43,36 @@ const menuCategories: MenuCategory[] = [
         text: 'Dashboard',
         icon: <LayoutDashboard className="h-5 w-5" />,
         path: '/',
+      },
+    ],
+  },
+  {
+    title: 'Business Insights (v3.0)',
+    items: [
+      {
+        text: 'Executive Dashboard',
+        icon: <TrendingUp className="h-5 w-5" />,
+        path: '/dashboards/executive',
+      },
+      {
+        text: 'CIO Dashboard',
+        icon: <Users className="h-5 w-5" />,
+        path: '/dashboards/cio',
+      },
+      {
+        text: 'ITSM Dashboard',
+        icon: <Activity className="h-5 w-5" />,
+        path: '/dashboards/itsm',
+      },
+      {
+        text: 'FinOps Dashboard',
+        icon: <DollarSign className="h-5 w-5" />,
+        path: '/dashboards/finops',
+      },
+      {
+        text: 'Business Service',
+        icon: <Target className="h-5 w-5" />,
+        path: '/dashboards/business-service',
       },
     ],
   },
@@ -184,7 +219,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
         <div className="px-4 py-4 border-t">
           <p className="text-xs text-muted-foreground text-center">
-            ConfigBuddy CMDB v2.0
+            ConfigBuddy CMDB v3.0
           </p>
           <p className="text-xs text-muted-foreground text-center">
             Open Source

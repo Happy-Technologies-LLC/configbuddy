@@ -1,8 +1,8 @@
 {
   "name": "cmdb-platform",
-  "version": "1.0.0",
+  "version": "3.0.0",
   "private": true,
-  "description": "Enterprise CMDB Platform - Multi-source configuration management and relationship mapping",
+  "description": "Enterprise CMDB Platform v3.0 - Unified ITIL, TBM, and BSM with AI-powered discovery",
   "workspaces": [
     "packages/*",
     "web-ui"

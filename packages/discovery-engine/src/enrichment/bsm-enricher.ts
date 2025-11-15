@@ -5,7 +5,6 @@
 
 import { BSMCIAttributes, DataClassification, BusinessCriticality } from '@cmdb/unified-model';
 import { logger } from '@cmdb/common';
-import { CriticalityCalculatorService, ImpactScoringService } from '@cmdb/bsm-impact-engine';
 
 /**
  * Partial CI interface for enrichment
@@ -27,12 +26,8 @@ interface CIForEnrichment {
 }
 
 export class BSMEnricher {
-  private criticalityCalculator: CriticalityCalculatorService;
-  private impactScoring: ImpactScoringService;
-
   constructor() {
-    this.criticalityCalculator = new CriticalityCalculatorService();
-    this.impactScoring = new ImpactScoringService();
+    // BSM enricher is self-contained and doesn't need external services
   }
 
   /**

@@ -3,7 +3,7 @@
  * Orchestrates daily/monthly cost synchronization from all sources
  */
 
-import { Queue, Worker, Job } from 'bullmq';
+import { Queue, Worker, Job, QueueEvents } from 'bullmq';
 import { Logger } from 'winston';
 import { getRedisClient, getPostgresClient } from '@cmdb/database';
 import { startOfMonth, endOfMonth, subDays } from 'date-fns';
@@ -28,6 +28,7 @@ export interface CostSyncOptions {
 export class CostSyncService {
   private logger: Logger;
   private syncQueue: Queue;
+  private queueEvents: QueueEvents;
   private dbClient: any;
   private redisClient: any;
 
@@ -53,6 +54,11 @@ export class CostSyncService {
           count: 500,
         },
       },
+    });
+
+    // Initialize QueueEvents for job completion tracking
+    this.queueEvents = new QueueEvents('cost-sync', {
+      connection: this.redisClient,
     });
 
     // Initialize workers
@@ -148,7 +154,7 @@ export class CostSyncService {
 
     // Wait for job completion
     const result = await job.waitUntilFinished(
-      this.syncQueue.events,
+      this.queueEvents,
       60000 // 60 second timeout
     );
 
@@ -458,7 +464,7 @@ export class CostSyncService {
 
     // Wait for job completion
     const result = await job.waitUntilFinished(
-      this.syncQueue.events,
+      this.queueEvents,
       300000 // 5 minute timeout for GL sync
     );
 
@@ -520,7 +526,7 @@ export class CostSyncService {
 
     // Wait for job completion
     const result = await job.waitUntilFinished(
-      this.syncQueue.events,
+      this.queueEvents,
       120000 // 2 minute timeout
     );
 

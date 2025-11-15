@@ -9,12 +9,26 @@ const fs = tslib_1.__importStar(require("fs"));
 const path = tslib_1.__importStar(require("path"));
 class Neo4jClient {
     driver;
-    constructor(uri, username, password) {
+    constructor(uri, username, password, config) {
+        const sslEnabled = process.env['NEO4J_SSL_ENABLED'] === 'true' ||
+            process.env['NEO4J_ENCRYPTION'] === 'true' ||
+            config?.encrypted === true;
+        const trustStrategy = config?.trust ||
+            process.env['NEO4J_SSL_TRUST_STRATEGY'] ||
+            'TRUST_SYSTEM_CA_SIGNED_CERTIFICATES';
         this.driver = neo4j_driver_1.default.driver(uri, neo4j_driver_1.default.auth.basic(username, password), {
             maxConnectionLifetime: 3 * 60 * 60 * 1000,
             maxConnectionPoolSize: 50,
             connectionAcquisitionTimeout: 2 * 60 * 1000,
+            encrypted: sslEnabled ? 'ENCRYPTION_ON' : 'ENCRYPTION_OFF',
+            trust: trustStrategy,
         });
+        if (sslEnabled) {
+            common_1.logger.info('Neo4j client initialized with SSL/TLS encryption enabled');
+        }
+        else {
+            common_1.logger.warn('Neo4j client initialized WITHOUT encryption (development mode)');
+        }
     }
     async verifyConnectivity() {
         const session = this.driver.session();
@@ -106,8 +120,9 @@ class Neo4jClient {
         try {
             const ciId = ci.id || ci._id;
             const ciType = ci.type || ci._type;
+            const sanitizedType = (0, common_1.sanitizeCITypeForLabel)(ciType);
             const result = await session.run(`
-        CREATE (ci:CI:${ciType.replace(/-/g, '_')} {
+        CREATE (ci:CI:${sanitizedType} {
           id: $id,
           external_id: $external_id,
           name: $name,
@@ -196,10 +211,11 @@ class Neo4jClient {
     async createRelationship(fromId, toId, type, properties = {}) {
         const session = this.getSession();
         try {
+            const validatedType = (0, common_1.validateRelationshipType)(type);
             await session.run(`
         MATCH (from:CI {id: $fromId})
         MATCH (to:CI {id: $toId})
-        MERGE (from)-[r:${type}]->(to)
+        MERGE (from)-[r:${validatedType}]->(to)
         SET r += $properties,
             r.created_at = coalesce(r.created_at, datetime()),
             r.updated_at = datetime()

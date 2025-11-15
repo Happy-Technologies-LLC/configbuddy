@@ -49,7 +49,7 @@ export class TowerMapper {
 
     // Documentation (administrative)
     ['documentation', { tower: 'applications', subTower: 'Documentation', costPool: 'software' }],
-  ]);
+  ] as any);
 
   /**
    * Map a CI to its TBM tower

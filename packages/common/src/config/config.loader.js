@@ -191,10 +191,75 @@ class ConfigurationLoader {
             },
             rateLimit: {
                 enabled: env['RATE_LIMIT_ENABLED'] !== 'false' && fileConfig.rateLimit?.enabled !== false,
-                windowMs: env['RATE_LIMIT_WINDOW_MS']
-                    ? parseInt(env['RATE_LIMIT_WINDOW_MS'], 10)
-                    : fileConfig.rateLimit?.windowMs,
-                endpoints: fileConfig.rateLimit?.endpoints,
+                bypassHeader: env['RATE_LIMIT_BYPASS_HEADER'] || fileConfig.rateLimit?.bypassHeader,
+                bypassSecret: env['RATE_LIMIT_BYPASS_SECRET'] || fileConfig.rateLimit?.bypassSecret,
+                tierMultipliers: {
+                    standard: env['RATE_LIMIT_TIER_STANDARD_MULTIPLIER']
+                        ? parseInt(env['RATE_LIMIT_TIER_STANDARD_MULTIPLIER'], 10)
+                        : fileConfig.rateLimit?.tierMultipliers?.standard,
+                    premium: env['RATE_LIMIT_TIER_PREMIUM_MULTIPLIER']
+                        ? parseInt(env['RATE_LIMIT_TIER_PREMIUM_MULTIPLIER'], 10)
+                        : fileConfig.rateLimit?.tierMultipliers?.premium,
+                    enterprise: env['RATE_LIMIT_TIER_ENTERPRISE_MULTIPLIER']
+                        ? parseInt(env['RATE_LIMIT_TIER_ENTERPRISE_MULTIPLIER'], 10)
+                        : fileConfig.rateLimit?.tierMultipliers?.enterprise,
+                },
+                endpoints: {
+                    rest: {
+                        max: env['RATE_LIMIT_REST_MAX']
+                            ? parseInt(env['RATE_LIMIT_REST_MAX'], 10)
+                            : fileConfig.rateLimit?.endpoints?.rest?.max,
+                        windowMs: env['RATE_LIMIT_REST_WINDOW_MS']
+                            ? parseInt(env['RATE_LIMIT_REST_WINDOW_MS'], 10)
+                            : fileConfig.rateLimit?.endpoints?.rest?.windowMs,
+                    },
+                    graphql: {
+                        max: env['RATE_LIMIT_GRAPHQL_MAX']
+                            ? parseInt(env['RATE_LIMIT_GRAPHQL_MAX'], 10)
+                            : fileConfig.rateLimit?.endpoints?.graphql?.max,
+                        windowMs: env['RATE_LIMIT_GRAPHQL_WINDOW_MS']
+                            ? parseInt(env['RATE_LIMIT_GRAPHQL_WINDOW_MS'], 10)
+                            : fileConfig.rateLimit?.endpoints?.graphql?.windowMs,
+                    },
+                    health: {
+                        max: env['RATE_LIMIT_HEALTH_MAX']
+                            ? parseInt(env['RATE_LIMIT_HEALTH_MAX'], 10)
+                            : fileConfig.rateLimit?.endpoints?.health?.max,
+                        windowMs: env['RATE_LIMIT_HEALTH_WINDOW_MS']
+                            ? parseInt(env['RATE_LIMIT_HEALTH_WINDOW_MS'], 10)
+                            : fileConfig.rateLimit?.endpoints?.health?.windowMs,
+                    },
+                    auth: {
+                        max: env['RATE_LIMIT_AUTH_MAX']
+                            ? parseInt(env['RATE_LIMIT_AUTH_MAX'], 10)
+                            : fileConfig.rateLimit?.endpoints?.auth?.max,
+                        windowMs: env['RATE_LIMIT_AUTH_WINDOW_MS']
+                            ? parseInt(env['RATE_LIMIT_AUTH_WINDOW_MS'], 10)
+                            : fileConfig.rateLimit?.endpoints?.auth?.windowMs,
+                    },
+                    discovery: {
+                        max: env['RATE_LIMIT_DISCOVERY_MAX']
+                            ? parseInt(env['RATE_LIMIT_DISCOVERY_MAX'], 10)
+                            : fileConfig.rateLimit?.endpoints?.discovery?.max,
+                        windowMs: env['RATE_LIMIT_DISCOVERY_WINDOW_MS']
+                            ? parseInt(env['RATE_LIMIT_DISCOVERY_WINDOW_MS'], 10)
+                            : fileConfig.rateLimit?.endpoints?.discovery?.windowMs,
+                    },
+                    admin: {
+                        max: env['RATE_LIMIT_ADMIN_MAX']
+                            ? parseInt(env['RATE_LIMIT_ADMIN_MAX'], 10)
+                            : fileConfig.rateLimit?.endpoints?.admin?.max,
+                        windowMs: env['RATE_LIMIT_ADMIN_WINDOW_MS']
+                            ? parseInt(env['RATE_LIMIT_ADMIN_WINDOW_MS'], 10)
+                            : fileConfig.rateLimit?.endpoints?.admin?.windowMs,
+                    },
+                },
+                monitoring: {
+                    enabled: env['RATE_LIMIT_MONITORING_ENABLED'] !== 'false' &&
+                        fileConfig.rateLimit?.monitoring?.enabled !== false,
+                    logRateLimitHits: env['RATE_LIMIT_LOG_HITS'] !== 'false' &&
+                        fileConfig.rateLimit?.monitoring?.logRateLimitHits !== false,
+                },
             },
             cors: {
                 enabled: env['CORS_ENABLED'] !== 'false' && fileConfig.cors?.enabled !== false,

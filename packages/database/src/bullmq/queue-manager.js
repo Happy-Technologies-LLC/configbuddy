@@ -46,14 +46,14 @@ class QueueManager {
 exports.QueueManager = QueueManager;
 exports.queueManager = new QueueManager();
 exports.QUEUE_NAMES = {
-    _DISCOVERY_AWS: 'discovery:aws',
-    _DISCOVERY_AZURE: 'discovery:azure',
-    _DISCOVERY_GCP: 'discovery:gcp',
-    _DISCOVERY_SSH: 'discovery:ssh',
-    _DISCOVERY_NMAP: 'discovery:nmap',
-    _ETL_SYNC: 'etl:sync',
-    _ETL_FULL_REFRESH: 'etl:full-refresh',
-    _ETL_CHANGE_DETECTION: 'etl:change-detection',
-    _ETL_RECONCILIATION: 'etl:reconciliation',
+    _DISCOVERY_AWS: 'discovery-aws',
+    _DISCOVERY_AZURE: 'discovery-azure',
+    _DISCOVERY_GCP: 'discovery-gcp',
+    _DISCOVERY_SSH: 'discovery-ssh',
+    _DISCOVERY_NMAP: 'discovery-nmap',
+    _ETL_SYNC: 'etl-sync',
+    _ETL_FULL_REFRESH: 'etl-full-refresh',
+    _ETL_CHANGE_DETECTION: 'etl-change-detection',
+    _ETL_RECONCILIATION: 'etl-reconciliation',
 };
 //# sourceMappingURL=queue-manager.js.map

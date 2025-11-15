@@ -12,11 +12,11 @@
     "test:integration": "jest --testPathPattern=tests/integration"
   },
   "dependencies": {
-    "@cmdb/common": "workspace:*",
-    "@cmdb/database": "workspace:*",
-    "@cmdb/unified-model": "workspace:*",
-    "@cmdb/itil-service-manager": "workspace:*",
-    "@cmdb/tbm-cost-engine": "workspace:*"
+    "@cmdb/common": "*",
+    "@cmdb/database": "*",
+    "@cmdb/unified-model": "*",
+    "@cmdb/itil-service-manager": "*",
+    "@cmdb/tbm-cost-engine": "*"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

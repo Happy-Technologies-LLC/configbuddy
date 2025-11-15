@@ -7,6 +7,31 @@ const common_1 = require("@cmdb/common");
 class PostgresClient {
     pool;
     constructor(config) {
+        const sslMode = config.ssl ||
+            process.env['POSTGRES_SSL_MODE'] ||
+            (process.env['POSTGRES_SSL_ENABLED'] === 'on' ? 'require' : false);
+        let sslConfig = false;
+        if (sslMode && sslMode !== 'off' && sslMode !== 'false') {
+            if (sslMode === 'require') {
+                sslConfig = { rejectUnauthorized: false };
+                common_1.logger.info('PostgreSQL SSL enabled (require mode - accepts self-signed certificates)');
+            }
+            else if (sslMode === 'verify-full') {
+                sslConfig = { rejectUnauthorized: true };
+                common_1.logger.info('PostgreSQL SSL enabled (verify-full mode - requires valid CA)');
+            }
+            else if (sslMode === 'prefer') {
+                sslConfig = { rejectUnauthorized: false };
+                common_1.logger.info('PostgreSQL SSL enabled (prefer mode - attempts SSL, falls back to unencrypted)');
+            }
+            else if (sslMode === true) {
+                sslConfig = { rejectUnauthorized: false };
+                common_1.logger.info('PostgreSQL SSL enabled (default mode)');
+            }
+        }
+        else {
+            common_1.logger.warn('PostgreSQL client initialized WITHOUT SSL encryption (development mode)');
+        }
         this.pool = new pg_1.Pool({
             host: config._host,
             port: config._port,
@@ -16,6 +41,7 @@ class PostgresClient {
             max: 20,
             idleTimeoutMillis: 30000,
             connectionTimeoutMillis: 2000,
+            ssl: sslConfig,
         });
         this.pool.on('error', (err) => {
             common_1.logger.error('Unexpected error on idle PostgreSQL client', err);

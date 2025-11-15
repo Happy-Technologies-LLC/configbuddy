@@ -77,12 +77,18 @@ export class WebSocketService {
       const subscriber = this.redis.duplicate();
       await subscriber.connect();
 
-      await subscriber.subscribe(this.PUBSUB_CHANNEL, (message: string) => {
-        try {
-          const data = JSON.parse(message);
-          this.broadcast(data);
-        } catch (error) {
-          logger.error('Failed to parse Redis pub/sub message', { error });
+      // Subscribe to channel
+      await subscriber.subscribe(this.PUBSUB_CHANNEL);
+
+      // Listen for messages
+      subscriber.on('message', (channel: string, message: string) => {
+        if (channel === this.PUBSUB_CHANNEL) {
+          try {
+            const data = JSON.parse(message);
+            this.broadcast(data);
+          } catch (error) {
+            logger.error('Failed to parse Redis pub/sub message', { error });
+          }
         }
       });
 

@@ -8,6 +8,7 @@ export declare class PostgresClient {
         _database: string;
         _user: string;
         _password: string;
+        ssl?: boolean | 'require' | 'prefer' | 'verify-full';
     });
     query(text: string, params?: any[]): Promise<import("pg").QueryResult<any>>;
     getClient(): Promise<PoolClient>;

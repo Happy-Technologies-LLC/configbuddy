@@ -94,13 +94,15 @@ export type ConfigSchema = {
     };
     rateLimit: {
         enabled: boolean;
-        windowMs: number;
+        bypassHeader: string;
+        bypassSecret?: string;
+        tierMultipliers: {
+            standard: number;
+            premium: number;
+            enterprise: number;
+        };
         endpoints: {
-            discovery: {
-                max: number;
-                windowMs: number;
-            };
-            query: {
+            rest: {
                 max: number;
                 windowMs: number;
             };
@@ -108,7 +110,7 @@ export type ConfigSchema = {
                 max: number;
                 windowMs: number;
             };
-            admin: {
+            health: {
                 max: number;
                 windowMs: number;
             };
@@ -116,6 +118,18 @@ export type ConfigSchema = {
                 max: number;
                 windowMs: number;
             };
+            discovery: {
+                max: number;
+                windowMs: number;
+            };
+            admin: {
+                max: number;
+                windowMs: number;
+            };
+        };
+        monitoring: {
+            enabled: boolean;
+            logRateLimitHits: boolean;
         };
     };
     cors: {

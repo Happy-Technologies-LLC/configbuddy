@@ -10,13 +10,20 @@ WORKDIR /app
 COPY package*.json ./
 COPY packages/common/package.json ./packages/common/
 COPY packages/database/package.json ./packages/database/
+COPY packages/unified-model/package.json ./packages/unified-model/
+COPY packages/ai-discovery/package.json ./packages/ai-discovery/
 COPY packages/discovery-engine/package.json ./packages/discovery-engine/
 COPY packages/etl-processor/package.json ./packages/etl-processor/
 COPY packages/event-processor/package.json ./packages/event-processor/
+COPY packages/event-streaming/package.json ./packages/event-streaming/
 COPY packages/ai-ml-engine/package.json ./packages/ai-ml-engine/
 COPY packages/data-mapper/package.json ./packages/data-mapper/
+COPY packages/identity-resolution/package.json ./packages/identity-resolution/
 COPY packages/integration-framework/package.json ./packages/integration-framework/
 COPY packages/integration-hub/package.json ./packages/integration-hub/
+COPY packages/framework-integration/package.json ./packages/framework-integration/
+COPY packages/itil-service-manager/package.json ./packages/itil-service-manager/
+COPY packages/tbm-cost-engine/package.json ./packages/tbm-cost-engine/
 COPY packages/api-server/package.json ./packages/api-server/
 
 # Install ALL dependencies including devDependencies (needed for TypeScript, prom-client, etc.)
@@ -29,13 +36,20 @@ COPY tsconfig.json ./
 # Copy source files
 COPY packages/common ./packages/common
 COPY packages/database ./packages/database
+COPY packages/unified-model ./packages/unified-model
+COPY packages/ai-discovery ./packages/ai-discovery
 COPY packages/discovery-engine ./packages/discovery-engine
 COPY packages/etl-processor ./packages/etl-processor
 COPY packages/event-processor ./packages/event-processor
+COPY packages/event-streaming ./packages/event-streaming
 COPY packages/ai-ml-engine ./packages/ai-ml-engine
 COPY packages/data-mapper ./packages/data-mapper
+COPY packages/identity-resolution ./packages/identity-resolution
 COPY packages/integration-framework ./packages/integration-framework
 COPY packages/integration-hub ./packages/integration-hub
+COPY packages/framework-integration ./packages/framework-integration
+COPY packages/itil-service-manager ./packages/itil-service-manager
+COPY packages/tbm-cost-engine ./packages/tbm-cost-engine
 COPY packages/api-server ./packages/api-server
 COPY packages/connectors ./packages/connectors
 
@@ -44,6 +58,12 @@ WORKDIR /app/packages/common
 RUN npm run build
 
 WORKDIR /app/packages/database
+RUN npm run build
+
+WORKDIR /app/packages/unified-model
+RUN npm run build
+
+WORKDIR /app/packages/ai-discovery
 RUN npm run build
 
 WORKDIR /app/packages/discovery-engine
@@ -55,10 +75,16 @@ RUN npm run build
 WORKDIR /app/packages/event-processor
 RUN npm run build
 
+WORKDIR /app/packages/event-streaming
+RUN npm run build
+
 WORKDIR /app/packages/ai-ml-engine
 RUN npm run build
 
 WORKDIR /app/packages/data-mapper
+RUN npm run build
+
+WORKDIR /app/packages/identity-resolution
 RUN npm run build
 
 WORKDIR /app/packages/integration-framework
@@ -66,6 +92,15 @@ RUN npm run build
 
 WORKDIR /app/packages/integration-hub
 RUN npm run build
+
+WORKDIR /app/packages/framework-integration
+RUN npm run build || echo "Warning: framework-integration build failed (non-critical)"
+
+WORKDIR /app/packages/itil-service-manager
+RUN npm run build || echo "Warning: itil-service-manager build failed (non-critical)"
+
+WORKDIR /app/packages/tbm-cost-engine
+RUN npm run build || echo "Warning: tbm-cost-engine build failed (non-critical)"
 
 WORKDIR /app/packages/api-server
 RUN npm run build

@@ -18,4 +18,6 @@ export type { SecretsProvider } from './secrets/secrets-manager';
 export * from './logging';
 export { EncryptionService, getEncryptionService, resetEncryptionService } from './services/encryption.service';
 export { CredentialProtocolAdapter, type AwsCredentialIdentity, type AzureClientSecretConfig, type GCPServiceAccountCredentials, type SSHConfig, type SNMPConfig, type WinRMConfig, type KubernetesConfig, type LDAPConfig, type RedfishConfig, type ProxmoxConfig, } from './services/credential-protocol-adapter';
+export { validateTableName, validateTableNames, validateCISortField, validateConnectorSortField, validateConnectorConfigSortField, validateConnectorRunSortField, validateSortDirection, escapePostgresIdentifier, containsSQLInjectionPatterns, VALID_TABLE_NAMES, VALID_CI_SORT_FIELDS, VALID_CONNECTOR_SORT_FIELDS, VALID_CONNECTOR_CONFIG_SORT_FIELDS, VALID_CONNECTOR_RUN_SORT_FIELDS, VALID_SORT_DIRECTIONS, } from './security/sql-validators';
+export { validateNodeLabel, validateRelationshipType, validateCIProperty, sanitizeCITypeForLabel, buildSafeCypherLabel, escapeCypherIdentifier, containsCypherInjectionPatterns, VALID_NODE_LABELS, VALID_RELATIONSHIP_TYPES, VALID_CI_PROPERTIES, } from './security/cypher-validators';
 //# sourceMappingURL=index.d.ts.map

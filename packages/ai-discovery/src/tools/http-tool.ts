@@ -86,7 +86,7 @@ export const httpProbeTool: DiscoveryTool = {
                 2000
               )
             : null,
-        responseTime: response.config?.['responseTime'] || null,
+        responseTime: (response.config as any)?.responseTime || null,
       };
 
       logger.info(`HTTP probe successful`, {

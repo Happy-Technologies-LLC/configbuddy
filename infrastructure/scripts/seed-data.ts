@@ -96,7 +96,7 @@ function generateUUID(): string {
 function createDriver(): Driver {
   return neo4j.driver(
     NEO4J_URI,
-    neo4j.auth.basic(NEO4J_USERNAME, NEO4J_PASSWORD),
+    neo4j.auth.basic(NEO4J_USERNAME, NEO4J_PASSWORD!),
     {
       maxConnectionLifetime: 3 * 60 * 60 * 1000, // 3 hours
       maxConnectionPoolSize: 50,

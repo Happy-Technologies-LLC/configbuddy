@@ -14,7 +14,7 @@ import {
 import { useAIPatterns } from '@/hooks/useAIPatterns';
 import { useAuth } from '@/contexts/AuthContext';
 import { AIPattern } from '@/services/ai-pattern.service';
-import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { PatternDetailModal } from './PatternDetailModal';
 
 export const PatternLibrary: React.FC = () => {

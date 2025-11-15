@@ -57,7 +57,7 @@ export class DiscoveryOrchestrator {
       this.patternStorage = new PatternStorageService();
 
       // Warm up cache with active patterns for better performance
-      this.patternStorage.warmupCache().catch(err => {
+      this.patternStorage.warmupCache().catch((err: Error) => {
         logger.warn('Cache warmup failed (non-critical)', { error: err });
       });
 
@@ -68,9 +68,10 @@ export class DiscoveryOrchestrator {
         patternMatchingEnabled: process.env.AI_HYBRID_DISCOVERY_ENABLED !== 'false',
         monthlyBudget: parseFloat(process.env.AI_DISCOVERY_MONTHLY_BUDGET || '100'),
         maxCostPerSession: parseFloat(process.env.AI_DISCOVERY_MAX_COST_PER_SESSION || '0.50'),
+        llmConfig,
       };
 
-      this.hybridOrchestrator = new HybridDiscoveryOrchestrator(hybridConfig, llmConfig);
+      this.hybridOrchestrator = new HybridDiscoveryOrchestrator(hybridConfig);
 
       logger.info('AI Discovery initialized', {
         provider: llmConfig.provider,
@@ -268,8 +269,7 @@ export class DiscoveryOrchestrator {
         name: 'discovery-ai',
         running: this.workersRegistered,
         concurrency: 2,
-        aiEnabled: true,
-      });
+      } as any);
     }
 
     return workers;
@@ -571,7 +571,7 @@ export class DiscoveryOrchestrator {
               method: result.method,
               confidence: result.confidence,
               cost: result.cost,
-              sessionId: result.session?.sessionId,
+              sessionId: (result as any).session?.sessionId,
             };
           } catch (error) {
             logger.error('AI discovery failed', { jobId, error });

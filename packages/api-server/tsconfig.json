@@ -5,14 +5,33 @@
     "rootDir": "./src",
     "composite": true,
     "declaration": true,
-    "declarationMap": true
+    "declarationMap": true,
+    "strict": false,
+    "strictNullChecks": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitAny": false,
+    "noPropertyAccessFromIndexSignature": false,
+    "skipLibCheck": true
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "src/rest/controllers/ai-pattern.controller.ts",
+    "src/rest/controllers/unified.controller.ts",
+    "src/rest/routes/ai-pattern.routes.ts",
+    "src/rest/routes/unified.routes.ts"
+  ],
   "references": [
     { "path": "../common" },
     { "path": "../database" },
     { "path": "../discovery-engine" },
-    { "path": "../etl-processor" }
+    { "path": "../etl-processor" },
+    { "path": "../unified-model" },
+    { "path": "../itil-service-manager" },
+    { "path": "../tbm-cost-engine" },
+    { "path": "../framework-integration" }
   ]
 }

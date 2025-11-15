@@ -42,8 +42,22 @@ class RedisClient {
     async setJSON(key, value, ttl) {
         await this.set(key, JSON.stringify(value), ttl);
     }
-    async del(key) {
-        await this.client.del(key);
+    async del(...keys) {
+        if (keys.length > 0) {
+            await this.client.del(...keys);
+        }
+    }
+    async setex(key, seconds, value) {
+        await this.client.setex(key, seconds, value);
+    }
+    async keys(pattern) {
+        return await this.client.keys(pattern);
+    }
+    duplicate() {
+        return this.client.duplicate();
+    }
+    async publish(channel, message) {
+        return await this.client.publish(channel, message);
     }
     async close() {
         await this.client.quit();

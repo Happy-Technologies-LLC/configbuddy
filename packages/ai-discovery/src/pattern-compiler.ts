@@ -320,7 +320,7 @@ ${discoverySteps.join('\n')}
 
     testCases.push({
       name: 'Detection test',
-      input: testSession.scanResult || {},
+      input: (testSession as any).scanResult || testSession.discoveredCIs || {},
       expected: {
         matches: true,
         confidenceMin: 0.5,

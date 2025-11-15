@@ -26,7 +26,7 @@
     "@cmdb/database": "*",
     "@cmdb/unified-model": "*",
     "@aws-sdk/client-cost-explorer": "^3.478.0",
-    "@azure/arm-costmanagement": "^1.1.0",
+    "@azure/arm-costmanagement": "^1.0.0-beta.2",
     "@azure/identity": "^4.0.0",
     "@google-cloud/billing": "^4.2.0",
     "@google-cloud/bigquery": "^7.3.0",

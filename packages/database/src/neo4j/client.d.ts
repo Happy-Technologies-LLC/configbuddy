@@ -2,7 +2,10 @@ import { Session } from 'neo4j-driver';
 import { CI, CIInput } from '@cmdb/common';
 export declare class Neo4jClient {
     private driver;
-    constructor(uri: string, username: string, password: string);
+    constructor(uri: string, username: string, password: string, config?: {
+        encrypted?: boolean;
+        trust?: 'TRUST_ALL_CERTIFICATES' | 'TRUST_SYSTEM_CA_SIGNED_CERTIFICATES';
+    });
     verifyConnectivity(): Promise<void>;
     initializeSchema(schemaFilePath?: string): Promise<void>;
     getSession(database?: string): Session;

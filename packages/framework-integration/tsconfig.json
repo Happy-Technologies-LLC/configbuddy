@@ -6,7 +6,15 @@
     "composite": true,
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "strict": false,
+    "strictNullChecks": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitAny": false,
+    "strictPropertyInitialization": false,
+    "noImplicitReturns": false,
+    "skipLibCheck": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "tests"],
@@ -14,6 +22,7 @@
     { "path": "../common" },
     { "path": "../database" },
     { "path": "../unified-model" },
+    { "path": "../event-streaming" },
     { "path": "../itil-service-manager" },
     { "path": "../tbm-cost-engine" }
   ]

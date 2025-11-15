@@ -10,7 +10,7 @@ export interface DiscoveryJob {
     completed_at?: string;
     error?: string;
 }
-export type DiscoveryProvider = 'aws' | 'azure' | 'gcp' | 'ssh' | 'nmap' | 'kubernetes' | 'docker' | 'hyperv' | 'vmware' | 'idrac' | 'ilo';
+export type DiscoveryProvider = 'nmap' | 'ssh' | 'active-directory' | 'snmp';
 export type DiscoveryMethod = 'agentless' | 'agent';
 export type JobStatus = 'pending' | 'running' | 'completed' | 'failed';
 export interface DiscoveryConfig {
@@ -33,6 +33,7 @@ export interface DiscoveryDefinition {
     credential_id?: string;
     agent_id?: string;
     config: DiscoveryConfig;
+    field_mappings?: Record<string, string>;
     schedule?: string;
     is_active: boolean;
     tags?: string[];
@@ -51,6 +52,7 @@ export interface DiscoveryDefinitionInput {
     credential_id?: string;
     agent_id?: string;
     config: DiscoveryConfig;
+    field_mappings?: Record<string, string>;
     schedule?: string;
     is_active?: boolean;
     tags?: string[];

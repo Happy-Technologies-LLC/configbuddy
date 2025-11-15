@@ -176,9 +176,12 @@ if [ "$SKIP_BUILD" = false ]; then
     (cd packages/database && npm run build) || exit 1
     log_success "✓ @cmdb/database built"
 
-    # Phase 3: Event processor (depends on common, database)
+    # Phase 3: Event packages (depends on common, database)
     (cd packages/event-processor && npm run build) || exit 1
     log_success "✓ @cmdb/event-processor built"
+
+    (cd packages/event-streaming && npm run build) || exit 1
+    log_success "✓ @cmdb/event-streaming built"
 
     # Phase 4: Integration framework packages (depends on common, database)
     (cd packages/integration-framework && npm run build) || exit 1
@@ -197,12 +200,44 @@ if [ "$SKIP_BUILD" = false ]; then
     (cd packages/ai-ml-engine && npm run build) || exit 1
     log_success "✓ @cmdb/ai-ml-engine built"
 
+    # Phase 5.5: Unified Model and AI Discovery (needed by discovery-engine)
+    (cd packages/unified-model && npm run build) || exit 1
+    log_success "✓ @cmdb/unified-model built"
+
+    (cd packages/ai-discovery && npm run build) || exit 1
+    log_success "✓ @cmdb/ai-discovery built"
+
     # Phase 6: Discovery and ETL (needed by api-server)
     (cd packages/discovery-engine && npm run build) || exit 1
     log_success "✓ @cmdb/discovery-engine built"
 
     (cd packages/etl-processor && npm run build) || exit 1
     log_success "✓ @cmdb/etl-processor built"
+
+    # Phase 6.5: ITIL, TBM, Framework Integration (optional packages)
+    if [ -d "packages/itil-service-manager" ]; then
+        if (cd packages/itil-service-manager && npm run build); then
+            log_success "✓ @cmdb/itil-service-manager built"
+        else
+            log_warning "⚠ @cmdb/itil-service-manager build failed (optional)"
+        fi
+    fi
+
+    if [ -d "packages/tbm-cost-engine" ]; then
+        if (cd packages/tbm-cost-engine && npm run build); then
+            log_success "✓ @cmdb/tbm-cost-engine built"
+        else
+            log_warning "⚠ @cmdb/tbm-cost-engine build failed (optional)"
+        fi
+    fi
+
+    if [ -d "packages/framework-integration" ]; then
+        if (cd packages/framework-integration && npm run build); then
+            log_success "✓ @cmdb/framework-integration built"
+        else
+            log_warning "⚠ @cmdb/framework-integration build failed (optional)"
+        fi
+    fi
 
     # Phase 7: API Server (depends on everything)
     (cd packages/api-server && npm run build) || exit 1

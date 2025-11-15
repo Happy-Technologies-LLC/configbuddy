@@ -17,9 +17,9 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@cmdb/unified-model": "workspace:*",
-    "@cmdb/database": "workspace:*",
-    "@cmdb/event-streaming": "workspace:*",
+    "@cmdb/unified-model": "*",
+    "@cmdb/database": "*",
+    "@cmdb/event-streaming": "*",
     "date-fns": "^2.30.0"
   },
   "devDependencies": {

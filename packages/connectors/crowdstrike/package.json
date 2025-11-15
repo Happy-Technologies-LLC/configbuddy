@@ -22,8 +22,8 @@
   "author": "ConfigBuddy",
   "license": "MIT",
   "dependencies": {
-    "@cmdb/common": "workspace:*",
-    "@cmdb/integration-framework": "workspace:*",
+    "@cmdb/common": "*",
+    "@cmdb/integration-framework": "*",
     "axios": "^1.6.0"
   },
   "devDependencies": {

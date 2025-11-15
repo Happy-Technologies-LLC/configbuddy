@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Brain, TrendingUp, Database, Zap, CheckCircle, Clock, DollarSign, Target } from 'lucide-react';
 import { useDiscoverySessions } from '@/hooks/useDiscoverySessions';
 import { useAIPatterns } from '@/hooks/useAIPatterns';
-import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 export const PatternLearningOverview: React.FC = () => {

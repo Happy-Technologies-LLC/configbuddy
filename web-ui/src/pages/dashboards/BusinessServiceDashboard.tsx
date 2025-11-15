@@ -72,7 +72,7 @@ export const BusinessServiceDashboard: React.FC = () => {
                 'font-size': '10px',
                 color: '#fff',
                 'text-wrap': 'wrap',
-                'text-max-width': 50,
+                'text-max-width': '50px',
               },
             },
             {

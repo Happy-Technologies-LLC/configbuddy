@@ -279,9 +279,8 @@ export class CIRepository {
       created_by: props.created_by || 'system',
       updated_by: props.updated_by || 'system',
       discovered_by: props.discovery_provider || 'system',
-      last_seen: props.last_seen,
       confidence_score: props.confidence_score || 1.0,
-    };
+    } as any;
   }
 
   /**

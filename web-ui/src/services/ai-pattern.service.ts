@@ -1,4 +1,4 @@
-import api from '../lib/api-client';
+import { apiClient as api } from '../lib/api-client';
 
 export interface AIPattern {
   patternId: string;

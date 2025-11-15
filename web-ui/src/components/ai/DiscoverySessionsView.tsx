@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Eye, Search, CheckCircle, XCircle, Clock, Sparkles, Brain } from 'lucide-react';
 import { useDiscoverySessions } from '@/hooks/useDiscoverySessions';
 import { AIDiscoverySession } from '@/services/ai-pattern.service';
-import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { SessionDetailModal } from './SessionDetailModal';
 
 export const DiscoverySessionsView: React.FC = () => {

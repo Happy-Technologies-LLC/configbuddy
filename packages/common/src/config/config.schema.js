@@ -131,28 +131,42 @@ exports.configSchema = joi_1.default.object({
     }).required(),
     rateLimit: joi_1.default.object({
         enabled: joi_1.default.boolean().default(true),
-        windowMs: joi_1.default.number().default(60000),
+        bypassHeader: joi_1.default.string().default('X-Internal-Service'),
+        bypassSecret: joi_1.default.string().optional(),
+        tierMultipliers: joi_1.default.object({
+            standard: joi_1.default.number().default(5),
+            premium: joi_1.default.number().default(10),
+            enterprise: joi_1.default.number().default(20),
+        }).default(),
         endpoints: joi_1.default.object({
-            discovery: joi_1.default.object({
-                max: joi_1.default.number().default(10),
-                windowMs: joi_1.default.number().default(60000),
-            }).default(),
-            query: joi_1.default.object({
-                max: joi_1.default.number().default(100),
-                windowMs: joi_1.default.number().default(60000),
+            rest: joi_1.default.object({
+                max: joi_1.default.number().default(1000),
+                windowMs: joi_1.default.number().default(3600000),
             }).default(),
             graphql: joi_1.default.object({
-                max: joi_1.default.number().default(50),
-                windowMs: joi_1.default.number().default(60000),
+                max: joi_1.default.number().default(500),
+                windowMs: joi_1.default.number().default(3600000),
             }).default(),
-            admin: joi_1.default.object({
-                max: joi_1.default.number().default(30),
+            health: joi_1.default.object({
+                max: joi_1.default.number().default(0),
                 windowMs: joi_1.default.number().default(60000),
             }).default(),
             auth: joi_1.default.object({
-                max: joi_1.default.number().default(5),
-                windowMs: joi_1.default.number().default(300000),
+                max: joi_1.default.number().default(20),
+                windowMs: joi_1.default.number().default(3600000),
             }).default(),
+            discovery: joi_1.default.object({
+                max: joi_1.default.number().default(100),
+                windowMs: joi_1.default.number().default(3600000),
+            }).default(),
+            admin: joi_1.default.object({
+                max: joi_1.default.number().default(200),
+                windowMs: joi_1.default.number().default(3600000),
+            }).default(),
+        }).default(),
+        monitoring: joi_1.default.object({
+            enabled: joi_1.default.boolean().default(true),
+            logRateLimitHits: joi_1.default.boolean().default(true),
         }).default(),
     }).default(),
     cors: joi_1.default.object({

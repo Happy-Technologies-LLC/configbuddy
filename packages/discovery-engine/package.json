@@ -19,8 +19,10 @@
     "@azure/arm-sql": "^10.0.0",
     "@azure/arm-storage": "^18.0.0",
     "@azure/identity": "^4.0.0",
+    "@cmdb/ai-discovery": "*",
     "@cmdb/common": "*",
     "@cmdb/database": "*",
+    "@cmdb/unified-model": "*",
     "@google-cloud/compute": "^4.0.0",
     "@google-cloud/storage": "^7.0.0",
     "@kubernetes/client-node": "^1.4.0",
@@ -43,6 +45,7 @@
     "@types/ldapjs": "^3.0.6",
     "@types/node": "^20.0.0",
     "@types/uuid": "^9.0.0",
+    "@types/ws": "^8.18.1",
     "typescript": "^5.0.0"
   }
 }

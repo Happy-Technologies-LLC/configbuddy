@@ -29,7 +29,7 @@ services:
       - NEO4J_dbms_transaction_concurrent_maximum=1000
 
       # Query Performance
-      - NEO4J_dbms_query_cache__size=1000
+      # NEO4J_dbms_query_cache__size removed in Neo4j 5.x
       - NEO4J_cypher_min__replan__interval=10s
 
       # Connection Pool
@@ -42,7 +42,7 @@ services:
       - NEO4J_dbms_security_auth__enabled=true
 
       # SSL/TLS Configuration (enabled when NEO4J_SSL_ENABLED=true in .env)
-      - NEO4J_dbms_connector_bolt_tls__level=${NEO4J_BOLT_TLS_LEVEL:-OPTIONAL}
+      - NEO4J_dbms_connector_bolt_tls__level=${NEO4J_BOLT_TLS_LEVEL:-DISABLED}
       - NEO4J_dbms_connector_https_enabled=${NEO4J_HTTPS_ENABLED:-false}
       - NEO4J_dbms_ssl_policy_bolt_enabled=${NEO4J_SSL_ENABLED:-false}
       - NEO4J_dbms_ssl_policy_https_enabled=${NEO4J_SSL_ENABLED:-false}
@@ -329,10 +329,7 @@ services:
     ports:
       - "80:80"    # HTTP (redirects to HTTPS)
       - "443:443"  # HTTPS
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl/nginx:/etc/nginx/ssl:ro
-      - ./ssl/certbot:/var/www/certbot:ro
+    # volumes section commented out - using nginx config from Dockerfile instead
     networks:
       - cmdb_network
     restart: unless-stopped

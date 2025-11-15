@@ -47,8 +47,26 @@ export class RedisClient {
     await this.set(key, JSON.stringify(value), ttl);
   }
 
-  async del(key: string): Promise<void> {
-    await this.client.del(key);
+  async del(...keys: string[]): Promise<void> {
+    if (keys.length > 0) {
+      await this.client.del(...keys);
+    }
+  }
+
+  async setex(key: string, seconds: number, value: string): Promise<void> {
+    await this.client.setex(key, seconds, value);
+  }
+
+  async keys(pattern: string): Promise<string[]> {
+    return await this.client.keys(pattern);
+  }
+
+  duplicate(): Redis {
+    return this.client.duplicate();
+  }
+
+  async publish(channel: string, message: string): Promise<number> {
+    return await this.client.publish(channel, message);
   }
 
   async close(): Promise<void> {

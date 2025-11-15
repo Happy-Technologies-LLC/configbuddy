@@ -200,7 +200,7 @@ export class AllocationMethodSelector {
     }
 
     // Applications tower defaults
-    if (tower === 'applications') {
+    if ((tower as string) === 'applications') {
       // Applications and services are typically direct
       if (ci.type === 'application' || ci.type === 'service') {
         return 'direct';

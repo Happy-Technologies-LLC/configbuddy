@@ -24,7 +24,7 @@ import { dashboardRoutes } from './routes/dashboard.routes';
 // TEMPORARILY DISABLED - V3.0 routes need repository implementations
 // import { aiPatternRoutes } from './routes/ai-pattern.routes';
 import { swaggerRoutes } from './routes/swagger.routes';
-// import { itilRoutes } from './routes/itil.routes';
+import { itilRoutes } from './routes/itil.routes';
 
 export class RestAPIServer {
   private app: Express;
@@ -89,8 +89,8 @@ export class RestAPIServer {
     this.app.use('/api/v1/anomalies', anomalyRoutes);
     this.app.use('/api/v1/reconciliation', reconciliationRoutes);
     this.app.use('/api/v1/dashboards', dashboardRoutes);
+    this.app.use('/api/v1/itil', itilRoutes);
     // TEMPORARILY DISABLED - V3.0 routes need repository implementations
-    // this.app.use('/api/v1/itil', itilRoutes);
     // this.app.use('/api/v1/ai', aiPatternRoutes);
     this.app.use('/api/v1', jobsRoutes);
   }

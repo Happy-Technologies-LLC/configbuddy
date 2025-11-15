@@ -71,7 +71,10 @@ export default defineConfig({
         text: 'API Reference',
         items: [
           { text: 'API Overview', link: '/api/overview' },
-          { text: 'Discovery API', link: '/api/rest/discovery' }
+          { text: 'Authentication API', link: '/api/authentication' },
+          { text: 'Discovery API', link: '/api/rest/discovery' },
+          { text: 'Unified Credentials API', link: '/api/rest/unified' },
+          { text: 'Financial Management API', link: '/api/rest/financial' }
         ]
       }
     ],
@@ -430,6 +433,8 @@ export default defineConfig({
             { text: 'Configuration Items', link: '/api/rest/configuration-items' },
             { text: 'Relationships', link: '/api/rest/relationships' },
             { text: 'Discovery API', link: '/api/rest/discovery' },
+            { text: 'Unified Credentials API', link: '/api/rest/unified' },
+            { text: 'Financial Management API', link: '/api/rest/financial' },
             { text: 'Reports', link: '/api/rest/reports' }
           ]
         },

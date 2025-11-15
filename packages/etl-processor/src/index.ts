@@ -394,6 +394,41 @@ export function getETLWorkerManager(): ETLWorkerManager {
 // Export ETL Scheduler from the schedulers module
 export { getETLScheduler, ETLScheduler } from './schedulers/etl-scheduler';
 
+// v3.0 ETL Exports
+export {
+  getV3ETLScheduler,
+  V3ETLScheduler,
+} from './schedulers/v3-etl-scheduler';
+
+export {
+  getV3ETLWorkerManager,
+  V3ETLWorkerManager,
+  CISyncWorker,
+  CostValidationWorker,
+  IncidentSyncWorker,
+} from './workers/v3-etl.worker';
+
+export {
+  processSyncCIsToDatamart,
+  syncCIsJobConfig,
+  type SyncCIsJobData,
+  type SyncCIsJobResult,
+} from './jobs/sync-cis-to-datamart.job';
+
+export {
+  processSyncCostsToDatamart,
+  syncCostsJobConfig,
+  type SyncCostsJobData,
+  type SyncCostsJobResult,
+} from './jobs/sync-costs-to-datamart.job';
+
+export {
+  processSyncIncidentsToDatamart,
+  syncIncidentsJobConfig,
+  type SyncIncidentsJobData,
+  type SyncIncidentsJobResult,
+} from './jobs/sync-incidents-to-datamart.job';
+
 /**
  * Initialize and start all ETL workers
  * Call this when starting the ETL processor service
@@ -405,6 +440,27 @@ export async function initializeETLWorkers(): Promise<ETLWorkerManager> {
 }
 
 /**
+ * Initialize and start all v3.0 ETL workers and scheduler
+ * Call this when starting the discovery engine or ETL processor service for v3.0
+ */
+export async function initializeV3ETL(): Promise<{
+  scheduler: V3ETLScheduler;
+  workerManager: V3ETLWorkerManager;
+}> {
+  logger.info('[initializeV3ETL] Starting v3.0 ETL pipeline...');
+
+  const scheduler = getV3ETLScheduler();
+  const workerManager = getV3ETLWorkerManager();
+
+  await scheduler.start();
+  await workerManager.start();
+
+  logger.info('[initializeV3ETL] v3.0 ETL pipeline started successfully');
+
+  return { scheduler, workerManager };
+}
+
+/**
  * Graceful shutdown handler
  * Call this when shutting down the ETL processor service
  */
@@ -413,4 +469,19 @@ export async function shutdownETLWorkers(): Promise<void> {
     await workerManager.stopWorkers();
     workerManager = null;
   }
+}
+
+/**
+ * Shutdown v3.0 ETL pipeline gracefully
+ */
+export async function shutdownV3ETL(): Promise<void> {
+  logger.info('[shutdownV3ETL] Stopping v3.0 ETL pipeline...');
+
+  const scheduler = getV3ETLScheduler();
+  const workerManager = getV3ETLWorkerManager();
+
+  await scheduler.stop();
+  await workerManager.stop();
+
+  logger.info('[shutdownV3ETL] v3.0 ETL pipeline stopped');
 }

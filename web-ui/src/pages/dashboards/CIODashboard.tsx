@@ -2,7 +2,7 @@ import React from 'react';
 import { Activity, CheckCircle, AlertTriangle, Database, DollarSign, TrendingUp, Download } from 'lucide-react';
 import { useCIODashboard, useTimeRange, useExportDashboard } from '@/hooks/useDashboardData';
 import { KPICard } from '@/components/dashboard/KPICard';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { LiquidGlass } from '@/components/ui/liquid-glass';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -148,12 +148,10 @@ export const CIODashboard: React.FC = () => {
 
       {/* Service Availability and Change Success */}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Service Availability by Tier</CardTitle>
-            <CardDescription>SLA compliance by service tier</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <LiquidGlass variant="default" rounded="xl">
+          <div>
+          <h3 className="text-lg font-semibold mb-1">Service Availability by Tier</h3>
+          <p className="text-sm text-muted-foreground mb-4">SLA compliance by service tier</p>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={data.serviceAvailability}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -185,15 +183,13 @@ export const CIODashboard: React.FC = () => {
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </LiquidGlass>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Change Success Rates</CardTitle>
-            <CardDescription>Last {timeRange.label}</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <LiquidGlass variant="default" rounded="xl">
+          <div>
+          <h3 className="text-lg font-semibold mb-1">Change Success Rates</h3>
+          <p className="text-sm text-muted-foreground mb-4">Last {timeRange.label}</p>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
@@ -235,17 +231,15 @@ export const CIODashboard: React.FC = () => {
                 <p className="text-xs text-muted-foreground">Rollbacks</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </LiquidGlass>
       </div>
 
       {/* Incident Response Times */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Incident Response Times (MTTR)</CardTitle>
-          <CardDescription>Mean Time to Resolution by priority</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <LiquidGlass variant="default" rounded="xl">
+        <div>
+          <h3 className="text-lg font-semibold mb-1">Incident Response Times (MTTR)</h3>
+          <p className="text-sm text-muted-foreground mb-4">Mean Time to Resolution by priority</p>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={data.incidentResponseTimes}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -280,16 +274,14 @@ export const CIODashboard: React.FC = () => {
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </LiquidGlass>
 
       {/* Configuration Accuracy */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Configuration Accuracy</CardTitle>
-          <CardDescription>CMDB health and drift detection status</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <LiquidGlass variant="default" rounded="xl">
+        <div>
+          <h3 className="text-lg font-semibold mb-1">Configuration Accuracy</h3>
+          <p className="text-sm text-muted-foreground mb-4">CMDB health and drift detection status</p>
           <div className="space-y-4">
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -322,16 +314,14 @@ export const CIODashboard: React.FC = () => {
               Last audit: {new Date(data.configurationAccuracy.lastAuditDate).toLocaleString()}
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </LiquidGlass>
 
       {/* Cost by Capability */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Cost by Business Capability</CardTitle>
-          <CardDescription>Budget allocation and variance</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <LiquidGlass variant="default" rounded="xl">
+        <div>
+          <h3 className="text-lg font-semibold mb-1">Cost by Business Capability</h3>
+          <p className="text-sm text-muted-foreground mb-4">Budget allocation and variance</p>
           <ResponsiveContainer width="100%" height={350}>
             <BarChart data={data.costByCapability.slice(0, 10)} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -343,16 +333,14 @@ export const CIODashboard: React.FC = () => {
               <Bar dataKey="budgetAllocated" fill="#10b981" name="Budget" radius={[0, 8, 8, 0]} />
             </BarChart>
           </ResponsiveContainer>
-        </CardContent>
-      </Card>
+        </div>
+      </LiquidGlass>
 
       {/* Capacity Planning */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Capacity Planning</CardTitle>
-          <CardDescription>Resource utilization trends and forecast</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <LiquidGlass variant="default" rounded="xl">
+        <div>
+          <h3 className="text-lg font-semibold mb-1">Capacity Planning</h3>
+          <p className="text-sm text-muted-foreground mb-4">Resource utilization trends and forecast</p>
           <ResponsiveContainer width="100%" height={350}>
             <LineChart data={data.capacityPlanning}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -386,8 +374,8 @@ export const CIODashboard: React.FC = () => {
               />
             </LineChart>
           </ResponsiveContainer>
-        </CardContent>
-      </Card>
+        </div>
+      </LiquidGlass>
     </div>
   );
 };

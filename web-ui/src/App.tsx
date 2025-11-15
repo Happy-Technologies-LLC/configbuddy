@@ -29,6 +29,11 @@ const ITSMDashboard = React.lazy(() => import('./pages/dashboards/ITSMDashboard'
 const FinOpsDashboard = React.lazy(() => import('./pages/dashboards/FinOpsDashboard'));
 const BusinessServiceDashboard = React.lazy(() => import('./pages/dashboards/BusinessServiceDashboard'));
 
+// v3.0 Business Service Management & Financial Management
+const BusinessServices = React.lazy(() => import('./pages/BusinessServices'));
+const ServiceCatalog = React.lazy(() => import('./pages/ServiceCatalog'));
+const FinancialManagement = React.lazy(() => import('./pages/FinancialManagement'));
+
 // v2.0 Components
 import { HealthDashboard } from './components/health/HealthDashboard';
 import { AnomalyDetectionView } from './components/anomalies/AnomalyDetectionView';
@@ -257,6 +262,38 @@ const App: React.FC = () => {
                   <ProtectedRoute>
                     <MainLayout>
                       <BusinessServiceDashboard />
+                    </MainLayout>
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* v3.0 Business Service Management & Financial Management */}
+              <Route
+                path="/business-services"
+                element={
+                  <ProtectedRoute>
+                    <MainLayout>
+                      <BusinessServices />
+                    </MainLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/service-catalog"
+                element={
+                  <ProtectedRoute>
+                    <MainLayout>
+                      <ServiceCatalog />
+                    </MainLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/financial-management"
+                element={
+                  <ProtectedRoute>
+                    <MainLayout>
+                      <FinancialManagement />
                     </MainLayout>
                   </ProtectedRoute>
                 }

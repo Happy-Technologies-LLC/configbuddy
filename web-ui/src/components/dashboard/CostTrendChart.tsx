@@ -11,7 +11,7 @@ import {
   Area,
   AreaChart,
 } from 'recharts';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { LiquidGlass } from '@/components/ui/liquid-glass';
 
 export interface CostDataPoint {
   month: string;
@@ -68,12 +68,12 @@ export const CostTrendChart: React.FC<CostTrendChartProps> = ({
 
   if (stacked) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-          {description && <CardDescription>{description}</CardDescription>}
-        </CardHeader>
-        <CardContent>
+      <LiquidGlass variant="default" rounded="xl">
+        <div>
+          <h3 className="text-lg font-semibold mb-2">{title}</h3>
+          {description && <p className="text-sm text-muted-foreground mb-4">{description}</p>}
+        
+        
           <ResponsiveContainer width="100%" height={350}>
             <AreaChart data={data}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -131,18 +131,18 @@ export const CostTrendChart: React.FC<CostTrendChartProps> = ({
               />
             </AreaChart>
           </ResponsiveContainer>
-        </CardContent>
-      </Card>
+        </div>
+      </LiquidGlass>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        {description && <CardDescription>{description}</CardDescription>}
-      </CardHeader>
-      <CardContent>
+    <LiquidGlass variant="default" rounded="xl">
+      <div>
+        <h3 className="text-lg font-semibold mb-2">{title}</h3>
+        {description && <p className="text-sm text-muted-foreground mb-4">{description}</p>}
+      
+      
         <ResponsiveContainer width="100%" height={350}>
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -172,7 +172,7 @@ export const CostTrendChart: React.FC<CostTrendChartProps> = ({
             )}
           </LineChart>
         </ResponsiveContainer>
-      </CardContent>
-    </Card>
+      </div>
+    </LiquidGlass>
   );
 };

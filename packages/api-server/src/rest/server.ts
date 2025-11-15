@@ -20,6 +20,7 @@ import { connectorRoutes } from './routes/connector.routes';
 import { connectorConfigRoutes } from './routes/connector-config.routes';
 import { unifiedCredentialRoutes } from './routes/unified-credential.routes';
 import { reconciliationRoutes } from './routes/reconciliation.routes';
+import { dashboardRoutes } from './routes/dashboard.routes';
 // TEMPORARILY DISABLED - V3.0 routes need repository implementations
 // import { aiPatternRoutes } from './routes/ai-pattern.routes';
 import { swaggerRoutes } from './routes/swagger.routes';
@@ -87,6 +88,7 @@ export class RestAPIServer {
     this.app.use('/api/v1/analytics', analyticsRoutes);
     this.app.use('/api/v1/anomalies', anomalyRoutes);
     this.app.use('/api/v1/reconciliation', reconciliationRoutes);
+    this.app.use('/api/v1/dashboards', dashboardRoutes);
     // TEMPORARILY DISABLED - V3.0 routes need repository implementations
     // this.app.use('/api/v1/itil', itilRoutes);
     // this.app.use('/api/v1/ai', aiPatternRoutes);

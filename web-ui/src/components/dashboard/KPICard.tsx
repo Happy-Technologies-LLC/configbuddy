@@ -1,6 +1,6 @@
 import React from 'react';
 import { TrendingUp, TrendingDown, Minus, LucideIcon } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { LiquidGlass } from '@/components/ui/liquid-glass';
 import { Badge } from '@/components/ui/badge';
 
 export interface KPICardProps {
@@ -56,28 +56,39 @@ export const KPICard: React.FC<KPICardProps> = ({
     return 'text-gray-600 dark:text-gray-400';
   };
 
+  const getVariant = () => {
+    if (color === 'blue') return 'primary';
+    if (color === 'green') return 'default';
+    if (color === 'yellow' || color === 'red') return 'accent';
+    if (color === 'purple') return 'secondary';
+    return 'default';
+  };
+
   return (
-    <Card
-      className={`${onClick ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''}`}
+    <LiquidGlass
+      variant={getVariant()}
+      hover
+      rounded="xl"
+      className={onClick ? 'cursor-pointer' : ''}
       onClick={onClick}
     >
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        {Icon && (
-          <div className={`p-2 rounded-lg ${COLOR_CLASSES[color]}`}>
-            <Icon className={`h-4 w-4 ${ICON_COLOR_CLASSES[color]}`} />
-          </div>
-        )}
-      </CardHeader>
-      <CardContent>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+          {Icon && (
+            <Icon className={`h-5 w-5 ${ICON_COLOR_CLASSES[color]} opacity-60`} />
+          )}
+        </div>
+
         <div className="flex items-baseline gap-2">
           <div className="text-3xl font-bold">
             {typeof value === 'number' ? value.toLocaleString() : value}
           </div>
           {unit && <span className="text-sm text-muted-foreground">{unit}</span>}
         </div>
+
         {(trend || description) && (
-          <div className="flex items-center gap-2 mt-2">
+          <div className="flex items-center gap-2">
             {trend && (
               <Badge variant="outline" className={`flex items-center gap-1 ${getTrendColor()}`}>
                 {getTrendIcon()}
@@ -91,7 +102,7 @@ export const KPICard: React.FC<KPICardProps> = ({
             )}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </LiquidGlass>
   );
 };

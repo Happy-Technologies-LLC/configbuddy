@@ -64,7 +64,7 @@ export default defineConfig({
           { text: 'AI/ML Engine', link: '/components/ai-ml-engine' },
           { text: 'Event Streaming', link: '/components/event-streaming' },
           { text: 'Metabase BI', link: '/components/metabase' },
-          { text: 'Multi-Stakeholder Dashboards', link: '/components/dashboards' }
+          { text: 'Business Insights Dashboards', link: '/components/business-dashboards' }
         ]
       },
       {
@@ -194,7 +194,7 @@ export default defineConfig({
             { text: 'AI/ML Engine', link: '/components/ai-ml-engine' },
             { text: 'Event Streaming', link: '/components/event-streaming' },
             { text: 'Metabase BI', link: '/components/metabase' },
-            { text: 'Multi-Stakeholder Dashboards', link: '/components/dashboards' }
+            { text: 'Business Insights Dashboards', link: '/components/business-dashboards' }
           ]
         }
       ],

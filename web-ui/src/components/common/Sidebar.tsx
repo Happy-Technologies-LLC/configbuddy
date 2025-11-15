@@ -17,6 +17,9 @@ import {
   DollarSign,
   Shield,
   Target,
+  Network,
+  ShoppingCart,
+  PieChart,
 } from 'lucide-react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
@@ -47,7 +50,7 @@ const menuCategories: MenuCategory[] = [
     ],
   },
   {
-    title: 'Business Insights (v3.0)',
+    title: 'Business Insights',
     items: [
       {
         text: 'Executive Dashboard',
@@ -73,6 +76,26 @@ const menuCategories: MenuCategory[] = [
         text: 'Business Service',
         icon: <Target className="h-5 w-5" />,
         path: '/dashboards/business-service',
+      },
+    ],
+  },
+  {
+    title: 'Service Management',
+    items: [
+      {
+        text: 'Business Services',
+        icon: <Network className="h-5 w-5" />,
+        path: '/business-services',
+      },
+      {
+        text: 'Service Catalog',
+        icon: <ShoppingCart className="h-5 w-5" />,
+        path: '/service-catalog',
+      },
+      {
+        text: 'Financial Management',
+        icon: <PieChart className="h-5 w-5" />,
+        path: '/financial-management',
       },
     ],
   },

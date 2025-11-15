@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Activity, DollarSign, Users, Shield, CheckCircle, XCircle, Download, AlertTriangle } from 'lucide-react';
 import { useBusinessServiceDashboard, useExportDashboard } from '@/hooks/useDashboardData';
 import { KPICard } from '@/components/dashboard/KPICard';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { LiquidGlass } from '@/components/ui/liquid-glass';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -211,12 +211,10 @@ export const BusinessServiceDashboard: React.FC = () => {
       </div>
 
       {/* Service Health Heat Map */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Service Health by Business Unit</CardTitle>
-          <CardDescription>Click a service to view details</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <LiquidGlass variant="default" rounded="xl">
+        <div>
+          <h3 className="text-lg font-semibold mb-1">Service Health by Business Unit</h3>
+          <p className="text-sm text-muted-foreground mb-4">Click a service to view details</p>
           {loading ? (
             <div className="flex justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -260,8 +258,8 @@ export const BusinessServiceDashboard: React.FC = () => {
               Select a business unit to view services
             </p>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </LiquidGlass>
 
       {/* Service-specific KPIs (only show if service is selected) */}
       {selectedService && (
@@ -271,21 +269,21 @@ export const BusinessServiceDashboard: React.FC = () => {
               title="Revenue at Risk"
               value={formatCurrency(revenueAtRisk.data?.revenueAtRisk || 0)}
               icon={DollarSign}
-              color={revenueAtRisk.data?.percentageAtRisk > 10 ? 'red' : 'green'}
+              color={(revenueAtRisk.data?.percentageAtRisk ?? 0) > 10 ? 'red' : 'green'}
               description={`${revenueAtRisk.data?.percentageAtRisk?.toFixed(1) || 0}% of total revenue`}
             />
             <KPICard
               title="Customers Impacted"
               value={customerImpact.data?.customersImpacted || 0}
               icon={Users}
-              color={customerImpact.data?.customersImpacted > 0 ? 'red' : 'green'}
+              color={(customerImpact.data?.customersImpacted ?? 0) > 0 ? 'red' : 'green'}
               description={`${customerImpact.data?.totalCustomers || 0} total customers`}
             />
             <KPICard
               title="Estimated User Impact"
               value={customerImpact.data?.estimatedUserImpact?.toLocaleString() || '0'}
               icon={AlertTriangle}
-              color={customerImpact.data?.estimatedUserImpact > 0 ? 'red' : 'green'}
+              color={(customerImpact.data?.estimatedUserImpact ?? 0) > 0 ? 'red' : 'green'}
               description="Users affected by incidents"
             />
             <KPICard
@@ -306,14 +304,12 @@ export const BusinessServiceDashboard: React.FC = () => {
 
           {/* Revenue at Risk Details */}
           {revenueAtRisk.data && revenueAtRisk.data.affectedIncidents.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Revenue at Risk</CardTitle>
-                <CardDescription>
+            <LiquidGlass variant="default" rounded="xl">
+              <div>
+          <h3 className="text-lg font-semibold mb-1">Revenue at Risk</h3>
+          <p className="text-sm text-muted-foreground mb-4">
                   Total annual revenue: {formatCurrency(revenueAtRisk.data.totalAnnualRevenue)}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+                </p>
                 <div className="space-y-2">
                   {revenueAtRisk.data.affectedIncidents.map((incident: any) => (
                     <div
@@ -340,21 +336,19 @@ export const BusinessServiceDashboard: React.FC = () => {
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </LiquidGlass>
           )}
 
           {/* Compliance Status */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Compliance Status</CardTitle>
-              <CardDescription>
+          <LiquidGlass variant="default" rounded="xl">
+            <div>
+          <h3 className="text-lg font-semibold mb-1">Compliance Status</h3>
+          <p className="text-sm text-muted-foreground mb-4">
                 Last audit: {complianceStatus.data?.lastAuditDate
                   ? new Date(complianceStatus.data.lastAuditDate).toLocaleDateString()
                   : 'N/A'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+              </p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 {[
                   { name: 'PCI', value: complianceStatus.data?.pciCompliant },
@@ -377,11 +371,11 @@ export const BusinessServiceDashboard: React.FC = () => {
                   </div>
                 ))}
               </div>
-              {complianceStatus.data?.nonCompliantItems?.length > 0 && (
+              {(complianceStatus.data?.nonCompliantItems?.length ?? 0) > 0 && (
                 <div>
                   <h4 className="font-semibold mb-3">Non-Compliant Items</h4>
                   <div className="space-y-2">
-                    {complianceStatus.data.nonCompliantItems.map((item: any, index: number) => (
+                    {complianceStatus.data?.nonCompliantItems?.map((item: any, index: number) => (
                       <div key={index} className="p-3 border border-border rounded-lg bg-red-50 dark:bg-red-950">
                         <p className="text-sm font-medium">{item.requirement}</p>
                         <p className="text-xs text-muted-foreground mt-1">
@@ -392,19 +386,17 @@ export const BusinessServiceDashboard: React.FC = () => {
                   </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </LiquidGlass>
 
           {/* Value Stream Health */}
           {valueStreamHealth.data && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Value Stream Health</CardTitle>
-                <CardDescription>
+            <LiquidGlass variant="default" rounded="xl">
+              <div>
+          <h3 className="text-lg font-semibold mb-1">Value Stream Health</h3>
+          <p className="text-sm text-muted-foreground mb-4">
                   Flow rate: {valueStreamHealth.data.flowRate} requests/day | Cycle time: {valueStreamHealth.data.cycleTime}h
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+                </p>
                 <div className="space-y-4">
                   {valueStreamHealth.data.stages.map((stage: any, index: number) => (
                     <div key={stage.name}>
@@ -441,25 +433,23 @@ export const BusinessServiceDashboard: React.FC = () => {
                           </div>
                         </div>
                       </div>
-                      {index < valueStreamHealth.data.stages.length - 1 && (
+                      {index < (valueStreamHealth.data?.stages?.length ?? 0) - 1 && (
                         <div className="text-center text-muted-foreground my-2">↓</div>
                       )}
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </LiquidGlass>
           )}
 
           {/* Dependency Map */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Service Dependency Map</CardTitle>
-              <CardDescription>
+          <LiquidGlass variant="default" rounded="xl">
+            <div>
+          <h3 className="text-lg font-semibold mb-1">Service Dependency Map</h3>
+          <p className="text-sm text-muted-foreground mb-4">
                 Business service dependencies and health propagation
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+              </p>
               {serviceDependencies.loading ? (
                 <div className="flex justify-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -488,14 +478,14 @@ export const BusinessServiceDashboard: React.FC = () => {
                   <span>Critical (&lt;60%)</span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </LiquidGlass>
         </>
       )}
 
       {!selectedService && (
-        <Card>
-          <CardContent className="py-12">
+        <LiquidGlass variant="default" rounded="xl">
+          <div className="py-12">
             <div className="text-center">
               <Activity className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">Select a Business Service</h3>
@@ -503,8 +493,8 @@ export const BusinessServiceDashboard: React.FC = () => {
                 Click on a service in the heat map above to view detailed metrics, compliance status, and dependencies.
               </p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </LiquidGlass>
       )}
     </div>
   );

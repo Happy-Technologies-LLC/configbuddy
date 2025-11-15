@@ -4,7 +4,7 @@ import { useFinOpsDashboard, useTimeRange, useExportDashboard } from '@/hooks/us
 import { KPICard } from '@/components/dashboard/KPICard';
 import { CostTrendChart } from '@/components/dashboard/CostTrendChart';
 import { CostBreakdownChart } from '@/components/dashboard/CostBreakdownChart';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { LiquidGlass } from '@/components/ui/liquid-glass';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -169,12 +169,10 @@ export const FinOpsDashboard: React.FC = () => {
 
       {/* On-Prem vs Cloud Comparison */}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>On-Premise vs Cloud</CardTitle>
-            <CardDescription>Total cost comparison</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <LiquidGlass variant="default" rounded="xl">
+          <div>
+          <h3 className="text-lg font-semibold mb-1">On-Premise vs Cloud</h3>
+          <p className="text-sm text-muted-foreground mb-4">Total cost comparison</p>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
@@ -210,15 +208,13 @@ export const FinOpsDashboard: React.FC = () => {
                 <span className="text-sm font-bold">{formatCurrency(onPremVsCloud.data?.totalCost || 0)}</span>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </LiquidGlass>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>TCO Comparison</CardTitle>
-            <CardDescription>Total Cost of Ownership by category</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <LiquidGlass variant="default" rounded="xl">
+          <div>
+          <h3 className="text-lg font-semibold mb-1">TCO Comparison</h3>
+          <p className="text-sm text-muted-foreground mb-4">Total Cost of Ownership by category</p>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={onPremVsCloud.data?.tcoComparison || []}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -230,8 +226,8 @@ export const FinOpsDashboard: React.FC = () => {
                 <Bar dataKey="cloud" fill="#3b82f6" name="Cloud" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
+          </div>
+        </LiquidGlass>
       </div>
 
       {/* Cost Allocation by Tower */}
@@ -250,12 +246,10 @@ export const FinOpsDashboard: React.FC = () => {
       />
 
       {/* Budget Variance */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Budget Variance by Capability</CardTitle>
-          <CardDescription>Actual spend vs. budget allocation</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <LiquidGlass variant="default" rounded="xl">
+        <div>
+          <h3 className="text-lg font-semibold mb-1">Budget Variance by Capability</h3>
+          <p className="text-sm text-muted-foreground mb-4">Actual spend vs. budget allocation</p>
           <ResponsiveContainer width="100%" height={400}>
             <BarChart data={budgetVariance.data} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -292,16 +286,14 @@ export const FinOpsDashboard: React.FC = () => {
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </LiquidGlass>
 
       {/* Unit Economics */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Unit Economics</CardTitle>
-          <CardDescription>Cost per unit metrics</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <LiquidGlass variant="default" rounded="xl">
+        <div>
+          <h3 className="text-lg font-semibold mb-1">Unit Economics</h3>
+          <p className="text-sm text-muted-foreground mb-4">Cost per unit metrics</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {unitEconomics.data.map((metric: any) => (
               <div key={metric.metric} className="p-4 border border-border rounded-lg">
@@ -331,18 +323,16 @@ export const FinOpsDashboard: React.FC = () => {
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </LiquidGlass>
 
       {/* Cost Optimization Recommendations */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Cost Optimization Recommendations</CardTitle>
-          <CardDescription>
+      <LiquidGlass variant="default" rounded="xl">
+        <div>
+          <h3 className="text-lg font-semibold mb-1">Cost Optimization Recommendations</h3>
+          <p className="text-sm text-muted-foreground mb-4">
             Potential savings: {formatCurrency(totalPotentialSavings)}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </p>
           <div className="space-y-3">
             {costOptimization.data?.recommendations?.map((rec: any) => (
               <div
@@ -382,8 +372,8 @@ export const FinOpsDashboard: React.FC = () => {
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </LiquidGlass>
     </div>
   );
 };

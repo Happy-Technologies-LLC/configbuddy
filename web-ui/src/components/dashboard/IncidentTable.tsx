@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { LiquidGlass } from '@/components/ui/liquid-glass';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, Clock, User } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -63,12 +63,12 @@ export const IncidentTable: React.FC<IncidentTableProps> = ({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        {description && <CardDescription>{description}</CardDescription>}
-      </CardHeader>
-      <CardContent>
+    <LiquidGlass variant="default" rounded="xl">
+      <div>
+        <h3 className="text-lg font-semibold mb-2">{title}</h3>
+        {description && <p className="text-sm text-muted-foreground mb-4">{description}</p>}
+      
+      
         {showFilters && (
           <div className="flex gap-2 mb-4 flex-wrap">
             <select
@@ -162,7 +162,7 @@ export const IncidentTable: React.FC<IncidentTableProps> = ({
             </tbody>
           </table>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </LiquidGlass>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { LiquidGlass } from '@/components/ui/liquid-glass';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle } from 'lucide-react';
 
@@ -79,12 +79,12 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
     : [];
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        {description && <CardDescription>{description}</CardDescription>}
-      </CardHeader>
-      <CardContent>
+    <LiquidGlass variant="default" rounded="xl">
+      <div>
+        <h3 className="text-lg font-semibold mb-2">{title}</h3>
+        {description && <p className="text-sm text-muted-foreground mb-4">{description}</p>}
+      
+      
         <div className="space-y-4">
           {/* Matrix Grid */}
           <div className="grid grid-cols-5 gap-2">
@@ -214,7 +214,7 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({
             </div>
           )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </LiquidGlass>
   );
 };

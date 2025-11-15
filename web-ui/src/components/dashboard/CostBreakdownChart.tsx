@@ -7,7 +7,7 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { LiquidGlass } from '@/components/ui/liquid-glass';
 
 export interface CostBreakdownItem {
   name: string;
@@ -118,12 +118,12 @@ export const CostBreakdownChart: React.FC<CostBreakdownChartProps> = ({
 
   if (type === 'pie') {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-          {description && <CardDescription>{description}</CardDescription>}
-        </CardHeader>
-        <CardContent>
+      <LiquidGlass variant="default" rounded="xl">
+        <div>
+          <h3 className="text-lg font-semibold mb-2">{title}</h3>
+          {description && <p className="text-sm text-muted-foreground mb-4">{description}</p>}
+        
+        
           <ResponsiveContainer width="100%" height={400}>
             <PieChart>
               <Pie
@@ -150,18 +150,18 @@ export const CostBreakdownChart: React.FC<CostBreakdownChartProps> = ({
               <Tooltip content={<CustomTooltip />} />
             </PieChart>
           </ResponsiveContainer>
-        </CardContent>
-      </Card>
+        </div>
+      </LiquidGlass>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        {description && <CardDescription>{description}</CardDescription>}
-      </CardHeader>
-      <CardContent>
+    <LiquidGlass variant="default" rounded="xl">
+      <div>
+        <h3 className="text-lg font-semibold mb-2">{title}</h3>
+        {description && <p className="text-sm text-muted-foreground mb-4">{description}</p>}
+      
+      
         <ResponsiveContainer width="100%" height={400}>
           <Treemap
             data={data}
@@ -175,7 +175,7 @@ export const CostBreakdownChart: React.FC<CostBreakdownChartProps> = ({
             <Tooltip content={<CustomTooltip />} />
           </Treemap>
         </ResponsiveContainer>
-      </CardContent>
-    </Card>
+      </div>
+    </LiquidGlass>
   );
 };

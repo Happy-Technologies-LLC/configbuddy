@@ -3,7 +3,7 @@ import { AlertCircle, Clock, CheckCircle, XCircle, RefreshCw, Download } from 'l
 import { useITSMDashboard, useExportDashboard } from '@/hooks/useDashboardData';
 import { KPICard } from '@/components/dashboard/KPICard';
 import { IncidentTable } from '@/components/dashboard/IncidentTable';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { LiquidGlass } from '@/components/ui/liquid-glass';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -129,19 +129,26 @@ export const ITSMDashboard: React.FC = () => {
 
       {/* Open Incidents Table */}
       <IncidentTable
-        incidents={incidents.data}
+        incidents={(incidents.data || []).map((inc: any) => ({
+          id: inc.id,
+          title: inc.title,
+          priority: inc.priority as 'P1' | 'P2' | 'P3' | 'P4' | 'P5',
+          status: inc.status as 'open' | 'in-progress' | 'resolved' | 'closed',
+          affectedCI: inc.affectedCI,
+          assignedTeam: inc.assignedTeam,
+          createdAt: inc.createdAt,
+          age: inc.age,
+        }))}
         title="Open Incidents by Priority"
         description="Real-time incident tracking"
         showFilters={true}
       />
 
       {/* Changes in Progress */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Changes in Progress</CardTitle>
-          <CardDescription>Active change requests</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <LiquidGlass variant="default" rounded="xl">
+        <div>
+          <h3 className="text-lg font-semibold mb-1">Changes in Progress</h3>
+          <p className="text-sm text-muted-foreground mb-4">Active change requests</p>
           {/* Kanban-style view */}
           <div className="grid grid-cols-4 gap-4">
             {/* Scheduled Column */}
@@ -154,8 +161,8 @@ export const ITSMDashboard: React.FC = () => {
                 {changes.data
                   .filter((c: any) => c.status === 'scheduled')
                   .map((change: any) => (
-                    <Card key={change.id} className="cursor-pointer hover:shadow-md transition-shadow">
-                      <CardContent className="p-3">
+                    <LiquidGlass variant="default" rounded="xl" key={change.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                      <div className="p-3">
                         <p className="text-sm font-medium truncate">{change.title}</p>
                         <div className="flex items-center gap-1 mt-2">
                           <Badge variant="outline" className="text-xs">
@@ -181,8 +188,8 @@ export const ITSMDashboard: React.FC = () => {
                             {new Date(change.scheduledDate).toLocaleDateString()}
                           </p>
                         )}
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </LiquidGlass>
                   ))}
               </div>
             </div>
@@ -197,8 +204,8 @@ export const ITSMDashboard: React.FC = () => {
                 {changes.data
                   .filter((c: any) => c.status === 'in-progress')
                   .map((change: any) => (
-                    <Card key={change.id} className="cursor-pointer hover:shadow-md transition-shadow border-blue-500">
-                      <CardContent className="p-3">
+                    <LiquidGlass variant="default" rounded="xl" key={change.id} className="cursor-pointer hover:shadow-md transition-shadow border-blue-500">
+                      <div className="p-3">
                         <p className="text-sm font-medium truncate">{change.title}</p>
                         <div className="flex items-center gap-1 mt-2">
                           <Badge variant="outline" className="text-xs">
@@ -222,8 +229,8 @@ export const ITSMDashboard: React.FC = () => {
                         {change.assignedTo && (
                           <p className="text-xs text-muted-foreground mt-1">{change.assignedTo}</p>
                         )}
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </LiquidGlass>
                   ))}
               </div>
             </div>
@@ -238,8 +245,8 @@ export const ITSMDashboard: React.FC = () => {
                 {changes.data
                   .filter((c: any) => c.status === 'rollback')
                   .map((change: any) => (
-                    <Card key={change.id} className="cursor-pointer hover:shadow-md transition-shadow border-red-500">
-                      <CardContent className="p-3">
+                    <LiquidGlass variant="default" rounded="xl" key={change.id} className="cursor-pointer hover:shadow-md transition-shadow border-red-500">
+                      <div className="p-3">
                         <p className="text-sm font-medium truncate">{change.title}</p>
                         <div className="flex items-center gap-1 mt-2">
                           <Badge variant="outline" className="text-xs">
@@ -249,8 +256,8 @@ export const ITSMDashboard: React.FC = () => {
                             Failed
                           </Badge>
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </LiquidGlass>
                   ))}
               </div>
             </div>
@@ -268,8 +275,8 @@ export const ITSMDashboard: React.FC = () => {
                   .filter((c: any) => c.status === 'completed')
                   .slice(0, 5)
                   .map((change: any) => (
-                    <Card key={change.id} className="cursor-pointer hover:shadow-md transition-shadow border-green-500">
-                      <CardContent className="p-3">
+                    <LiquidGlass variant="default" rounded="xl" key={change.id} className="cursor-pointer hover:shadow-md transition-shadow border-green-500">
+                      <div className="p-3">
                         <p className="text-sm font-medium truncate">{change.title}</p>
                         <div className="flex items-center gap-1 mt-2">
                           <Badge variant="outline" className="text-xs">
@@ -277,22 +284,20 @@ export const ITSMDashboard: React.FC = () => {
                           </Badge>
                           <CheckCircle className="h-3 w-3 text-green-600 dark:text-green-400" />
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </LiquidGlass>
                   ))}
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </LiquidGlass>
 
       {/* CI Status Overview */}
-      <Card>
-        <CardHeader>
-          <CardTitle>CI Status Overview</CardTitle>
-          <CardDescription>Configuration Items by status</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <LiquidGlass variant="default" rounded="xl">
+        <div>
+          <h3 className="text-lg font-semibold mb-1">CI Status Overview</h3>
+          <p className="text-sm text-muted-foreground mb-4">Configuration Items by status</p>
           <div className="grid grid-cols-4 gap-4">
             {ciStatus.data.map((status: any) => (
               <div key={status.status} className="text-center p-4 border border-border rounded-lg">
@@ -303,16 +308,14 @@ export const ITSMDashboard: React.FC = () => {
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </LiquidGlass>
 
       {/* Top Failing CIs */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Top Failing CIs</CardTitle>
-          <CardDescription>CIs with most incidents in last 30 days</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <LiquidGlass variant="default" rounded="xl">
+        <div>
+          <h3 className="text-lg font-semibold mb-1">Top Failing CIs</h3>
+          <p className="text-sm text-muted-foreground mb-4">CIs with most incidents in last 30 days</p>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -353,16 +356,14 @@ export const ITSMDashboard: React.FC = () => {
               </tbody>
             </table>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </LiquidGlass>
 
       {/* SLA Compliance */}
-      <Card>
-        <CardHeader>
-          <CardTitle>SLA Compliance</CardTitle>
-          <CardDescription>Incident resolution within SLA targets</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <LiquidGlass variant="default" rounded="xl">
+        <div>
+          <h3 className="text-lg font-semibold mb-1">SLA Compliance</h3>
+          <p className="text-sm text-muted-foreground mb-4">Incident resolution within SLA targets</p>
           <div className="space-y-4">
             {slaCompliance.data.map((sla: any) => (
               <div key={sla.priority}>
@@ -386,16 +387,14 @@ export const ITSMDashboard: React.FC = () => {
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </LiquidGlass>
 
       {/* Baseline Compliance */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Configuration Baseline Compliance</CardTitle>
-          <CardDescription>CIs with detected drift from baseline</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <LiquidGlass variant="default" rounded="xl">
+        <div>
+          <h3 className="text-lg font-semibold mb-1">Configuration Baseline Compliance</h3>
+          <p className="text-sm text-muted-foreground mb-4">CIs with detected drift from baseline</p>
           {baselineCompliance.data.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">
               No configuration drift detected
@@ -447,8 +446,8 @@ export const ITSMDashboard: React.FC = () => {
               </table>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </LiquidGlass>
     </div>
   );
 };

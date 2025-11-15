@@ -1,30 +1,17 @@
-import { useQuery, useMutation, useSubscription } from '@apollo/client';
-import { useState, useEffect } from 'react';
-import {
-  EXECUTIVE_SUMMARY_QUERY,
-  CIO_METRICS_QUERY,
-  OPEN_INCIDENTS_QUERY,
-  CHANGES_IN_PROGRESS_QUERY,
-  CI_STATUS_QUERY,
-  TOP_FAILING_CIS_QUERY,
-  SLA_COMPLIANCE_QUERY,
-  BASELINE_COMPLIANCE_QUERY,
-  CLOUD_COSTS_QUERY,
-  ON_PREM_VS_CLOUD_QUERY,
-  COST_BY_TOWER_QUERY,
-  BUDGET_VARIANCE_QUERY,
-  UNIT_ECONOMICS_QUERY,
-  COST_OPTIMIZATION_QUERY,
-  SERVICE_HEALTH_QUERY,
-  REVENUE_AT_RISK_QUERY,
-  CUSTOMER_IMPACT_QUERY,
-  COMPLIANCE_STATUS_QUERY,
-  VALUE_STREAM_HEALTH_QUERY,
-  SERVICE_DEPENDENCIES_QUERY,
-  EXPORT_DASHBOARD_QUERY,
-  INCIDENT_UPDATES_SUBSCRIPTION,
-  CHANGE_UPDATES_SUBSCRIPTION,
-} from '../graphql/queries/dashboard.queries';
+/**
+ * Dashboard Data Hooks
+ * React Query hooks for Business Insights dashboards (REST API)
+ */
+
+import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import dashboardService, {
+  ExecutiveSummaryData,
+  CIOMetricsData,
+  ITSMDashboardData,
+  FinOpsDashboardData,
+  BusinessServiceDashboardData,
+} from '../services/dashboard.service';
 
 export interface TimeRange {
   start: string;
@@ -32,16 +19,33 @@ export interface TimeRange {
   label?: string;
 }
 
+/**
+ * Convert time range string to days
+ */
+function timeRangeToDays(range: string): number {
+  const mapping: Record<string, number> = {
+    '7d': 7,
+    '30d': 30,
+    '90d': 90,
+    '1y': 365,
+  };
+  return mapping[range] || 30;
+}
+
 // Executive Dashboard Hook
 export const useExecutiveDashboard = (timeRange: TimeRange) => {
-  const { data, loading, error, refetch } = useQuery(EXECUTIVE_SUMMARY_QUERY, {
-    variables: { timeRange },
-    pollInterval: 30000, // Auto-refresh every 30 seconds
+  const days = timeRangeToDays(timeRange.start);
+
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['executive-dashboard', days],
+    queryFn: () => dashboardService.getExecutiveDashboard(days),
+    staleTime: 30000, // 30 seconds
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
   });
 
   return {
-    data: data?.executiveSummary,
-    loading,
+    data,
+    loading: isLoading,
     error,
     refetch,
   };
@@ -49,288 +53,196 @@ export const useExecutiveDashboard = (timeRange: TimeRange) => {
 
 // CIO Dashboard Hook
 export const useCIODashboard = (timeRange: TimeRange) => {
-  const { data, loading, error, refetch } = useQuery(CIO_METRICS_QUERY, {
-    variables: { timeRange },
-    pollInterval: 30000,
+  const days = timeRangeToDays(timeRange.start);
+
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['cio-dashboard', days],
+    queryFn: () => dashboardService.getCIODashboard(days),
+    staleTime: 30000,
+    refetchInterval: 30000,
   });
 
   return {
-    data: data?.cioMetrics,
-    loading,
+    data,
+    loading: isLoading,
     error,
     refetch,
   };
 };
 
 // ITSM Dashboard Hook
-export const useITSMDashboard = (filters?: any) => {
-  const incidents = useQuery(OPEN_INCIDENTS_QUERY, {
-    variables: { filters },
-    pollInterval: 10000, // More frequent for incidents
+export const useITSMDashboard = (_filters?: any) => {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['itsm-dashboard'],
+    queryFn: () => dashboardService.getITSMDashboard(),
+    staleTime: 10000, // 10 seconds
+    refetchInterval: 10000, // More frequent for incidents
   });
-
-  const changes = useQuery(CHANGES_IN_PROGRESS_QUERY, {
-    pollInterval: 10000,
-  });
-
-  const ciStatus = useQuery(CI_STATUS_QUERY, {
-    pollInterval: 30000,
-  });
-
-  const topFailing = useQuery(TOP_FAILING_CIS_QUERY, {
-    variables: { timeRange: { start: '30d', end: 'now' } },
-    pollInterval: 60000,
-  });
-
-  const slaCompliance = useQuery(SLA_COMPLIANCE_QUERY, {
-    variables: { timeRange: { start: '30d', end: 'now' } },
-    pollInterval: 60000,
-  });
-
-  const baselineCompliance = useQuery(BASELINE_COMPLIANCE_QUERY, {
-    pollInterval: 60000,
-  });
-
-  // Real-time subscriptions
-  const incidentUpdates = useSubscription(INCIDENT_UPDATES_SUBSCRIPTION);
-  const changeUpdates = useSubscription(CHANGE_UPDATES_SUBSCRIPTION);
 
   return {
     incidents: {
-      data: incidents.data?.openIncidents || [],
-      loading: incidents.loading,
-      error: incidents.error,
-      refetch: incidents.refetch,
+      data: data?.openIncidents || [],
+      loading: isLoading,
+      error,
+      refetch,
     },
     changes: {
-      data: changes.data?.changesInProgress || [],
-      loading: changes.loading,
-      error: changes.error,
-      refetch: changes.refetch,
+      data: data?.changesInProgress || [],
+      loading: isLoading,
+      error,
+      refetch,
     },
     ciStatus: {
-      data: ciStatus.data?.ciStatus || [],
-      loading: ciStatus.loading,
-      error: ciStatus.error,
-      refetch: ciStatus.refetch,
+      data: data?.ciStatus || [],
+      loading: isLoading,
+      error,
+      refetch,
     },
     topFailing: {
-      data: topFailing.data?.topFailingCIs || [],
-      loading: topFailing.loading,
-      error: topFailing.error,
-      refetch: topFailing.refetch,
+      data: data?.topFailingCIs || [],
+      loading: isLoading,
+      error,
+      refetch,
     },
     slaCompliance: {
-      data: slaCompliance.data?.slaCompliance || [],
-      loading: slaCompliance.loading,
-      error: slaCompliance.error,
-      refetch: slaCompliance.refetch,
+      data: data?.slaCompliance || [],
+      loading: isLoading,
+      error,
+      refetch,
     },
     baselineCompliance: {
-      data: baselineCompliance.data?.baselineCompliance || [],
-      loading: baselineCompliance.loading,
-      error: baselineCompliance.error,
-      refetch: baselineCompliance.refetch,
+      data: data?.baselineCompliance || [],
+      loading: isLoading,
+      error,
+      refetch,
     },
     realTimeUpdates: {
-      incidents: incidentUpdates.data?.incidentUpdated,
-      changes: changeUpdates.data?.changeUpdated,
+      incidents: null,
+      changes: null,
     },
   };
 };
 
 // FinOps Dashboard Hook
 export const useFinOpsDashboard = (timeRange: TimeRange) => {
-  const cloudCosts = useQuery(CLOUD_COSTS_QUERY, {
-    variables: { timeRange },
-    pollInterval: 60000,
-  });
+  const days = timeRangeToDays(timeRange.start);
 
-  const onPremVsCloud = useQuery(ON_PREM_VS_CLOUD_QUERY, {
-    variables: { timeRange },
-    pollInterval: 60000,
-  });
-
-  const costByTower = useQuery(COST_BY_TOWER_QUERY, {
-    variables: { timeRange },
-    pollInterval: 60000,
-  });
-
-  const budgetVariance = useQuery(BUDGET_VARIANCE_QUERY, {
-    variables: { timeRange },
-    pollInterval: 60000,
-  });
-
-  const unitEconomics = useQuery(UNIT_ECONOMICS_QUERY, {
-    variables: { timeRange },
-    pollInterval: 60000,
-  });
-
-  const costOptimization = useQuery(COST_OPTIMIZATION_QUERY, {
-    pollInterval: 300000, // Every 5 minutes
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['finops-dashboard', days],
+    queryFn: () => dashboardService.getFinOpsDashboard(days),
+    staleTime: 60000, // 1 minute
+    refetchInterval: 60000,
   });
 
   return {
     cloudCosts: {
-      data: cloudCosts.data?.cloudCosts || [],
-      loading: cloudCosts.loading,
-      error: cloudCosts.error,
-      refetch: cloudCosts.refetch,
+      data: data?.cloudCosts || [],
+      loading: isLoading,
+      error,
+      refetch,
     },
     onPremVsCloud: {
-      data: onPremVsCloud.data?.onPremVsCloud,
-      loading: onPremVsCloud.loading,
-      error: onPremVsCloud.error,
-      refetch: onPremVsCloud.refetch,
+      data: data?.onPremVsCloud,
+      loading: isLoading,
+      error,
+      refetch,
     },
     costByTower: {
-      data: costByTower.data?.costByTower || [],
-      loading: costByTower.loading,
-      error: costByTower.error,
-      refetch: costByTower.refetch,
+      data: data?.costByTower || [],
+      loading: isLoading,
+      error,
+      refetch,
     },
     budgetVariance: {
-      data: budgetVariance.data?.budgetVariance || [],
-      loading: budgetVariance.loading,
-      error: budgetVariance.error,
-      refetch: budgetVariance.refetch,
+      data: data?.budgetVariance || [],
+      loading: isLoading,
+      error,
+      refetch,
     },
     unitEconomics: {
-      data: unitEconomics.data?.unitEconomics || [],
-      loading: unitEconomics.loading,
-      error: unitEconomics.error,
-      refetch: unitEconomics.refetch,
+      data: data?.unitEconomics || [],
+      loading: isLoading,
+      error,
+      refetch,
     },
     costOptimization: {
-      data: costOptimization.data?.costOptimization,
-      loading: costOptimization.loading,
-      error: costOptimization.error,
-      refetch: costOptimization.refetch,
+      data: data?.costOptimization,
+      loading: isLoading,
+      error,
+      refetch,
     },
   };
 };
 
 // Business Service Dashboard Hook
-export const useBusinessServiceDashboard = (serviceId?: string, businessUnit?: string) => {
-  const serviceHealth = useQuery(SERVICE_HEALTH_QUERY, {
-    variables: { serviceId, businessUnit },
-    pollInterval: 30000,
-    skip: !serviceId && !businessUnit,
-  });
-
-  const revenueAtRisk = useQuery(REVENUE_AT_RISK_QUERY, {
-    variables: { serviceId },
-    pollInterval: 30000,
-    skip: !serviceId,
-  });
-
-  const customerImpact = useQuery(CUSTOMER_IMPACT_QUERY, {
-    variables: { serviceId },
-    pollInterval: 30000,
-    skip: !serviceId,
-  });
-
-  const complianceStatus = useQuery(COMPLIANCE_STATUS_QUERY, {
-    variables: { serviceId },
-    pollInterval: 60000,
-    skip: !serviceId,
-  });
-
-  const valueStreamHealth = useQuery(VALUE_STREAM_HEALTH_QUERY, {
-    variables: { serviceId },
-    pollInterval: 60000,
-    skip: !serviceId,
-  });
-
-  const serviceDependencies = useQuery(SERVICE_DEPENDENCIES_QUERY, {
-    variables: { serviceId, depth: 3 },
-    pollInterval: 60000,
-    skip: !serviceId,
+export const useBusinessServiceDashboard = (serviceId?: string, _businessUnit?: string) => {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['business-service-dashboard', serviceId],
+    queryFn: () => dashboardService.getBusinessServiceDashboard(serviceId),
+    staleTime: 30000,
+    refetchInterval: 30000,
+    enabled: !!serviceId, // Only fetch if serviceId is provided
   });
 
   return {
     serviceHealth: {
-      data: serviceHealth.data?.serviceHealth,
-      loading: serviceHealth.loading,
-      error: serviceHealth.error,
-      refetch: serviceHealth.refetch,
+      data: data?.serviceHealth,
+      loading: isLoading,
+      error,
+      refetch,
     },
     revenueAtRisk: {
-      data: revenueAtRisk.data?.revenueAtRisk,
-      loading: revenueAtRisk.loading,
-      error: revenueAtRisk.error,
-      refetch: revenueAtRisk.refetch,
+      data: data?.revenueAtRisk,
+      loading: isLoading,
+      error,
+      refetch,
     },
     customerImpact: {
-      data: customerImpact.data?.customerImpact,
-      loading: customerImpact.loading,
-      error: customerImpact.error,
-      refetch: customerImpact.refetch,
+      data: data?.customerImpact,
+      loading: isLoading,
+      error,
+      refetch,
     },
     complianceStatus: {
-      data: complianceStatus.data?.complianceStatus,
-      loading: complianceStatus.loading,
-      error: complianceStatus.error,
-      refetch: complianceStatus.refetch,
+      data: data?.complianceStatus,
+      loading: isLoading,
+      error,
+      refetch,
     },
     valueStreamHealth: {
-      data: valueStreamHealth.data?.valueStreamHealth,
-      loading: valueStreamHealth.loading,
-      error: valueStreamHealth.error,
-      refetch: valueStreamHealth.refetch,
+      data: data?.valueStreamHealth,
+      loading: isLoading,
+      error,
+      refetch,
     },
     serviceDependencies: {
-      data: serviceDependencies.data?.serviceDependencies,
-      loading: serviceDependencies.loading,
-      error: serviceDependencies.error,
-      refetch: serviceDependencies.refetch,
+      data: data?.serviceDependencies,
+      loading: isLoading,
+      error,
+      refetch,
     },
   };
 };
 
-// Export Dashboard Hook
+// Export Dashboard Hook (placeholder for future implementation)
 export const useExportDashboard = () => {
-  const [exportDashboard, { data, loading, error }] = useMutation(EXPORT_DASHBOARD_QUERY);
-
   const exportToPDF = async (dashboardType: string, filters?: any) => {
-    try {
-      const result = await exportDashboard({
-        variables: {
-          dashboardType,
-          format: 'pdf',
-          filters,
-        },
-      });
-      if (result.data?.exportDashboard?.url) {
-        window.open(result.data.exportDashboard.url, '_blank');
-      }
-    } catch (err) {
-      console.error('Export to PDF failed:', err);
-    }
+    console.log('Export to PDF:', dashboardType, filters);
+    // TODO: Implement PDF export via REST API
+    alert('PDF export will be implemented soon');
   };
 
   const exportToExcel = async (dashboardType: string, filters?: any) => {
-    try {
-      const result = await exportDashboard({
-        variables: {
-          dashboardType,
-          format: 'excel',
-          filters,
-        },
-      });
-      if (result.data?.exportDashboard?.url) {
-        window.open(result.data.exportDashboard.url, '_blank');
-      }
-    } catch (err) {
-      console.error('Export to Excel failed:', err);
-    }
+    console.log('Export to Excel:', dashboardType, filters);
+    // TODO: Implement Excel export via REST API
+    alert('Excel export will be implemented soon');
   };
 
   return {
     exportToPDF,
     exportToExcel,
-    loading,
-    error,
+    loading: false,
+    error: null,
   };
 };
 
@@ -339,17 +251,15 @@ export const useTimeRange = (defaultRange: string = '30d') => {
   const [timeRange, setTimeRange] = useState<TimeRange>({
     start: defaultRange,
     end: 'now',
-    label: 'Last 30 days',
+    label: getLabel(defaultRange),
   });
 
   const updateTimeRange = (range: string) => {
-    const ranges: Record<string, TimeRange> = {
-      '7d': { start: '7d', end: 'now', label: 'Last 7 days' },
-      '30d': { start: '30d', end: 'now', label: 'Last 30 days' },
-      '90d': { start: '90d', end: 'now', label: 'Last 90 days' },
-      '1y': { start: '1y', end: 'now', label: 'Last year' },
-    };
-    setTimeRange(ranges[range] || ranges['30d']);
+    setTimeRange({
+      start: range,
+      end: 'now',
+      label: getLabel(range),
+    });
   };
 
   return {
@@ -357,3 +267,13 @@ export const useTimeRange = (defaultRange: string = '30d') => {
     updateTimeRange,
   };
 };
+
+function getLabel(range: string): string {
+  const labels: Record<string, string> = {
+    '7d': 'Last 7 days',
+    '30d': 'Last 30 days',
+    '90d': 'Last 90 days',
+    '1y': 'Last year',
+  };
+  return labels[range] || 'Last 30 days';
+}

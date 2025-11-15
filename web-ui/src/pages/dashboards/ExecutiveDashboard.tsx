@@ -5,7 +5,7 @@ import { KPICard } from '@/components/dashboard/KPICard';
 import { CostTrendChart } from '@/components/dashboard/CostTrendChart';
 import { CostBreakdownChart } from '@/components/dashboard/CostBreakdownChart';
 import { RiskMatrix } from '@/components/dashboard/RiskMatrix';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { LiquidGlass } from '@/components/ui/liquid-glass';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -116,7 +116,7 @@ export const ExecutiveDashboard: React.FC = () => {
           value={`${overallHealthScore.toFixed(0)}%`}
           icon={Activity}
           color={overallHealthScore >= 80 ? 'green' : overallHealthScore >= 60 ? 'yellow' : 'red'}
-          trend={data.serviceHealthByTier[0]?.trend}
+          trend={data.serviceHealthByTier[0]?.trend as "down" | "stable" | "up" | undefined}
           description="Across all service tiers"
         />
         <KPICard
@@ -162,12 +162,10 @@ export const ExecutiveDashboard: React.FC = () => {
       </div>
 
       {/* Service Health by Tier */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Service Health Scores by Tier</CardTitle>
-          <CardDescription>Average health across service tiers</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <LiquidGlass variant="default" rounded="xl">
+        <div>
+          <h3 className="text-lg font-semibold mb-1">Service Health Scores by Tier</h3>
+          <p className="text-sm text-muted-foreground mb-4">Average health across service tiers</p>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={data.serviceHealthByTier}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -183,23 +181,28 @@ export const ExecutiveDashboard: React.FC = () => {
               />
             </BarChart>
           </ResponsiveContainer>
-        </CardContent>
-      </Card>
+        </div>
+      </LiquidGlass>
 
       {/* Risk Matrix */}
       <RiskMatrix
-        items={data.riskMatrix.services}
+        items={data.riskMatrix.services.map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          criticality: s.criticality as 'low' | 'medium' | 'high' | 'critical',
+          riskLevel: s.riskLevel as 'low' | 'medium' | 'high' | 'critical',
+          type: s.type,
+          description: s.description,
+        }))}
         title="Risk Exposure Matrix"
         description="Services plotted by business criticality vs risk level"
       />
 
       {/* Top 5 Cost Drivers */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Top 5 Cost Drivers</CardTitle>
-          <CardDescription>Services with highest monthly cost</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <LiquidGlass variant="default" rounded="xl">
+        <div>
+          <h3 className="text-lg font-semibold mb-1">Top 5 Cost Drivers</h3>
+          <p className="text-sm text-muted-foreground mb-4">Services with highest monthly cost</p>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={data.topCostDrivers.slice(0, 5)} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -228,16 +231,14 @@ export const ExecutiveDashboard: React.FC = () => {
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </LiquidGlass>
 
       {/* Value Scorecard */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Value Scorecard</CardTitle>
-          <CardDescription>Business value and ROI by service</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <LiquidGlass variant="default" rounded="xl">
+        <div>
+          <h3 className="text-lg font-semibold mb-1">Value Scorecard</h3>
+          <p className="text-sm text-muted-foreground mb-4">Business value and ROI by service</p>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -281,8 +282,8 @@ export const ExecutiveDashboard: React.FC = () => {
               </tbody>
             </table>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </LiquidGlass>
     </div>
   );
 };

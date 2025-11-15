@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { LiquidGlass } from '@/components/ui/liquid-glass';
 import { AlertCircle } from 'lucide-react';
 
 export interface HealthDataPoint {
@@ -74,15 +74,15 @@ export const ServiceHealthChart: React.FC<ServiceHealthChartProps> = ({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        {description && <CardDescription>{description}</CardDescription>}
+    <LiquidGlass variant="default" rounded="xl">
+      <div>
+        <h3 className="text-lg font-semibold mb-2">{title}</h3>
+        {description && <p className="text-sm text-muted-foreground mb-4">{description}</p>}
         {serviceName && (
-          <CardDescription className="font-semibold">{serviceName}</CardDescription>
+          <p className="text-sm text-muted-foreground mb-4">{serviceName}</p>
         )}
-      </CardHeader>
-      <CardContent>
+      
+      
         <ResponsiveContainer width="100%" height={350}>
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -103,7 +103,7 @@ export const ServiceHealthChart: React.FC<ServiceHealthChartProps> = ({
             />
           </LineChart>
         </ResponsiveContainer>
-      </CardContent>
-    </Card>
+      </div>
+    </LiquidGlass>
   );
 };

@@ -370,6 +370,7 @@ export default defineConfig({
           text: 'Configuration',
           items: [
             { text: 'Configuration Overview', link: '/configuration/overview' },
+            { text: 'v3.0 Configuration Guide', link: '/configuration/v3-configuration-guide' },
             { text: 'Environment Variables', link: '/configuration/environment-variables' },
             { text: 'Configuration Files', link: '/configuration/config-files' }
           ]
@@ -512,8 +513,11 @@ export default defineConfig({
           text: 'User Guides',
           items: [
             { text: 'Executive Dashboard', link: '/user-guides/executive-dashboard' },
+            { text: 'CIO Dashboard', link: '/user-guides/cio-dashboard' },
             { text: 'FinOps Dashboard', link: '/user-guides/finops-dashboard' },
-            { text: 'ITSM Operations', link: '/user-guides/itsm-operations' }
+            { text: 'ITSM Operations', link: '/user-guides/itsm-operations' },
+            { text: 'Service Owner Guide', link: '/user-guides/service-owner-guide' },
+            { text: 'Administrator Guide', link: '/user-guides/administrator-guide' }
           ]
         }
       ]

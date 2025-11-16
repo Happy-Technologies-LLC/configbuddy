@@ -55,6 +55,15 @@ export default defineConfig({
         ]
       },
       {
+        text: 'User Guides',
+        items: [
+          { text: 'Executive Dashboard', link: '/user-guides/executive-dashboard' },
+          { text: 'FinOps Dashboard', link: '/user-guides/finops-dashboard' },
+          { text: 'ITSM Operations', link: '/user-guides/itsm-operations' },
+          { text: 'Migrating to v3.0', link: '/getting-started/migrating-to-v3' }
+        ]
+      },
+      {
         text: 'v3.0 Features',
         items: [
           { text: 'Unified Framework', link: '/components/unified-framework' },
@@ -91,7 +100,8 @@ export default defineConfig({
             { text: 'Installation', link: '/getting-started/installation' },
             { text: 'Project Structure', link: '/getting-started/project-structure' },
             { text: 'Key Concepts', link: '/getting-started/key-concepts' },
-            { text: 'Discovery Guide', link: '/getting-started/discovery-guide' }
+            { text: 'Discovery Guide', link: '/getting-started/discovery-guide' },
+            { text: 'Migrating to v3.0', link: '/getting-started/migrating-to-v3' }
           ]
         }
       ],
@@ -492,6 +502,18 @@ export default defineConfig({
             { text: 'Environment Variables', link: '/quick-reference/env-vars' },
             { text: 'Graph Queries', link: '/quick-reference/graph-queries' },
             { text: 'Troubleshooting Checklist', link: '/quick-reference/troubleshooting-checklist' }
+          ]
+        }
+      ],
+
+      // User Guides section
+      '/user-guides/': [
+        {
+          text: 'User Guides',
+          items: [
+            { text: 'Executive Dashboard', link: '/user-guides/executive-dashboard' },
+            { text: 'FinOps Dashboard', link: '/user-guides/finops-dashboard' },
+            { text: 'ITSM Operations', link: '/user-guides/itsm-operations' }
           ]
         }
       ]

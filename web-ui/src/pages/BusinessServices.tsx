@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit, Trash2, Network, DollarSign, Users, TrendingUp } from 'lucide-react';
 import { LiquidGlass } from '../components/ui/liquid-glass';
 import { Button } from '../components/ui/button';
@@ -21,6 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select';
+import { apiClient } from '../lib/api-client';
+import { useToast } from '../contexts/ToastContext';
 
 interface BusinessService {
   id: string;
@@ -36,6 +38,70 @@ interface BusinessService {
   monthlyCost?: number;
 }
 
+// Backend API interface
+interface BusinessServiceAPI {
+  service_id: string;
+  name: string;
+  description?: string;
+  service_classification: string;
+  tbm_tower: string;
+  business_criticality: string;
+  operational_status: string;
+  owned_by?: string;
+  managed_by?: string;
+  support_group?: string;
+  service_level_requirement?: string;
+  category?: string;
+  tags?: string[];
+  related_ci_types?: string[];
+  cost_allocation?: any;
+  metadata?: any;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Mapper functions to convert between UI and API formats
+const mapAPIToUI = (apiService: BusinessServiceAPI): BusinessService => {
+  const tierMatch = apiService.business_criticality.match(/tier_(\d)/);
+  const tier = tierMatch ? parseInt(tierMatch[1]) : 3;
+
+  return {
+    id: apiService.service_id,
+    name: apiService.name,
+    description: apiService.description,
+    tier,
+    criticality: `TIER_${tier}` as BusinessService['criticality'],
+    revenueImpact: apiService.metadata?.revenue_impact || 0,
+    userCount: apiService.metadata?.user_count || 0,
+    owner: apiService.owned_by,
+    status: apiService.operational_status as BusinessService['status'],
+    supportingCIs: apiService.metadata?.supporting_cis || 0,
+    monthlyCost: apiService.metadata?.monthly_cost || 0,
+  };
+};
+
+const mapUIToAPI = (uiService: Partial<BusinessService> & { name: string }): Partial<BusinessServiceAPI> => {
+  const tier = uiService.tier !== undefined ? uiService.tier : 3;
+  const serviceId = uiService.id || `bs-${uiService.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`;
+
+  return {
+    service_id: serviceId,
+    name: uiService.name,
+    description: uiService.description,
+    service_classification: 'application',
+    tbm_tower: 'application',
+    business_criticality: `tier_${tier}`,
+    operational_status: uiService.status || 'active',
+    owned_by: uiService.owner,
+    metadata: {
+      revenue_impact: uiService.revenueImpact || 0,
+      user_count: uiService.userCount || 0,
+      supporting_cis: uiService.supportingCIs || 0,
+      monthly_cost: uiService.monthlyCost || 0,
+    },
+  };
+};
+
 const CRITICALITY_COLORS = {
   TIER_0: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300',
   TIER_1: 'bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300',
@@ -49,55 +115,15 @@ const STATUS_COLORS = {
   planned: 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300',
 };
 
-// Mock data - will be replaced with actual API calls
-const mockServices: BusinessService[] = [
-  {
-    id: '1',
-    name: 'Customer Portal',
-    description: 'External customer-facing web application',
-    tier: 0,
-    criticality: 'TIER_0',
-    revenueImpact: 5000000,
-    userCount: 50000,
-    owner: 'Product Team',
-    status: 'active',
-    supportingCIs: 45,
-    monthlyCost: 125000,
-  },
-  {
-    id: '2',
-    name: 'Internal ERP System',
-    description: 'Enterprise Resource Planning system',
-    tier: 1,
-    criticality: 'TIER_1',
-    revenueImpact: 2000000,
-    userCount: 1500,
-    owner: 'Finance Team',
-    status: 'active',
-    supportingCIs: 32,
-    monthlyCost: 85000,
-  },
-  {
-    id: '3',
-    name: 'Employee Self-Service',
-    description: 'HR and employee management portal',
-    tier: 2,
-    criticality: 'TIER_2',
-    revenueImpact: 0,
-    userCount: 800,
-    owner: 'HR Team',
-    status: 'active',
-    supportingCIs: 18,
-    monthlyCost: 42000,
-  },
-];
-
 export const BusinessServices: React.FC = () => {
-  const [services, setServices] = useState<BusinessService[]>(mockServices);
+  const { showToast } = useToast();
+  const [services, setServices] = useState<BusinessService[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTier, setFilterTier] = useState<string>('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<BusinessService | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -108,6 +134,27 @@ export const BusinessServices: React.FC = () => {
     owner: '',
   });
 
+  // Load services from API
+  useEffect(() => {
+    loadServices();
+  }, []);
+
+  const loadServices = async () => {
+    try {
+      setLoading(true);
+      const response = await apiClient.get<{ services: BusinessServiceAPI[]; total: number }>(
+        '/business-services'
+      );
+      const uiServices = response.services.map(mapAPIToUI);
+      setServices(uiServices);
+    } catch (error: any) {
+      console.error('Failed to load business services:', error);
+      showToast('Failed to load business services', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filteredServices = services.filter((service) => {
     const matchesSearch = service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       service.description?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -115,37 +162,56 @@ export const BusinessServices: React.FC = () => {
     return matchesSearch && matchesTier;
   });
 
-  const handleCreateService = () => {
-    const newService: BusinessService = {
-      id: Date.now().toString(),
-      name: formData.name,
-      description: formData.description,
-      tier: parseInt(formData.tier),
-      criticality: `TIER_${formData.tier}` as BusinessService['criticality'],
-      revenueImpact: parseFloat(formData.revenueImpact) || 0,
-      userCount: parseInt(formData.userCount) || 0,
-      owner: formData.owner,
-      status: 'active',
-      supportingCIs: 0,
-      monthlyCost: 0,
-    };
+  const handleCreateService = async () => {
+    try {
+      setSaving(true);
 
-    if (editingService) {
-      setServices(services.map(s => s.id === editingService.id ? { ...newService, id: editingService.id } : s));
-      setEditingService(null);
-    } else {
-      setServices([...services, newService]);
+      const uiService: Partial<BusinessService> & { name: string } = {
+        name: formData.name,
+        description: formData.description,
+        tier: parseInt(formData.tier),
+        criticality: `TIER_${formData.tier}` as BusinessService['criticality'],
+        revenueImpact: parseFloat(formData.revenueImpact) || 0,
+        userCount: parseInt(formData.userCount) || 0,
+        owner: formData.owner,
+        status: 'active',
+      };
+
+      if (editingService) {
+        // Update existing service
+        uiService.id = editingService.id;
+        const apiData = mapUIToAPI(uiService);
+        const updatedService = await apiClient.patch<BusinessServiceAPI>(
+          `/business-services/${editingService.id}`,
+          apiData
+        );
+        setServices(services.map(s => s.id === editingService.id ? mapAPIToUI(updatedService) : s));
+        showToast('Business service updated successfully', 'success');
+        setEditingService(null);
+      } else {
+        // Create new service
+        const apiData = mapUIToAPI(uiService);
+        const createdService = await apiClient.post<BusinessServiceAPI>('/business-services', apiData);
+        setServices([...services, mapAPIToUI(createdService)]);
+        showToast('Business service created successfully', 'success');
+      }
+
+      setFormData({
+        name: '',
+        description: '',
+        tier: '0',
+        revenueImpact: '',
+        userCount: '',
+        owner: '',
+      });
+      setIsCreateDialogOpen(false);
+    } catch (error: any) {
+      console.error('Failed to save business service:', error);
+      const message = error.response?.data?.error || 'Failed to save business service';
+      showToast(message, 'error');
+    } finally {
+      setSaving(false);
     }
-
-    setFormData({
-      name: '',
-      description: '',
-      tier: '0',
-      revenueImpact: '',
-      userCount: '',
-      owner: '',
-    });
-    setIsCreateDialogOpen(false);
   };
 
   const handleEdit = (service: BusinessService) => {
@@ -161,9 +227,19 @@ export const BusinessServices: React.FC = () => {
     setIsCreateDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this business service?')) {
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this business service?')) {
+      return;
+    }
+
+    try {
+      await apiClient.delete(`/business-services/${id}`);
       setServices(services.filter(s => s.id !== id));
+      showToast('Business service deleted successfully', 'success');
+    } catch (error: any) {
+      console.error('Failed to delete business service:', error);
+      const message = error.response?.data?.error || 'Failed to delete business service';
+      showToast(message, 'error');
     }
   };
 
@@ -293,11 +369,11 @@ export const BusinessServices: React.FC = () => {
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} disabled={saving}>
                 Cancel
               </Button>
-              <Button onClick={handleCreateService} disabled={!formData.name}>
-                {editingService ? 'Update Service' : 'Create Service'}
+              <Button onClick={handleCreateService} disabled={!formData.name || saving}>
+                {saving ? 'Saving...' : editingService ? 'Update Service' : 'Create Service'}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -408,7 +484,13 @@ export const BusinessServices: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredServices.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={8} className="text-center py-8 text-muted-foreground">
+                    Loading business services...
+                  </td>
+                </tr>
+              ) : filteredServices.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="text-center py-8 text-muted-foreground">
                     No services found

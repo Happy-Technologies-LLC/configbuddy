@@ -2,10 +2,11 @@
   "type": "servicenow",
   "category": "connector",
   "connector_category": "itsm",
+  "data_types": ["infrastructure", "itil"],
   "icon": "servicenow",
-  "name": "ServiceNow CMDB",
+  "name": "ServiceNow CMDB & ITSM",
   "version": "3.0.0",
-  "description": "Bi-directional integration with ServiceNow CMDB across multiple CI tables",
+  "description": "Bi-directional integration with ServiceNow CMDB and ITSM (incidents and changes only)",
   "author": "ConfigBuddy",
   "verified": true,
   "capabilities": {
@@ -242,6 +243,136 @@
         "incremental": false,
         "batch_size": 10000,
         "depends_on": ["servers", "virtual_machines", "databases"]
+      }
+    },
+    {
+      "id": "incidents",
+      "name": "Incidents",
+      "description": "ITIL incidents from incident table",
+      "type": "incident",
+      "data_type": "itil",
+      "target_storage": "postgresql:fact_incidents",
+      "enabled_by_default": false,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "table": {
+            "type": "string",
+            "default": "incident"
+          },
+          "query": {
+            "type": "string",
+            "description": "ServiceNow query filter (e.g., active=true)",
+            "default": ""
+          },
+          "sync_closed": {
+            "type": "boolean",
+            "default": false,
+            "description": "Sync closed/resolved incidents (high volume)"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 500,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "number": "number",
+        "short_description": "short_description",
+        "description": "description",
+        "priority": "priority",
+        "severity": "severity",
+        "state": "state",
+        "impact": "impact",
+        "urgency": "urgency",
+        "category": "category",
+        "subcategory": "subcategory",
+        "assigned_to": "assigned_to.display_value",
+        "assignment_group": "assignment_group.display_value",
+        "caller": "caller_id.display_value",
+        "affected_ci": "cmdb_ci.display_value",
+        "affected_ci_sys_id": "cmdb_ci.value",
+        "business_service": "business_service.display_value",
+        "opened_at": "opened_at",
+        "resolved_at": "resolved_at",
+        "closed_at": "closed_at",
+        "close_code": "close_code",
+        "close_notes": "close_notes",
+        "resolution_code": "resolution_code",
+        "sla_due": "sla_due",
+        "made_sla": "made_sla",
+        "caused_by": "caused_by.display_value",
+        "problem": "problem_id.display_value",
+        "change_request": "rfc.display_value",
+        "sys_created_on": "sys_created_on",
+        "sys_updated_on": "sys_updated_on"
+      }
+    },
+    {
+      "id": "changes",
+      "name": "Change Requests",
+      "description": "ITIL change requests from change_request table",
+      "type": "change",
+      "data_type": "itil",
+      "target_storage": "postgresql:fact_changes",
+      "enabled_by_default": false,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "table": {
+            "type": "string",
+            "default": "change_request"
+          },
+          "query": {
+            "type": "string",
+            "description": "ServiceNow query filter",
+            "default": ""
+          },
+          "sync_closed": {
+            "type": "boolean",
+            "default": true,
+            "description": "Sync closed changes for historical analysis"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 500,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "number": "number",
+        "short_description": "short_description",
+        "description": "description",
+        "type": "type",
+        "priority": "priority",
+        "risk": "risk",
+        "impact": "impact",
+        "state": "state",
+        "category": "category",
+        "assignment_group": "assignment_group.display_value",
+        "assigned_to": "assigned_to.display_value",
+        "requested_by": "requested_by.display_value",
+        "affected_cis": "cmdb_ci.display_value",
+        "business_service": "business_service.display_value",
+        "start_date": "start_date",
+        "end_date": "end_date",
+        "planned_start_date": "planned_start_date",
+        "planned_end_date": "planned_end_date",
+        "work_start": "work_start",
+        "work_end": "work_end",
+        "close_code": "close_code",
+        "close_notes": "close_notes",
+        "implementation_plan": "implementation_plan",
+        "backout_plan": "backout_plan",
+        "test_plan": "test_plan",
+        "approval": "approval",
+        "cab_required": "cab_required",
+        "conflict_status": "conflict_status",
+        "unauthorized": "unauthorized",
+        "sys_created_on": "sys_created_on",
+        "sys_updated_on": "sys_updated_on"
       }
     }
   ]

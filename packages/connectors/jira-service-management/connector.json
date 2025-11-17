@@ -1,0 +1,234 @@
+{
+  "id": "jira-service-management",
+  "type": "jira-service-management",
+  "category": "connector",
+  "connector_category": "itsm",
+  "data_types": ["infrastructure", "itil"],
+  "name": "Jira Service Management",
+  "version": "1.0.0",
+  "description": "Integration with Jira Service Management for ITSM workflows (incidents, changes, problems, service requests) and asset tracking via Jira Assets",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "icon": "jira",
+  "provider": "atlassian",
+  "protocol": "api_token",
+  "logo_url": "https://wac-cdn.atlassian.com/assets/img/favicons/atlassian/favicon.png",
+  "documentation_url": "https://developer.atlassian.com/cloud/jira/service-desk/rest/intro/",
+  "capabilities": {
+    "extraction": true,
+    "relationships": false,
+    "incremental": true,
+    "bidirectional": false
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["instance_url", "email", "api_token"],
+    "properties": {
+      "instance_url": {
+        "type": "string",
+        "description": "Jira instance URL (e.g., https://yourcompany.atlassian.net)"
+      },
+      "email": {
+        "type": "string",
+        "description": "Jira account email"
+      },
+      "api_token": {
+        "type": "string",
+        "description": "Jira API token (generate at https://id.atlassian.com/manage-profile/security/api-tokens)",
+        "format": "password"
+      },
+      "project_key": {
+        "type": "string",
+        "description": "Service desk project key (e.g., SD, HELP, IT)",
+        "default": "SD"
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "assets",
+      "name": "Assets",
+      "description": "Hardware and software assets from Jira Assets (formerly Insight)",
+      "type": "asset",
+      "data_type": "infrastructure",
+      "ci_type": "server",
+      "target_storage": "neo4j",
+      "enabled_by_default": false,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "object_schema_id": {
+            "type": "string",
+            "description": "Assets object schema ID"
+          },
+          "object_type_ids": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Object type IDs to sync (e.g., servers, workstations, network devices)"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 100,
+        "rate_limit": 5
+      },
+      "field_mappings": {
+        "name": "attributes.Name",
+        "asset_tag": "attributes.AssetTag",
+        "serial_number": "attributes.SerialNumber",
+        "manufacturer": "attributes.Manufacturer",
+        "model": "attributes.Model",
+        "status": "attributes.Status",
+        "location": "attributes.Location",
+        "owner": "attributes.Owner",
+        "created": "created",
+        "updated": "updated"
+      }
+    },
+    {
+      "id": "incidents",
+      "name": "Incidents",
+      "description": "Service desk incidents/requests",
+      "type": "incident",
+      "data_type": "itil",
+      "target_storage": "postgresql:fact_incidents",
+      "enabled_by_default": false,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "jql_filter": {
+            "type": "string",
+            "description": "JQL filter for incidents (e.g., type = Incident AND status != Closed)",
+            "default": "type = Incident"
+          },
+          "sync_closed": {
+            "type": "boolean",
+            "default": false,
+            "description": "Sync closed/resolved incidents"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 100,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "number": "key",
+        "short_description": "fields.summary",
+        "description": "fields.description",
+        "priority": "fields.priority.name",
+        "severity": "fields.customfield_severity",
+        "state": "fields.status.name",
+        "impact": "fields.customfield_impact",
+        "urgency": "fields.customfield_urgency",
+        "category": "fields.components[0].name",
+        "assigned_to": "fields.assignee.displayName",
+        "reporter": "fields.reporter.displayName",
+        "affected_ci": "fields.customfield_affected_ci",
+        "opened_at": "fields.created",
+        "resolved_at": "fields.resolutiondate",
+        "closed_at": "fields.updated",
+        "resolution": "fields.resolution.name",
+        "sla_due": "fields.customfield_sla_time",
+        "created": "fields.created",
+        "updated": "fields.updated"
+      }
+    },
+    {
+      "id": "changes",
+      "name": "Change Requests",
+      "description": "Change requests from Jira Service Management",
+      "type": "change",
+      "data_type": "itil",
+      "target_storage": "postgresql:fact_changes",
+      "enabled_by_default": false,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "jql_filter": {
+            "type": "string",
+            "description": "JQL filter for changes",
+            "default": "type = Change"
+          },
+          "sync_closed": {
+            "type": "boolean",
+            "default": true,
+            "description": "Sync closed changes for historical analysis"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 100,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "number": "key",
+        "short_description": "fields.summary",
+        "description": "fields.description",
+        "type": "fields.customfield_change_type",
+        "priority": "fields.priority.name",
+        "risk": "fields.customfield_risk",
+        "impact": "fields.customfield_impact",
+        "state": "fields.status.name",
+        "category": "fields.components[0].name",
+        "assigned_to": "fields.assignee.displayName",
+        "requested_by": "fields.reporter.displayName",
+        "affected_cis": "fields.customfield_affected_cis",
+        "start_date": "fields.customfield_start_date",
+        "end_date": "fields.customfield_end_date",
+        "planned_start_date": "fields.customfield_planned_start",
+        "planned_end_date": "fields.customfield_planned_end",
+        "implementation_plan": "fields.customfield_implementation_plan",
+        "backout_plan": "fields.customfield_backout_plan",
+        "test_plan": "fields.customfield_test_plan",
+        "approval": "fields.customfield_approval_status",
+        "created": "fields.created",
+        "updated": "fields.updated"
+      }
+    }
+  ],
+  "authentication": {
+    "required": true,
+    "methods": ["api_token"],
+    "fields": [
+      {
+        "name": "email",
+        "label": "Email",
+        "type": "string",
+        "required": true,
+        "sensitive": false
+      },
+      {
+        "name": "api_token",
+        "label": "API Token",
+        "type": "string",
+        "required": true,
+        "sensitive": true
+      }
+    ]
+  },
+  "rate_limits": {
+    "requests_per_second": 5,
+    "requests_per_minute": 200,
+    "requests_per_hour": 5000
+  },
+  "supported_operations": [
+    "discover_assets",
+    "sync_incidents",
+    "sync_changes"
+  ],
+  "default_schedule": "0 */4 * * *",
+  "tags": [
+    "itsm",
+    "jira",
+    "atlassian",
+    "service-desk",
+    "ticketing",
+    "incident-management",
+    "change-management",
+    "asset-management"
+  ]
+}

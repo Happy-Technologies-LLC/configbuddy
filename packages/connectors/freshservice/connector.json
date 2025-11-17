@@ -1,0 +1,214 @@
+{
+  "id": "freshservice",
+  "type": "freshservice",
+  "category": "connector",
+  "connector_category": "itsm",
+  "data_types": ["infrastructure", "itil"],
+  "name": "Freshservice",
+  "version": "1.0.0",
+  "description": "Integration with Freshservice IT Service Management for asset management, incidents, and changes",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "icon": "freshservice",
+  "provider": "freshworks",
+  "protocol": "api_key",
+  "logo_url": "https://www.freshworks.com/static-assets/images/common/company/logos/logo-freshservice.svg",
+  "documentation_url": "https://api.freshservice.com/v2/",
+  "capabilities": {
+    "extraction": true,
+    "relationships": false,
+    "incremental": true,
+    "bidirectional": false
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["domain", "api_key"],
+    "properties": {
+      "domain": {
+        "type": "string",
+        "description": "Freshservice domain (e.g., yourcompany.freshservice.com)"
+      },
+      "api_key": {
+        "type": "string",
+        "description": "Freshservice API key (Profile settings → View API key)",
+        "format": "password"
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "assets",
+      "name": "Assets",
+      "description": "Hardware and software assets from Freshservice Asset Management",
+      "type": "asset",
+      "data_type": "infrastructure",
+      "ci_type": "server",
+      "target_storage": "neo4j",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "asset_type_id": {
+            "type": "integer",
+            "description": "Asset type ID to filter (optional)"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 100,
+        "rate_limit": 5
+      },
+      "field_mappings": {
+        "name": "name",
+        "asset_tag": "asset_tag",
+        "serial_number": "serial_number",
+        "manufacturer": "manufacturer",
+        "model": "product_name",
+        "status": "asset_state",
+        "location": "location_name",
+        "owner": "user.name",
+        "department": "department_name",
+        "cost": "acquisition_cost",
+        "warranty_expiry": "warranty_expiry_date",
+        "created": "created_at",
+        "updated": "updated_at"
+      }
+    },
+    {
+      "id": "incidents",
+      "name": "Incidents",
+      "description": "IT incidents/tickets from Freshservice",
+      "type": "incident",
+      "data_type": "itil",
+      "target_storage": "postgresql:fact_incidents",
+      "enabled_by_default": false,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "filter": {
+            "type": "string",
+            "description": "Filter tickets by status",
+            "default": "status:2 OR status:3"
+          },
+          "sync_closed": {
+            "type": "boolean",
+            "default": false,
+            "description": "Sync closed/resolved incidents"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 100,
+        "rate_limit": 5
+      },
+      "field_mappings": {
+        "number": "id",
+        "short_description": "subject",
+        "description": "description_text",
+        "priority": "priority",
+        "severity": "urgency",
+        "state": "status",
+        "impact": "impact",
+        "urgency": "urgency",
+        "category": "category",
+        "subcategory": "sub_category",
+        "assigned_to": "responder.name",
+        "assignment_group": "group.name",
+        "caller": "requester.name",
+        "affected_ci": "assets[0].display_id",
+        "opened_at": "created_at",
+        "resolved_at": "resolved_at",
+        "closed_at": "closed_at",
+        "close_code": "resolution_notes",
+        "sla_due": "due_by",
+        "created": "created_at",
+        "updated": "updated_at"
+      }
+    },
+    {
+      "id": "changes",
+      "name": "Change Requests",
+      "description": "Change requests from Freshservice",
+      "type": "change",
+      "data_type": "itil",
+      "target_storage": "postgresql:fact_changes",
+      "enabled_by_default": false,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "sync_closed": {
+            "type": "boolean",
+            "default": true,
+            "description": "Sync closed changes for historical analysis"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 100,
+        "rate_limit": 5
+      },
+      "field_mappings": {
+        "number": "id",
+        "short_description": "subject",
+        "description": "description_text",
+        "type": "change_type.name",
+        "priority": "priority",
+        "risk": "risk",
+        "impact": "impact",
+        "state": "status",
+        "category": "category",
+        "assignment_group": "group.name",
+        "assigned_to": "agent.name",
+        "requested_by": "requester.name",
+        "affected_cis": "assets",
+        "start_date": "planned_start_date",
+        "end_date": "planned_end_date",
+        "work_start": "maintenance_window.start_time",
+        "work_end": "maintenance_window.end_time",
+        "implementation_plan": "planning_fields.implementation_plan",
+        "backout_plan": "planning_fields.backout_plan",
+        "test_plan": "planning_fields.test_plan",
+        "approval": "approval_status",
+        "created": "created_at",
+        "updated": "updated_at"
+      }
+    }
+  ],
+  "authentication": {
+    "required": true,
+    "methods": ["api_key"],
+    "fields": [
+      {
+        "name": "api_key",
+        "label": "API Key",
+        "type": "string",
+        "required": true,
+        "sensitive": true
+      }
+    ]
+  },
+  "rate_limits": {
+    "requests_per_second": 2,
+    "requests_per_minute": 40,
+    "requests_per_hour": 1000
+  },
+  "supported_operations": [
+    "discover_assets",
+    "sync_incidents",
+    "sync_changes"
+  ],
+  "default_schedule": "0 */4 * * *",
+  "tags": [
+    "itsm",
+    "freshservice",
+    "freshworks",
+    "service-desk",
+    "ticketing",
+    "incident-management",
+    "change-management",
+    "asset-management"
+  ]
+}

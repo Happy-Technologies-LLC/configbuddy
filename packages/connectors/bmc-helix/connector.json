@@ -1,0 +1,238 @@
+{
+  "id": "bmc-helix",
+  "type": "bmc-helix",
+  "category": "connector",
+  "connector_category": "itsm",
+  "data_types": ["infrastructure", "itil"],
+  "name": "BMC Helix ITSM",
+  "version": "1.0.0",
+  "description": "Integration with BMC Helix IT Service Management (cloud-native) for CMDB, incidents, and changes",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "icon": "bmc",
+  "provider": "bmc",
+  "protocol": "oauth2",
+  "logo_url": "https://www.bmc.com/content/dam/bmc/corporate/bmc-logo.svg",
+  "documentation_url": "https://docs.bmc.com/docs/helixplatform/",
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": true,
+    "bidirectional": false
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["tenant_url", "client_id", "client_secret"],
+    "properties": {
+      "tenant_url": {
+        "type": "string",
+        "description": "BMC Helix tenant URL (e.g., https://yourcompany.onbmc.com)"
+      },
+      "client_id": {
+        "label": "OAuth2 Client ID",
+        "type": "string",
+        "description": "OAuth2 application client ID"
+      },
+      "client_secret": {
+        "type": "string",
+        "description": "OAuth2 application client secret",
+        "format": "password"
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "computers",
+      "name": "Computer Systems",
+      "description": "Computer systems from BMC_ComputerSystem class",
+      "type": "server",
+      "data_type": "infrastructure",
+      "ci_type": "server",
+      "target_storage": "neo4j",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "class_name": {
+            "type": "string",
+            "default": "BMC_ComputerSystem"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 500,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "name": "Name",
+        "asset_tag": "AssetTag",
+        "serial_number": "SerialNumber",
+        "manufacturer": "Manufacturer",
+        "model": "Model",
+        "status": "Status",
+        "operational_status": "OperationalStatus",
+        "location": "SiteGroup",
+        "owner": "Owner",
+        "department": "Department",
+        "ip_address": "IPAddress",
+        "mac_address": "MACAddress",
+        "os": "OSName",
+        "os_version": "OSVersion",
+        "cpu": "CPU",
+        "ram_mb": "MemorySize",
+        "disk_gb": "DiskSpace",
+        "created": "CreateDate",
+        "updated": "ModifiedDate"
+      }
+    },
+    {
+      "id": "incidents",
+      "name": "Incidents",
+      "description": "IT incidents from Helix ITSM",
+      "type": "incident",
+      "data_type": "itil",
+      "target_storage": "postgresql:fact_incidents",
+      "enabled_by_default": false,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Filter incidents by status",
+            "default": "Status < 5"
+          },
+          "sync_closed": {
+            "type": "boolean",
+            "default": false,
+            "description": "Sync closed/resolved incidents"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 500,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "number": "Incident Number",
+        "short_description": "Description",
+        "description": "Detailed Decription",
+        "priority": "Priority",
+        "severity": "Urgency",
+        "state": "Status",
+        "impact": "Impact",
+        "urgency": "Urgency",
+        "category": "Categorization Tier 1",
+        "subcategory": "Categorization Tier 2",
+        "assigned_to": "Assignee",
+        "assignment_group": "Assigned Group",
+        "caller": "Submitter",
+        "affected_ci": "CI Name",
+        "business_service": "Service CI",
+        "opened_at": "Submit Date",
+        "resolved_at": "Resolved Date",
+        "closed_at": "Closed Date",
+        "close_code": "Resolution",
+        "resolution": "Resolution",
+        "sla_due": "Target Date",
+        "created": "Create Date",
+        "updated": "Last Modified Date"
+      }
+    },
+    {
+      "id": "changes",
+      "name": "Change Requests",
+      "description": "Change requests from Helix ITSM",
+      "type": "change",
+      "data_type": "itil",
+      "target_storage": "postgresql:fact_changes",
+      "enabled_by_default": false,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "sync_closed": {
+            "type": "boolean",
+            "default": true,
+            "description": "Sync closed changes for historical analysis"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 500,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "number": "Infrastructure Change ID",
+        "short_description": "Summary",
+        "description": "Detailed Description",
+        "type": "Change Type",
+        "priority": "Priority",
+        "risk": "Risk Level",
+        "impact": "Impact",
+        "state": "Status",
+        "category": "Category",
+        "assignment_group": "Assigned Group",
+        "assigned_to": "Assigned To",
+        "requested_by": "Requester",
+        "affected_cis": "Configuration Item",
+        "business_service": "Service CI",
+        "start_date": "Scheduled Start Date",
+        "end_date": "Scheduled End Date",
+        "planned_start_date": "Planned Start",
+        "planned_end_date": "Planned End",
+        "work_start": "Actual Start",
+        "work_end": "Actual End",
+        "implementation_plan": "Implementation Plan",
+        "backout_plan": "Backout Plan",
+        "test_plan": "Test Plan",
+        "approval": "Approval Status",
+        "created": "Create Date",
+        "updated": "Last Modified Date"
+      }
+    }
+  ],
+  "authentication": {
+    "required": true,
+    "methods": ["oauth2_client_credentials"],
+    "fields": [
+      {
+        "name": "client_id",
+        "label": "Client ID",
+        "type": "string",
+        "required": true,
+        "sensitive": false
+      },
+      {
+        "name": "client_secret",
+        "label": "Client Secret",
+        "type": "string",
+        "required": true,
+        "sensitive": true
+      }
+    ]
+  },
+  "rate_limits": {
+    "requests_per_second": 10,
+    "requests_per_minute": 300,
+    "requests_per_hour": 10000
+  },
+  "supported_operations": [
+    "discover_computers",
+    "sync_incidents",
+    "sync_changes"
+  ],
+  "default_schedule": "0 */6 * * *",
+  "tags": [
+    "itsm",
+    "bmc",
+    "helix",
+    "cloud",
+    "cmdb",
+    "incident-management",
+    "change-management",
+    "problem-management",
+    "asset-management"
+  ]
+}

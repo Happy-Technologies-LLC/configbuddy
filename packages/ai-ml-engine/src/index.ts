@@ -4,9 +4,11 @@
 
 export * from './types/anomaly.types';
 export * from './types/impact.types';
+export * from './types/architecture.types';
 export * from './engines/anomaly-detection-engine';
 export * from './engines/impact-prediction-engine';
 export * from './engines/configuration-drift-detector';
+export * from './engines/architecture-optimization-engine';
 
 import { logger } from '@cmdb/common';
 import { createEventConsumer, KAFKA_TOPICS, CONSUMER_GROUPS } from '@cmdb/event-processor';

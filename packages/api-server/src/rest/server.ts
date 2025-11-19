@@ -26,6 +26,7 @@ import { dashboardRoutes } from './routes/dashboard.routes';
 import { swaggerRoutes } from './routes/swagger.routes';
 import { itilRoutes } from './routes/itil.routes';
 import { businessServiceRoutes } from './routes/business-service.routes';
+import { architectureRoutes } from './routes/architecture.routes';
 
 export class RestAPIServer {
   private app: Express;
@@ -92,6 +93,7 @@ export class RestAPIServer {
     this.app.use('/api/v1/dashboards', dashboardRoutes);
     this.app.use('/api/v1/itil', itilRoutes);
     this.app.use('/api/v1/business-services', businessServiceRoutes);
+    this.app.use('/api/v1/architecture', architectureRoutes);
     // TEMPORARILY DISABLED - V3.0 routes need repository implementations
     // this.app.use('/api/v1/ai', aiPatternRoutes);
     this.app.use('/api/v1', jobsRoutes);

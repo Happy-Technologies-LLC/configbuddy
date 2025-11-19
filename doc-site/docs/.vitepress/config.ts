@@ -55,6 +55,15 @@ export default defineConfig({
         ]
       },
       {
+        text: 'User Guides',
+        items: [
+          { text: 'Executive Dashboard', link: '/user-guides/executive-dashboard' },
+          { text: 'FinOps Dashboard', link: '/user-guides/finops-dashboard' },
+          { text: 'ITSM Operations', link: '/user-guides/itsm-operations' },
+          { text: 'Migrating to v3.0', link: '/getting-started/migrating-to-v3' }
+        ]
+      },
+      {
         text: 'v3.0 Features',
         items: [
           { text: 'Unified Framework', link: '/components/unified-framework' },
@@ -71,7 +80,10 @@ export default defineConfig({
         text: 'API Reference',
         items: [
           { text: 'API Overview', link: '/api/overview' },
-          { text: 'Discovery API', link: '/api/rest/discovery' }
+          { text: 'Authentication API', link: '/api/authentication' },
+          { text: 'Discovery API', link: '/api/rest/discovery' },
+          { text: 'Unified Credentials API', link: '/api/rest/unified' },
+          { text: 'Financial Management API', link: '/api/rest/financial' }
         ]
       }
     ],
@@ -88,7 +100,8 @@ export default defineConfig({
             { text: 'Installation', link: '/getting-started/installation' },
             { text: 'Project Structure', link: '/getting-started/project-structure' },
             { text: 'Key Concepts', link: '/getting-started/key-concepts' },
-            { text: 'Discovery Guide', link: '/getting-started/discovery-guide' }
+            { text: 'Discovery Guide', link: '/getting-started/discovery-guide' },
+            { text: 'Migrating to v3.0', link: '/getting-started/migrating-to-v3' }
           ]
         }
       ],
@@ -357,6 +370,7 @@ export default defineConfig({
           text: 'Configuration',
           items: [
             { text: 'Configuration Overview', link: '/configuration/overview' },
+            { text: 'v3.0 Configuration Guide', link: '/configuration/v3-configuration-guide' },
             { text: 'Environment Variables', link: '/configuration/environment-variables' },
             { text: 'Configuration Files', link: '/configuration/config-files' }
           ]
@@ -430,6 +444,8 @@ export default defineConfig({
             { text: 'Configuration Items', link: '/api/rest/configuration-items' },
             { text: 'Relationships', link: '/api/rest/relationships' },
             { text: 'Discovery API', link: '/api/rest/discovery' },
+            { text: 'Unified Credentials API', link: '/api/rest/unified' },
+            { text: 'Financial Management API', link: '/api/rest/financial' },
             { text: 'Reports', link: '/api/rest/reports' }
           ]
         },
@@ -487,6 +503,21 @@ export default defineConfig({
             { text: 'Environment Variables', link: '/quick-reference/env-vars' },
             { text: 'Graph Queries', link: '/quick-reference/graph-queries' },
             { text: 'Troubleshooting Checklist', link: '/quick-reference/troubleshooting-checklist' }
+          ]
+        }
+      ],
+
+      // User Guides section
+      '/user-guides/': [
+        {
+          text: 'User Guides',
+          items: [
+            { text: 'Executive Dashboard', link: '/user-guides/executive-dashboard' },
+            { text: 'CIO Dashboard', link: '/user-guides/cio-dashboard' },
+            { text: 'FinOps Dashboard', link: '/user-guides/finops-dashboard' },
+            { text: 'ITSM Operations', link: '/user-guides/itsm-operations' },
+            { text: 'Service Owner Guide', link: '/user-guides/service-owner-guide' },
+            { text: 'Administrator Guide', link: '/user-guides/administrator-guide' }
           ]
         }
       ]

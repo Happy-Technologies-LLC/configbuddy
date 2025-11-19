@@ -2538,5 +2538,188 @@ COMMENT ON TABLE baseline_snapshots IS 'Configuration baselines for drift detect
 COMMENT ON TABLE drift_detection_results IS 'Configuration drift detection results';
 
 -- ============================================
+-- BUSINESS SERVICES & TBM INTEGRATION
+-- ============================================
+-- Business Service Management (BSM) with TBM v5.0.1 capability towers foundation
+-- These tables support service portfolio management aligned with Technology Business Management standards
+
+-- Dimension table for business services
+CREATE TABLE IF NOT EXISTS dim_business_services (
+    service_id VARCHAR(50) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    service_classification VARCHAR(50) NOT NULL,  -- compute, storage, network, data, application, security, end_user, iot, blockchain, quantum, other_it
+    tbm_tower VARCHAR(50) NOT NULL,  -- TBM v5.0.1 capability tower
+    business_criticality VARCHAR(20) NOT NULL,  -- critical, high, medium, low
+    operational_status VARCHAR(20) NOT NULL,  -- active, inactive, maintenance, decommissioned
+    service_type VARCHAR(50),  -- infrastructure, platform, software, business
+    owned_by VARCHAR(255),
+    managed_by VARCHAR(255),
+    support_group VARCHAR(255),
+    service_level_requirement TEXT,
+    category VARCHAR(100),
+    tags TEXT[],  -- Array of tags
+    related_ci_types TEXT[],  -- Array of CI types that support this service
+    cost_allocation JSONB,  -- {chargeback_enabled: boolean, tbm_pool: string}
+    metadata JSONB,  -- Additional flexible attributes
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT valid_classification CHECK (service_classification IN (
+        'compute', 'storage', 'network', 'data', 'application',
+        'security', 'end_user', 'iot', 'blockchain', 'quantum', 'other_it'
+    )),
+    CONSTRAINT valid_criticality CHECK (business_criticality IN (
+        'critical', 'high', 'medium', 'low'
+    )),
+    CONSTRAINT valid_status CHECK (operational_status IN (
+        'active', 'inactive', 'maintenance', 'decommissioned'
+    ))
+);
+
+-- Index for common queries
+CREATE INDEX IF NOT EXISTS idx_business_services_classification ON dim_business_services(service_classification);
+CREATE INDEX IF NOT EXISTS idx_business_services_tbm_tower ON dim_business_services(tbm_tower);
+CREATE INDEX IF NOT EXISTS idx_business_services_criticality ON dim_business_services(business_criticality);
+CREATE INDEX IF NOT EXISTS idx_business_services_status ON dim_business_services(operational_status);
+CREATE INDEX IF NOT EXISTS idx_business_services_tags ON dim_business_services USING GIN(tags);
+
+-- Service dependency relationships (many-to-many)
+CREATE TABLE IF NOT EXISTS business_service_dependencies (
+    id SERIAL PRIMARY KEY,
+    service_id VARCHAR(50) NOT NULL REFERENCES dim_business_services(service_id) ON DELETE CASCADE,
+    depends_on_service_id VARCHAR(50) NOT NULL REFERENCES dim_business_services(service_id) ON DELETE CASCADE,
+    dependency_type VARCHAR(50) NOT NULL,  -- infrastructure, platform, application, business
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(service_id, depends_on_service_id),
+    CONSTRAINT no_self_dependency CHECK (service_id != depends_on_service_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_service_deps_service ON business_service_dependencies(service_id);
+CREATE INDEX IF NOT EXISTS idx_service_deps_depends_on ON business_service_dependencies(depends_on_service_id);
+
+-- CI to Business Service mappings (many-to-many)
+CREATE TABLE IF NOT EXISTS ci_business_service_mappings (
+    id SERIAL PRIMARY KEY,
+    ci_id VARCHAR(100) NOT NULL,  -- References Neo4j CI node ID
+    service_id VARCHAR(50) NOT NULL REFERENCES dim_business_services(service_id) ON DELETE CASCADE,
+    mapping_type VARCHAR(50) NOT NULL,  -- supports, hosts, depends_on, consumes
+    confidence_score FLOAT DEFAULT 1.0,  -- Auto-discovered mappings may have < 1.0
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(ci_id, service_id, mapping_type),
+    CONSTRAINT valid_confidence CHECK (confidence_score >= 0.0 AND confidence_score <= 1.0)
+);
+
+CREATE INDEX IF NOT EXISTS idx_ci_service_mapping_ci ON ci_business_service_mappings(ci_id);
+CREATE INDEX IF NOT EXISTS idx_ci_service_mapping_service ON ci_business_service_mappings(service_id);
+
+-- Fact table for business service incidents (aggregated from ITSM connectors)
+CREATE TABLE IF NOT EXISTS fact_business_service_incidents (
+    id SERIAL PRIMARY KEY,
+    service_id VARCHAR(50) NOT NULL REFERENCES dim_business_services(service_id) ON DELETE CASCADE,
+    incident_date DATE NOT NULL,
+    incident_count INT DEFAULT 0,
+    p1_count INT DEFAULT 0,
+    p2_count INT DEFAULT 0,
+    p3_count INT DEFAULT 0,
+    p4_count INT DEFAULT 0,
+    mttr_minutes FLOAT,  -- Mean time to resolve
+    sla_breaches INT DEFAULT 0,
+    total_downtime_minutes FLOAT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(service_id, incident_date)
+);
+
+-- Convert to TimescaleDB hypertable for time-series optimization
+SELECT create_hypertable('fact_business_service_incidents', 'incident_date', if_not_exists => TRUE);
+
+CREATE INDEX IF NOT EXISTS idx_bs_incidents_service ON fact_business_service_incidents(service_id, incident_date DESC);
+
+-- Fact table for business service changes (aggregated from ITSM connectors)
+CREATE TABLE IF NOT EXISTS fact_business_service_changes (
+    id SERIAL PRIMARY KEY,
+    service_id VARCHAR(50) NOT NULL REFERENCES dim_business_services(service_id) ON DELETE CASCADE,
+    change_date DATE NOT NULL,
+    change_count INT DEFAULT 0,
+    emergency_count INT DEFAULT 0,
+    standard_count INT DEFAULT 0,
+    normal_count INT DEFAULT 0,
+    successful_count INT DEFAULT 0,
+    failed_count INT DEFAULT 0,
+    rolled_back_count INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(service_id, change_date)
+);
+
+-- Convert to TimescaleDB hypertable
+SELECT create_hypertable('fact_business_service_changes', 'change_date', if_not_exists => TRUE);
+
+CREATE INDEX IF NOT EXISTS idx_bs_changes_service ON fact_business_service_changes(service_id, change_date DESC);
+
+-- View: Business Service Health Dashboard
+CREATE OR REPLACE VIEW v_business_service_health AS
+SELECT
+    bs.service_id,
+    bs.name,
+    bs.service_classification,
+    bs.tbm_tower,
+    bs.business_criticality,
+    bs.operational_status,
+    COUNT(DISTINCT csm.ci_id) as supported_ci_count,
+    COALESCE(SUM(inc.incident_count), 0)::INT as incidents_last_30d,
+    COALESCE(SUM(inc.sla_breaches), 0)::INT as sla_breaches_last_30d,
+    COALESCE(AVG(inc.mttr_minutes), 0)::FLOAT as avg_mttr_minutes,
+    COALESCE(SUM(chg.change_count), 0)::INT as changes_last_30d,
+    COALESCE(SUM(chg.failed_count), 0)::INT as failed_changes_last_30d,
+    CASE
+        WHEN COALESCE(SUM(inc.sla_breaches), 0) = 0
+         AND COALESCE(SUM(chg.failed_count), 0) = 0
+         AND bs.operational_status = 'active'
+        THEN 'healthy'
+        WHEN COALESCE(SUM(inc.sla_breaches), 0) > 5
+          OR COALESCE(SUM(chg.failed_count), 0) > 3
+        THEN 'critical'
+        ELSE 'degraded'
+    END as health_status
+FROM dim_business_services bs
+LEFT JOIN ci_business_service_mappings csm ON bs.service_id = csm.service_id
+LEFT JOIN fact_business_service_incidents inc ON bs.service_id = inc.service_id
+    AND inc.incident_date >= CURRENT_DATE - INTERVAL '30 days'
+LEFT JOIN fact_business_service_changes chg ON bs.service_id = chg.service_id
+    AND chg.change_date >= CURRENT_DATE - INTERVAL '30 days'
+GROUP BY bs.service_id, bs.name, bs.service_classification, bs.tbm_tower,
+         bs.business_criticality, bs.operational_status;
+
+-- View: TBM Tower Summary
+CREATE OR REPLACE VIEW v_tbm_tower_summary AS
+SELECT
+    tbm_tower,
+    COUNT(*) as service_count,
+    COUNT(CASE WHEN operational_status = 'active' THEN 1 END) as active_services,
+    COUNT(CASE WHEN business_criticality = 'critical' THEN 1 END) as critical_services,
+    COUNT(CASE WHEN business_criticality = 'high' THEN 1 END) as high_criticality_services
+FROM dim_business_services
+GROUP BY tbm_tower
+ORDER BY service_count DESC;
+
+-- Grant permissions
+GRANT SELECT, INSERT, UPDATE, DELETE ON dim_business_services TO PUBLIC;
+GRANT SELECT, INSERT, UPDATE, DELETE ON business_service_dependencies TO PUBLIC;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ci_business_service_mappings TO PUBLIC;
+GRANT SELECT, INSERT ON fact_business_service_incidents TO PUBLIC;
+GRANT SELECT, INSERT ON fact_business_service_changes TO PUBLIC;
+GRANT SELECT ON v_business_service_health TO PUBLIC;
+GRANT SELECT ON v_tbm_tower_summary TO PUBLIC;
+
+-- Table comments
+COMMENT ON TABLE dim_business_services IS 'Business service catalog aligned with TBM v5.0.1 capability towers';
+COMMENT ON TABLE business_service_dependencies IS 'Service dependency graph for impact analysis';
+COMMENT ON TABLE ci_business_service_mappings IS 'Maps CIs (from Neo4j) to business services for BSM';
+COMMENT ON TABLE fact_business_service_incidents IS 'Daily aggregated incident metrics per business service';
+COMMENT ON TABLE fact_business_service_changes IS 'Daily aggregated change metrics per business service';
+COMMENT ON VIEW v_business_service_health IS 'Real-time business service health dashboard';
+COMMENT ON VIEW v_tbm_tower_summary IS 'Summary statistics by TBM capability tower';
+
+-- ============================================
 -- END OF CONSOLIDATED SCHEMA MIGRATION
 -- ============================================

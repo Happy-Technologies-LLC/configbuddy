@@ -18,7 +18,6 @@ import {
   Shield,
   Target,
   Network,
-  ShoppingCart,
   PieChart,
 } from 'lucide-react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -86,11 +85,6 @@ const menuCategories: MenuCategory[] = [
         text: 'Business Services',
         icon: <Network className="h-5 w-5" />,
         path: '/business-services',
-      },
-      {
-        text: 'Service Catalog',
-        icon: <ShoppingCart className="h-5 w-5" />,
-        path: '/service-catalog',
       },
       {
         text: 'Financial Management',

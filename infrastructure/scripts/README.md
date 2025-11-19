@@ -97,6 +97,109 @@ For detailed backup/restore documentation, see:
 
 This section contains comprehensive scripts for initializing and populating the ConfigBuddy CMDB database with test data.
 
+## v3.0 Initialization Scripts
+
+### init-kafka.sh
+
+**Location**: `/infrastructure/scripts/init-kafka.sh`
+
+**Purpose**: Initialize all Kafka topics for v3.0 event streaming
+
+**What it does**:
+- Waits for Kafka to be ready (30 retry attempts with 5s delay)
+- Creates 11 event topics with appropriate partitions and retention policies
+- Uses snappy compression for all topics
+- Configures different retention periods based on data importance
+
+**Topics Created**:
+| Topic | Partitions | Retention | Purpose |
+|-------|-----------|-----------|---------|
+| discovery-events | 3 | 7 days | CI discovery events |
+| enrichment-events | 3 | 7 days | Attribute enrichment operations |
+| change-events | 3 | 30 days | CI changes and updates |
+| itil-events | 3 | 30 days | ITIL incident and change records |
+| cost-events | 2 | 90 days | TBM cost allocation updates |
+| bsm-events | 3 | 30 days | Business service mapping events |
+| audit-events | 2 | 365 days | Audit trail (long retention) |
+| alert-events | 4 | 7 days | Alert notifications |
+| etl-events | 2 | 30 days | ETL job status and metrics |
+| integration-events | 2 | 7 days | External system integrations |
+| dlq-events | 1 | 90 days | Dead letter queue for failed messages |
+
+**Usage**:
+```bash
+# Make executable
+chmod +x infrastructure/scripts/init-kafka.sh
+
+# Run script (Kafka must be running)
+./infrastructure/scripts/init-kafka.sh
+```
+
+**Prerequisites**:
+```bash
+# Start Kafka and Zookeeper
+docker-compose -f infrastructure/docker/docker-compose.yml up -d zookeeper kafka
+
+# Wait for Kafka to be ready (script handles this automatically)
+```
+
+**Verification**:
+```bash
+# View topics in Kafka UI
+open http://localhost:8090
+
+# Or use CLI
+docker exec cmdb-kafka kafka-topics --list --bootstrap-server localhost:9092
+```
+
+---
+
+### init-metabase-db.sql
+
+**Location**: `/infrastructure/scripts/init-metabase-db.sql`
+
+**Purpose**: Initialize PostgreSQL databases for Metabase and Grafana application data
+
+**What it does**:
+- Creates `metabase_user` role with login credentials
+- Creates `grafana_user` role with login credentials
+- Creates `metabase` database owned by metabase_user
+- Creates `grafana` database owned by grafana_user
+- Grants all privileges on respective databases
+- Uses conditional logic to avoid errors if already exists
+
+**Usage**:
+```bash
+# Run via psql
+psql -U postgres -h localhost -f infrastructure/scripts/init-metabase-db.sql
+
+# Or via Docker
+docker exec -i cmdb-postgres psql -U postgres < infrastructure/scripts/init-metabase-db.sql
+```
+
+**Security Notes**:
+- Default passwords are `metabase_password_change_me` and `grafana_password_change_me`
+- **IMPORTANT**: Change these passwords in production via `.env` file
+- Set `METABASE_DB_PASSWORD` and `GRAFANA_ADMIN_PASSWORD` environment variables
+
+**Post-Installation**:
+```bash
+# Access Metabase
+open http://localhost:3002
+
+# Complete initial setup
+# 1. Create admin account
+# 2. Add CMDB data mart as data source
+#    - Type: PostgreSQL
+#    - Host: postgres
+#    - Port: 5432
+#    - Database: cmdb
+#    - Username: metabase_readonly (from .env)
+#    - Password: <from METABASE_READONLY_PASSWORD in .env>
+```
+
+---
+
 ## Scripts Overview
 
 ### 1. init-neo4j.cypher

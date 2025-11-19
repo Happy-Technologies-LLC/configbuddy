@@ -2,10 +2,11 @@
   "id": "gcp",
   "category": "connector",
   "connector_category": "cloud",
+  "data_types": ["infrastructure", "financial"],
   "name": "Google Cloud Platform",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "gcp",
-  "description": "Cloud infrastructure integration for Google Cloud Platform - discovers and syncs Compute Engine instances, Cloud SQL databases, Cloud Storage buckets, GKE clusters, and Cloud Functions via GCP APIs",
+  "description": "Cloud infrastructure and financial integration for Google Cloud Platform - discovers Compute Engine instances, Cloud SQL databases, Cloud Storage buckets, GKE clusters, Cloud Functions, and syncs cost data via GCP APIs and BigQuery Billing Export",
   "provider": "gcp",
   "protocol": "gcp_sa",
   "logo_url": "https://upload.wikimedia.org/wikipedia/commons/5/51/Google_Cloud_logo.svg",
@@ -184,6 +185,81 @@
         "gcp_project_id": "_gcp_project_id",
         "gcp_location": "_gcp_location"
       }
+    },
+    {
+      "id": "cost-usage",
+      "name": "Cost & Usage",
+      "type": "cost-record",
+      "data_type": "financial",
+      "description": "Daily cost and usage data from GCP BigQuery Billing Export",
+      "target_storage": "postgresql:tbm_cost_pools",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "billing_account_id": {
+            "type": "string",
+            "description": "GCP Billing Account ID"
+          },
+          "bigquery_dataset": {
+            "type": "string",
+            "description": "BigQuery dataset containing billing export (e.g., my_project.billing_export)"
+          },
+          "bigquery_table": {
+            "type": "string",
+            "description": "BigQuery table name pattern (e.g., gcp_billing_export_v1_*)"
+          },
+          "lookback_days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 90,
+            "default": 30,
+            "description": "Number of days to retrieve historical cost data"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 1000,
+        "rate_limit": 5
+      },
+      "field_mappings": {
+        "usage_start_time": "usage_start_time",
+        "usage_end_time": "usage_end_time",
+        "service_description": "service.description",
+        "sku_description": "sku.description",
+        "project_id": "project.id",
+        "project_name": "project.name",
+        "location_region": "location.region",
+        "location_zone": "location.zone",
+        "cost": "cost",
+        "usage_amount": "usage.amount",
+        "usage_unit": "usage.unit",
+        "currency": "currency",
+        "labels": "labels"
+      },
+      "transformation": {
+        "tbm_tower_mapping": {
+          "Compute Engine": "compute",
+          "Cloud SQL": "data",
+          "Cloud Spanner": "data",
+          "BigQuery": "data",
+          "Cloud Storage": "storage",
+          "Persistent Disk": "storage",
+          "Cloud Filestore": "storage",
+          "Virtual Private Cloud": "network",
+          "Cloud Load Balancing": "network",
+          "Cloud CDN": "network",
+          "Cloud Armor": "security",
+          "Security Command Center": "security",
+          "Cloud Identity": "end_user",
+          "Google Kubernetes Engine": "compute",
+          "Cloud Functions": "compute",
+          "Cloud Run": "compute",
+          "App Engine": "compute",
+          "Cloud IoT Core": "iot"
+        }
+      }
     }
   ],
   "authentication": {
@@ -226,7 +302,8 @@
     "discover_cloud_sql",
     "discover_storage_buckets",
     "discover_gke_clusters",
-    "discover_cloud_functions"
+    "discover_cloud_functions",
+    "sync_costs"
   ],
   "default_schedule": "0 */6 * * *",
   "tags": [
@@ -238,6 +315,9 @@
     "storage",
     "database",
     "kubernetes",
-    "serverless"
+    "serverless",
+    "financial",
+    "cost-management",
+    "finops"
   ]
 }

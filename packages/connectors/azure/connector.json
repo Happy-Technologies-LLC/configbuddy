@@ -2,10 +2,11 @@
   "id": "azure-discovery",
   "category": "connector",
   "connector_category": "cloud",
+  "data_types": ["infrastructure", "financial"],
   "name": "Microsoft Azure",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "azure-discovery",
-  "description": "Cloud infrastructure integration for Microsoft Azure - discovers and syncs Virtual Machines, SQL Databases, Storage Accounts, App Services, and AKS Clusters via Azure Resource Manager APIs",
+  "description": "Cloud infrastructure and financial integration for Microsoft Azure - discovers Virtual Machines, SQL Databases, Storage Accounts, App Services, AKS Clusters, and syncs cost data via Azure Resource Manager and Cost Management APIs",
   "provider": "azure",
   "protocol": "azure_sp",
   "logo_url": "https://upload.wikimedia.org/wikipedia/commons/a/a8/Microsoft_Azure_Logo.svg",
@@ -190,6 +191,90 @@
         "max_agent_pools": "maxAgentPools",
         "azure_subscription_id": "_azure_subscription_id"
       }
+    },
+    {
+      "id": "cost-usage",
+      "name": "Cost & Usage",
+      "type": "cost-record",
+      "data_type": "financial",
+      "description": "Daily cost and usage data from Azure Cost Management API",
+      "target_storage": "postgresql:tbm_cost_pools",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "granularity": {
+            "type": "string",
+            "enum": ["Daily", "Monthly"],
+            "default": "Daily",
+            "description": "Cost data granularity"
+          },
+          "metric": {
+            "type": "string",
+            "enum": ["ActualCost", "AmortizedCost", "Usage"],
+            "default": "ActualCost",
+            "description": "Cost metric to retrieve"
+          },
+          "group_by": {
+            "type": "array",
+            "items": {
+              "enum": ["ResourceType", "ResourceGroup", "ResourceLocation", "ServiceName", "MeterCategory", "Tag"]
+            },
+            "default": ["ServiceName"],
+            "description": "Dimensions to group costs by"
+          },
+          "lookback_days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 90,
+            "default": 30,
+            "description": "Number of days to retrieve historical cost data"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 1000,
+        "rate_limit": 3
+      },
+      "field_mappings": {
+        "usage_date": "properties.usageDate",
+        "service_name": "properties.serviceName",
+        "resource_group": "properties.resourceGroup",
+        "resource_location": "properties.resourceLocation",
+        "meter_category": "properties.meterCategory",
+        "meter_subcategory": "properties.meterSubcategory",
+        "meter_name": "properties.meterName",
+        "cost": "properties.cost",
+        "quantity": "properties.quantity",
+        "unit_of_measure": "properties.unitOfMeasure",
+        "currency": "properties.currency",
+        "subscription_id": "_subscription_id"
+      },
+      "transformation": {
+        "tbm_tower_mapping": {
+          "Virtual Machines": "compute",
+          "Azure Database for MySQL": "data",
+          "Azure Database for PostgreSQL": "data",
+          "Azure SQL Database": "data",
+          "Storage": "storage",
+          "Blob Storage": "storage",
+          "File Storage": "storage",
+          "Azure Cosmos DB": "data",
+          "Virtual Network": "network",
+          "Load Balancer": "network",
+          "Application Gateway": "network",
+          "Azure Firewall": "security",
+          "Azure Security Center": "security",
+          "Microsoft Defender for Cloud": "security",
+          "Azure Kubernetes Service": "compute",
+          "Container Instances": "compute",
+          "App Service": "compute",
+          "Functions": "compute",
+          "Azure Active Directory": "end_user",
+          "Azure IoT Hub": "iot"
+        }
+      }
     }
   ],
   "authentication": {
@@ -248,7 +333,8 @@
     "discover_sql_databases",
     "discover_storage_accounts",
     "discover_app_services",
-    "discover_aks_clusters"
+    "discover_aks_clusters",
+    "sync_costs"
   ],
   "default_schedule": "0 */6 * * *",
   "tags": [
@@ -259,7 +345,10 @@
     "compute",
     "storage",
     "database",
-    "kubernetes"
+    "kubernetes",
+    "financial",
+    "cost-management",
+    "finops"
   ],
   "relationships": [
     {

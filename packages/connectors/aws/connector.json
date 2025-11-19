@@ -2,10 +2,11 @@
   "id": "aws",
   "category": "connector",
   "connector_category": "cloud",
+  "data_types": ["infrastructure", "financial"],
   "name": "AWS",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "aws",
-  "description": "Cloud infrastructure integration for AWS - discovers and syncs EC2 instances, RDS databases, S3 buckets, ECS containers, and Lambda functions via AWS APIs",
+  "description": "Cloud infrastructure and financial integration for AWS - discovers EC2 instances, RDS databases, S3 buckets, ECS containers, Lambda functions, and syncs cost & usage data via AWS APIs",
   "provider": "aws",
   "protocol": "aws_iam",
   "logo_url": "https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_Web_Services_Logo.svg",
@@ -111,6 +112,90 @@
         "active_services_count": "activeServicesCount",
         "aws_region": "_aws_region"
       }
+    },
+    {
+      "id": "cost-usage",
+      "name": "Cost & Usage",
+      "type": "cost-record",
+      "data_type": "financial",
+      "description": "Daily cost and usage data from AWS Cost Explorer API",
+      "target_storage": "postgresql:tbm_cost_pools",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "granularity": {
+            "type": "string",
+            "enum": ["DAILY", "HOURLY", "MONTHLY"],
+            "default": "DAILY",
+            "description": "Cost data granularity"
+          },
+          "metrics": {
+            "type": "array",
+            "items": {
+              "enum": ["UnblendedCost", "BlendedCost", "AmortizedCost", "UsageQuantity"]
+            },
+            "default": ["UnblendedCost", "UsageQuantity"],
+            "description": "Cost metrics to retrieve"
+          },
+          "group_by": {
+            "type": "array",
+            "items": {
+              "enum": ["SERVICE", "LINKED_ACCOUNT", "REGION", "USAGE_TYPE", "TAG", "INSTANCE_TYPE"]
+            },
+            "default": ["SERVICE"],
+            "description": "Dimensions to group costs by"
+          },
+          "lookback_days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 90,
+            "default": 30,
+            "description": "Number of days to retrieve historical cost data"
+          }
+        }
+      },
+      "extraction": {
+        "incremental": true,
+        "batch_size": 1000,
+        "rate_limit": 5
+      },
+      "field_mappings": {
+        "time_period_start": "TimePeriod.Start",
+        "time_period_end": "TimePeriod.End",
+        "service": "Keys.0",
+        "unblended_cost": "Metrics.UnblendedCost.Amount",
+        "usage_quantity": "Metrics.UsageQuantity.Amount",
+        "currency": "Metrics.UnblendedCost.Unit",
+        "account_id": "_account_id",
+        "region": "_region"
+      },
+      "transformation": {
+        "tbm_tower_mapping": {
+          "AmazonEC2": "compute",
+          "AmazonRDS": "data",
+          "AmazonS3": "storage",
+          "AmazonCloudFront": "network",
+          "AmazonLambda": "compute",
+          "AmazonDynamoDB": "data",
+          "AmazonECS": "compute",
+          "AmazonEKS": "compute",
+          "AmazonElastiCache": "data",
+          "AmazonRedshift": "data",
+          "AmazonVPC": "network",
+          "ElasticLoadBalancing": "network",
+          "AmazonRoute53": "network",
+          "AWSDirectConnect": "network",
+          "AmazonGuardDuty": "security",
+          "AWSSecurityHub": "security",
+          "AWSWAF": "security",
+          "AmazonWorkSpaces": "end_user",
+          "AmazonChime": "end_user",
+          "AWSIoTCore": "iot",
+          "AmazonQLDB": "blockchain",
+          "AmazonBraket": "quantum"
+        }
+      }
     }
   ],
   "authentication": {
@@ -161,7 +246,8 @@
     "discover_rds",
     "discover_s3",
     "discover_lambda",
-    "discover_ecs"
+    "discover_ecs",
+    "sync_costs"
   ],
   "default_schedule": "0 */6 * * *",
   "tags": [
@@ -171,6 +257,9 @@
     "compute",
     "storage",
     "database",
-    "serverless"
+    "serverless",
+    "financial",
+    "cost-management",
+    "finops"
   ]
 }

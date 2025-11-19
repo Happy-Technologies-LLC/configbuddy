@@ -1,0 +1,416 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "description": "TBM v5.0.1-based business service templates for BSM foundation",
+    "taxonomy": "Technology Business Management (TBM) v5.0.1",
+    "towers": 11,
+    "created": "2025-01-17",
+    "author": "ConfigBuddy"
+  },
+  "business_services": [
+    {
+      "id": "bs-compute-iaas",
+      "name": "Infrastructure as a Service (IaaS)",
+      "description": "Virtual machine and container compute resources for application workloads",
+      "service_classification": "compute",
+      "tbm_tower": "compute",
+      "business_criticality": "high",
+      "operational_status": "active",
+      "service_type": "infrastructure",
+      "owned_by": "Platform Engineering",
+      "managed_by": "Cloud Operations",
+      "support_group": "Infrastructure Support",
+      "service_level_requirement": "99.9% uptime",
+      "category": "Cloud Infrastructure",
+      "tags": ["compute", "iaas", "vm", "containers"],
+      "related_ci_types": ["virtual-machine", "container", "server"],
+      "cost_allocation": {
+        "chargeback_enabled": true,
+        "tbm_pool": "compute"
+      }
+    },
+    {
+      "id": "bs-storage-cloud",
+      "name": "Cloud Storage Services",
+      "description": "Object, block, and file storage for data persistence and archival",
+      "service_classification": "storage",
+      "tbm_tower": "storage",
+      "business_criticality": "high",
+      "operational_status": "active",
+      "service_type": "infrastructure",
+      "owned_by": "Platform Engineering",
+      "managed_by": "Storage Operations",
+      "support_group": "Storage Support",
+      "service_level_requirement": "99.99% durability",
+      "category": "Data Storage",
+      "tags": ["storage", "object-storage", "block-storage", "backup"],
+      "related_ci_types": ["storage", "backup-system"],
+      "cost_allocation": {
+        "chargeback_enabled": true,
+        "tbm_pool": "storage"
+      }
+    },
+    {
+      "id": "bs-network-connectivity",
+      "name": "Network Connectivity",
+      "description": "Internal and external network connectivity, load balancing, and CDN services",
+      "service_classification": "network",
+      "tbm_tower": "network",
+      "business_criticality": "critical",
+      "operational_status": "active",
+      "service_type": "infrastructure",
+      "owned_by": "Network Engineering",
+      "managed_by": "Network Operations",
+      "support_group": "Network Support",
+      "service_level_requirement": "99.99% uptime",
+      "category": "Network Infrastructure",
+      "tags": ["network", "load-balancer", "cdn", "vpn"],
+      "related_ci_types": ["network-device", "load-balancer", "firewall"],
+      "cost_allocation": {
+        "chargeback_enabled": true,
+        "tbm_pool": "network"
+      }
+    },
+    {
+      "id": "bs-database-managed",
+      "name": "Managed Database Services",
+      "description": "Relational and NoSQL database services (RDS, Aurora, DynamoDB, Cosmos DB)",
+      "service_classification": "data",
+      "tbm_tower": "data",
+      "business_criticality": "critical",
+      "operational_status": "active",
+      "service_type": "platform",
+      "owned_by": "Data Platform Team",
+      "managed_by": "Database Operations",
+      "support_group": "Database Support",
+      "service_level_requirement": "99.95% uptime",
+      "category": "Data Management",
+      "tags": ["database", "rds", "nosql", "data-warehouse"],
+      "related_ci_types": ["database", "data-warehouse"],
+      "cost_allocation": {
+        "chargeback_enabled": true,
+        "tbm_pool": "data"
+      }
+    },
+    {
+      "id": "bs-app-platform",
+      "name": "Application Platform Services",
+      "description": "PaaS offerings for application deployment and runtime (App Service, Lambda, Cloud Functions)",
+      "service_classification": "application",
+      "tbm_tower": "application",
+      "business_criticality": "high",
+      "operational_status": "active",
+      "service_type": "platform",
+      "owned_by": "Application Platform Team",
+      "managed_by": "DevOps",
+      "support_group": "Application Support",
+      "service_level_requirement": "99.9% uptime",
+      "category": "Application Services",
+      "tags": ["paas", "serverless", "app-service", "functions"],
+      "related_ci_types": ["application", "service", "api"],
+      "cost_allocation": {
+        "chargeback_enabled": true,
+        "tbm_pool": "application"
+      }
+    },
+    {
+      "id": "bs-security-iam",
+      "name": "Identity & Access Management",
+      "description": "Authentication, authorization, and identity federation services",
+      "service_classification": "security",
+      "tbm_tower": "security",
+      "business_criticality": "critical",
+      "operational_status": "active",
+      "service_type": "platform",
+      "owned_by": "Security Engineering",
+      "managed_by": "Identity Operations",
+      "support_group": "Security Support",
+      "service_level_requirement": "99.99% uptime",
+      "category": "Security Services",
+      "tags": ["iam", "authentication", "sso", "mfa"],
+      "related_ci_types": ["security-service", "authentication-system"],
+      "cost_allocation": {
+        "chargeback_enabled": false,
+        "tbm_pool": "security"
+      }
+    },
+    {
+      "id": "bs-security-monitoring",
+      "name": "Security Monitoring & Compliance",
+      "description": "Threat detection, vulnerability scanning, and compliance monitoring",
+      "service_classification": "security",
+      "tbm_tower": "security",
+      "business_criticality": "critical",
+      "operational_status": "active",
+      "service_type": "platform",
+      "owned_by": "Security Engineering",
+      "managed_by": "Security Operations",
+      "support_group": "Security Support",
+      "service_level_requirement": "99.9% uptime",
+      "category": "Security Services",
+      "tags": ["security", "compliance", "threat-detection", "siem"],
+      "related_ci_types": ["security-service", "monitoring-tool"],
+      "cost_allocation": {
+        "chargeback_enabled": false,
+        "tbm_pool": "security"
+      }
+    },
+    {
+      "id": "bs-enduser-workspace",
+      "name": "End User Workspace Services",
+      "description": "Virtual desktops, productivity tools, and collaboration platforms",
+      "service_classification": "end_user",
+      "tbm_tower": "end_user",
+      "business_criticality": "high",
+      "operational_status": "active",
+      "service_type": "software",
+      "owned_by": "End User Computing",
+      "managed_by": "Workspace Operations",
+      "support_group": "End User Support",
+      "service_level_requirement": "99.5% uptime",
+      "category": "End User Services",
+      "tags": ["vdi", "workspace", "collaboration", "office365"],
+      "related_ci_types": ["virtual-desktop", "application"],
+      "cost_allocation": {
+        "chargeback_enabled": true,
+        "tbm_pool": "end_user"
+      }
+    },
+    {
+      "id": "bs-monitoring-observability",
+      "name": "Monitoring & Observability Platform",
+      "description": "Application performance monitoring, logging, and distributed tracing",
+      "service_classification": "application",
+      "tbm_tower": "application",
+      "business_criticality": "high",
+      "operational_status": "active",
+      "service_type": "platform",
+      "owned_by": "Platform Engineering",
+      "managed_by": "SRE Team",
+      "support_group": "Platform Support",
+      "service_level_requirement": "99.9% uptime",
+      "category": "Observability",
+      "tags": ["monitoring", "apm", "logging", "metrics"],
+      "related_ci_types": ["monitoring-tool", "application"],
+      "cost_allocation": {
+        "chargeback_enabled": false,
+        "tbm_pool": "application"
+      }
+    },
+    {
+      "id": "bs-data-analytics",
+      "name": "Data Analytics & Business Intelligence",
+      "description": "Data warehousing, analytics, and BI reporting services",
+      "service_classification": "data",
+      "tbm_tower": "data",
+      "business_criticality": "medium",
+      "operational_status": "active",
+      "service_type": "platform",
+      "owned_by": "Data Platform Team",
+      "managed_by": "Analytics Operations",
+      "support_group": "Data Support",
+      "service_level_requirement": "99.5% uptime",
+      "category": "Data & Analytics",
+      "tags": ["analytics", "bi", "data-warehouse", "etl"],
+      "related_ci_types": ["data-warehouse", "analytics-tool"],
+      "cost_allocation": {
+        "chargeback_enabled": true,
+        "tbm_pool": "data"
+      }
+    },
+    {
+      "id": "bs-ci-cd",
+      "name": "CI/CD Pipeline Services",
+      "description": "Continuous integration, deployment, and release automation",
+      "service_classification": "application",
+      "tbm_tower": "application",
+      "business_criticality": "high",
+      "operational_status": "active",
+      "service_type": "platform",
+      "owned_by": "DevOps",
+      "managed_by": "DevOps",
+      "support_group": "DevOps Support",
+      "service_level_requirement": "99.5% uptime",
+      "category": "Development Tools",
+      "tags": ["cicd", "devops", "automation", "pipeline"],
+      "related_ci_types": ["application", "service"],
+      "cost_allocation": {
+        "chargeback_enabled": false,
+        "tbm_pool": "application"
+      }
+    },
+    {
+      "id": "bs-iot-platform",
+      "name": "IoT Device Management Platform",
+      "description": "IoT device connectivity, management, and data ingestion",
+      "service_classification": "iot",
+      "tbm_tower": "iot",
+      "business_criticality": "medium",
+      "operational_status": "active",
+      "service_type": "platform",
+      "owned_by": "IoT Platform Team",
+      "managed_by": "IoT Operations",
+      "support_group": "IoT Support",
+      "service_level_requirement": "99.5% uptime",
+      "category": "IoT Services",
+      "tags": ["iot", "edge", "devices", "telemetry"],
+      "related_ci_types": ["iot-device", "edge-device"],
+      "cost_allocation": {
+        "chargeback_enabled": true,
+        "tbm_pool": "iot"
+      }
+    },
+    {
+      "id": "bs-backup-dr",
+      "name": "Backup & Disaster Recovery",
+      "description": "Data backup, replication, and disaster recovery services",
+      "service_classification": "storage",
+      "tbm_tower": "storage",
+      "business_criticality": "critical",
+      "operational_status": "active",
+      "service_type": "infrastructure",
+      "owned_by": "Platform Engineering",
+      "managed_by": "Backup Operations",
+      "support_group": "Infrastructure Support",
+      "service_level_requirement": "99.9% uptime, RPO 1hr, RTO 4hr",
+      "category": "Business Continuity",
+      "tags": ["backup", "disaster-recovery", "replication", "bcdr"],
+      "related_ci_types": ["backup-system", "storage"],
+      "cost_allocation": {
+        "chargeback_enabled": false,
+        "tbm_pool": "storage"
+      }
+    },
+    {
+      "id": "bs-api-management",
+      "name": "API Management & Gateway",
+      "description": "API gateway, rate limiting, authentication, and developer portal",
+      "service_classification": "application",
+      "tbm_tower": "application",
+      "business_criticality": "high",
+      "operational_status": "active",
+      "service_type": "platform",
+      "owned_by": "API Platform Team",
+      "managed_by": "API Operations",
+      "support_group": "API Support",
+      "service_level_requirement": "99.95% uptime",
+      "category": "Integration Services",
+      "tags": ["api", "gateway", "integration", "microservices"],
+      "related_ci_types": ["api", "service", "application"],
+      "cost_allocation": {
+        "chargeback_enabled": true,
+        "tbm_pool": "application"
+      }
+    },
+    {
+      "id": "bs-messaging-events",
+      "name": "Messaging & Event Streaming",
+      "description": "Message queues, event streaming, and pub/sub services",
+      "service_classification": "application",
+      "tbm_tower": "application",
+      "business_criticality": "high",
+      "operational_status": "active",
+      "service_type": "platform",
+      "owned_by": "Platform Engineering",
+      "managed_by": "Messaging Operations",
+      "support_group": "Platform Support",
+      "service_level_requirement": "99.9% uptime",
+      "category": "Integration Services",
+      "tags": ["messaging", "kafka", "queue", "event-streaming"],
+      "related_ci_types": ["message-queue", "service"],
+      "cost_allocation": {
+        "chargeback_enabled": true,
+        "tbm_pool": "application"
+      }
+    }
+  ],
+  "service_dependencies": [
+    {
+      "service_id": "bs-app-platform",
+      "depends_on": ["bs-compute-iaas", "bs-storage-cloud", "bs-network-connectivity", "bs-monitoring-observability"],
+      "dependency_type": "infrastructure"
+    },
+    {
+      "service_id": "bs-database-managed",
+      "depends_on": ["bs-compute-iaas", "bs-storage-cloud", "bs-backup-dr"],
+      "dependency_type": "infrastructure"
+    },
+    {
+      "service_id": "bs-api-management",
+      "depends_on": ["bs-app-platform", "bs-network-connectivity", "bs-security-iam"],
+      "dependency_type": "platform"
+    },
+    {
+      "service_id": "bs-data-analytics",
+      "depends_on": ["bs-database-managed", "bs-storage-cloud", "bs-compute-iaas"],
+      "dependency_type": "platform"
+    },
+    {
+      "service_id": "bs-ci-cd",
+      "depends_on": ["bs-compute-iaas", "bs-storage-cloud", "bs-security-iam"],
+      "dependency_type": "infrastructure"
+    },
+    {
+      "service_id": "bs-iot-platform",
+      "depends_on": ["bs-messaging-events", "bs-database-managed", "bs-security-iam"],
+      "dependency_type": "platform"
+    }
+  ],
+  "tbm_tower_mappings": {
+    "compute": {
+      "description": "Processing power for workloads",
+      "services": ["bs-compute-iaas"],
+      "cost_drivers": ["CPU hours", "Memory GB-hours", "Instance count"]
+    },
+    "storage": {
+      "description": "Data persistence and archival",
+      "services": ["bs-storage-cloud", "bs-backup-dr"],
+      "cost_drivers": ["GB stored", "IOPS", "Bandwidth"]
+    },
+    "network": {
+      "description": "Connectivity and data transfer",
+      "services": ["bs-network-connectivity"],
+      "cost_drivers": ["Bandwidth GB", "Connection count", "Load balancer hours"]
+    },
+    "data": {
+      "description": "Database and analytics services",
+      "services": ["bs-database-managed", "bs-data-analytics"],
+      "cost_drivers": ["Database instance hours", "Query count", "Storage GB"]
+    },
+    "application": {
+      "description": "Application hosting and services",
+      "services": ["bs-app-platform", "bs-monitoring-observability", "bs-ci-cd", "bs-api-management", "bs-messaging-events"],
+      "cost_drivers": ["Requests", "Function executions", "Container hours"]
+    },
+    "security": {
+      "description": "Security and compliance",
+      "services": ["bs-security-iam", "bs-security-monitoring"],
+      "cost_drivers": ["Users", "API calls", "Scans performed"]
+    },
+    "end_user": {
+      "description": "End user productivity",
+      "services": ["bs-enduser-workspace"],
+      "cost_drivers": ["User count", "Desktop hours", "License count"]
+    },
+    "iot": {
+      "description": "IoT device management",
+      "services": ["bs-iot-platform"],
+      "cost_drivers": ["Device count", "Messages", "Data ingestion GB"]
+    },
+    "blockchain": {
+      "description": "Blockchain and distributed ledger",
+      "services": [],
+      "cost_drivers": ["Transactions", "Node hours"]
+    },
+    "quantum": {
+      "description": "Quantum computing services",
+      "services": [],
+      "cost_drivers": ["QPU minutes", "Job count"]
+    },
+    "other_it": {
+      "description": "Other IT services",
+      "services": [],
+      "cost_drivers": ["Variable"]
+    }
+  }
+}

@@ -31,7 +31,6 @@ const BusinessServiceDashboard = React.lazy(() => import('./pages/dashboards/Bus
 
 // v3.0 Business Service Management & Financial Management
 const BusinessServices = React.lazy(() => import('./pages/BusinessServices'));
-const ServiceCatalog = React.lazy(() => import('./pages/ServiceCatalog'));
 const FinancialManagement = React.lazy(() => import('./pages/FinancialManagement'));
 
 // v2.0 Components
@@ -274,16 +273,6 @@ const App: React.FC = () => {
                   <ProtectedRoute>
                     <MainLayout>
                       <BusinessServices />
-                    </MainLayout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/service-catalog"
-                element={
-                  <ProtectedRoute>
-                    <MainLayout>
-                      <ServiceCatalog />
                     </MainLayout>
                   </ProtectedRoute>
                 }

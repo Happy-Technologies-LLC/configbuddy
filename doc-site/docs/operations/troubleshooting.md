@@ -795,6 +795,837 @@ kubectl exec -n cmdb postgresql-0 -- \
   "
 ```
 
+## v3.0 Specific Issues
+
+### BSM Enrichment Issues
+
+#### Issue 1: CIs Not Getting BSM Attributes
+
+**Symptoms:**
+- CIs missing `bsm_tier`, `bsm_criticality`, or `bsm_health` attributes
+- Business services not appearing in dashboard
+- Error: "BSM enrichment job failed"
+
+**Diagnosis:**
+
+```bash
+# Check if BSM enrichment is enabled
+kubectl exec -n cmdb <api-server-pod> -- env | grep BSM_ENABLED
+
+# Check BSM enrichment job status
+curl -X GET https://cmdb.example.com/api/v1/jobs?type=bsm_enrichment \
+  -H "Authorization: Bearer <api-key>"
+
+# Check CI for BSM attributes
+kubectl exec -n cmdb neo4j-0 -- cypher-shell -u neo4j -p <password> "
+  MATCH (n:CI {_id: 'vm-001'})
+  RETURN n.bsm_tier, n.bsm_criticality, n.bsm_health;
+"
+
+# Check BSM enrichment logs
+kubectl logs -n cmdb -l app=api-server | grep -i "bsm enrichment"
+```
+
+**Common Causes & Solutions:**
+
+**Cause 1: BSM enrichment disabled**
+
+```bash
+# Solution: Enable BSM enrichment
+kubectl set env deployment/api-server -n cmdb \
+  BSM_ENABLED=true \
+  BSM_ENRICHMENT_SCHEDULE="0 */6 * * *"
+
+# Trigger manual enrichment
+curl -X POST https://cmdb.example.com/api/v1/bsm/enrich \
+  -H "Authorization: Bearer <api-key>"
+```
+
+**Cause 2: Confidence threshold too high**
+
+```bash
+# Check current threshold
+kubectl exec -n cmdb <api-server-pod> -- env | grep BSM_CONFIDENCE_THRESHOLD
+
+# Solution: Lower threshold for testing
+kubectl set env deployment/api-server -n cmdb \
+  BSM_CONFIDENCE_THRESHOLD=0.3
+
+# Re-run enrichment
+curl -X POST https://cmdb.example.com/api/v1/bsm/enrich \
+  -H "Authorization: Bearer <api-key>"
+```
+
+**Cause 3: Missing business service definitions**
+
+```bash
+# Check if business services exist
+kubectl exec -n cmdb neo4j-0 -- cypher-shell -u neo4j -p <password> "
+  MATCH (n:CI:BusinessService)
+  RETURN n._id, n._name, n.bsm_criticality
+  LIMIT 10;
+"
+
+# Solution: Create business services
+curl -X POST https://cmdb.example.com/api/v1/ci \
+  -H "Authorization: Bearer <api-key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "_id": "bsvc-payment-api",
+    "_name": "Payment API",
+    "_type": "business-service",
+    "bsm_tier": "tier_0",
+    "bsm_criticality": "mission_critical",
+    "revenue_impact": 1000000
+  }'
+```
+
+**Cause 4: Relationship mapping incomplete**
+
+```bash
+# Check if CIs have relationships to business services
+kubectl exec -n cmdb neo4j-0 -- cypher-shell -u neo4j -p <password> "
+  MATCH (ci:CI)-[r:SUPPORTS]->(bs:BusinessService)
+  RETURN ci._id, bs._id, COUNT(*) as relationships
+  LIMIT 10;
+"
+
+# Solution: Create relationships
+kubectl exec -n cmdb neo4j-0 -- cypher-shell -u neo4j -p <password> "
+  MATCH (vm:CI {_id: 'vm-001'})
+  MATCH (bs:BusinessService {_id: 'bsvc-payment-api'})
+  MERGE (vm)-[:SUPPORTS]->(bs);
+"
+```
+
+---
+
+#### Issue 2: BSM Health Scores Incorrect
+
+**Symptoms:**
+- Health scores showing 0 or 100 (extremes)
+- Health scores not propagating up service tree
+- Parent service health not aggregating from children
+
+**Diagnosis:**
+
+```bash
+# Check health calculation schedule
+kubectl exec -n cmdb <api-server-pod> -- env | grep BSM_HEALTH_CALCULATION_SCHEDULE
+
+# Check health scores
+kubectl exec -n cmdb neo4j-0 -- cypher-shell -u neo4j -p <password> "
+  MATCH (n:CI:BusinessService)
+  RETURN n._id, n._name, n.bsm_health, n.bsm_status
+  ORDER BY n.bsm_health ASC
+  LIMIT 20;
+"
+
+# Check health propagation logs
+kubectl logs -n cmdb -l app=api-server | grep -i "health calculation"
+```
+
+**Solutions:**
+
+**Solution 1: Verify health calculation is running**
+
+```bash
+# Check cron schedule
+kubectl exec -n cmdb <api-server-pod> -- env | grep BSM_HEALTH_CALCULATION_SCHEDULE
+
+# Trigger manual health calculation
+curl -X POST https://cmdb.example.com/api/v1/bsm/calculate-health \
+  -H "Authorization: Bearer <api-key>"
+```
+
+**Solution 2: Adjust health thresholds**
+
+Edit `/config/bsm/thresholds.json` on api-server pod:
+
+```json
+{
+  "health": {
+    "critical_threshold": 0.5,
+    "warning_threshold": 0.7,
+    "healthy_threshold": 0.9
+  }
+}
+```
+
+Then restart api-server:
+
+```bash
+kubectl rollout restart deployment/api-server -n cmdb
+```
+
+**Solution 3: Fix health aggregation method**
+
+```bash
+# Use weighted aggregation (default)
+kubectl set env deployment/api-server -n cmdb \
+  BSM_HEALTH_AGGREGATION=weighted
+
+# Or use worst-case (most conservative)
+kubectl set env deployment/api-server -n cmdb \
+  BSM_HEALTH_AGGREGATION=worst
+```
+
+**Solution 4: Enable critical status propagation**
+
+```bash
+kubectl set env deployment/api-server -n cmdb \
+  BSM_PROPAGATE_CRITICAL=true
+
+# Re-calculate health
+curl -X POST https://cmdb.example.com/api/v1/bsm/calculate-health \
+  -H "Authorization: Bearer <api-key>"
+```
+
+---
+
+#### Issue 3: Impact Analysis Not Working
+
+**Symptoms:**
+- Impact analysis returns empty results
+- Affected services not identified correctly
+- Error: "Unable to calculate blast radius"
+
+**Diagnosis:**
+
+```bash
+# Test impact analysis for a specific CI
+curl -X GET "https://cmdb.example.com/api/v1/bsm/impact?ciId=vm-001" \
+  -H "Authorization: Bearer <api-key>"
+
+# Check service dependencies
+kubectl exec -n cmdb neo4j-0 -- cypher-shell -u neo4j -p <password> "
+  MATCH (ci:CI {_id: 'vm-001'})-[r*1..5]-(affected)
+  RETURN ci._id, TYPE(r), affected._id, affected._type
+  LIMIT 50;
+"
+
+# Check propagation depth setting
+kubectl exec -n cmdb <api-server-pod> -- cat /config/bsm/thresholds.json | grep max_depth
+```
+
+**Solutions:**
+
+**Solution 1: Increase propagation depth**
+
+Edit `/config/bsm/thresholds.json`:
+
+```json
+{
+  "propagation": {
+    "max_depth": 10,
+    "stop_on_critical": false
+  }
+}
+```
+
+Restart api-server:
+
+```bash
+kubectl rollout restart deployment/api-server -n cmdb
+```
+
+**Solution 2: Verify relationships exist**
+
+```bash
+# Create missing relationships
+kubectl exec -n cmdb neo4j-0 -- cypher-shell -u neo4j -p <password> "
+  MATCH (vm:CI {_type: 'virtual-machine'})
+  MATCH (app:CI {_type: 'application'})
+  WHERE app.hostname = vm._name
+  MERGE (app)-[:HOSTED_ON]->(vm);
+"
+```
+
+---
+
+### Dashboard Data Loading Issues
+
+#### Issue 1: Dashboards Showing Mock Data
+
+**Symptoms:**
+- Executive Dashboard shows sample data instead of real metrics
+- Cost charts show "Sample Cost Pool" entries
+- CI counts don't match actual inventory
+
+**Diagnosis:**
+
+```bash
+# Check if data mart is populated
+kubectl exec -n cmdb postgresql-0 -- \
+  psql -U cmdb_user -d cmdb_datamart -c "
+    SELECT 'dim_ci' as table_name, COUNT(*) as row_count FROM dim_ci
+    UNION ALL
+    SELECT 'fact_cost', COUNT(*) FROM fact_cost
+    UNION ALL
+    SELECT 'fact_incidents', COUNT(*) FROM fact_incidents
+    UNION ALL
+    SELECT 'dim_business_services', COUNT(*) FROM dim_business_services
+    UNION ALL
+    SELECT 'tbm_cost_pools', COUNT(*) FROM tbm_cost_pools;
+  "
+
+# Check ETL sync status
+curl -X GET https://cmdb.example.com/api/v1/etl/status \
+  -H "Authorization: Bearer <api-key>"
+
+# Check last ETL sync time
+kubectl exec -n cmdb postgresql-0 -- \
+  psql -U cmdb_user -d cmdb_datamart -c "
+    SELECT MAX(last_updated) as last_sync FROM dim_ci;
+  "
+```
+
+**Solutions:**
+
+**Solution 1: Trigger full ETL sync**
+
+```bash
+# Run full sync from Neo4j to PostgreSQL
+curl -X POST https://cmdb.example.com/api/v1/etl/sync?full=true \
+  -H "Authorization: Bearer <api-key>"
+
+# Monitor sync progress
+kubectl logs -n cmdb -l app=etl-processor -f
+```
+
+**Solution 2: Enable automatic ETL sync**
+
+```bash
+kubectl set env deployment/etl-processor -n cmdb \
+  ETL_SYNC_ENABLED=true \
+  ETL_SYNC_INTERVAL=300000
+
+kubectl rollout restart deployment/etl-processor -n cmdb
+```
+
+**Solution 3: Verify Metabase connection to data mart**
+
+```bash
+# Log into Metabase (http://localhost:3002 or https://cmdb.example.com/metabase)
+# Settings → Admin → Databases → ConfigBuddy Data Mart
+# Click "Test Connection"
+
+# If connection fails, update connection string:
+# - Host: postgresql (Docker) or postgres-0 (Kubernetes)
+# - Port: 5432
+# - Database: cmdb_datamart
+# - Username: cmdb_user
+# - Password: <from secret>
+```
+
+**Solution 4: Refresh Metabase cache**
+
+```bash
+# Clear Metabase query cache
+kubectl exec -n cmdb <metabase-pod> -- \
+  java -jar metabase.jar migrate release-locks
+
+# Restart Metabase
+kubectl rollout restart deployment/metabase -n cmdb
+```
+
+---
+
+#### Issue 2: Dashboard Queries Timing Out
+
+**Symptoms:**
+- Dashboards load partially or timeout
+- Error: "Query execution timeout"
+- Slow dashboard rendering (> 30 seconds)
+
+**Diagnosis:**
+
+```bash
+# Check Metabase query timeout
+kubectl exec -n cmdb <metabase-pod> -- env | grep METABASE_QUERY_TIMEOUT
+
+# Check for long-running PostgreSQL queries
+kubectl exec -n cmdb postgresql-0 -- \
+  psql -U cmdb_user -d cmdb_datamart -c "
+    SELECT pid, now() - pg_stat_activity.query_start AS duration,
+           left(query, 100) as query_snippet
+    FROM pg_stat_activity
+    WHERE state = 'active' AND datname = 'cmdb_datamart'
+    ORDER BY duration DESC;
+  "
+
+# Check database statistics
+kubectl exec -n cmdb postgresql-0 -- \
+  psql -U cmdb_user -d cmdb_datamart -c "
+    SELECT schemaname, tablename, n_live_tup as rows
+    FROM pg_stat_user_tables
+    ORDER BY n_live_tup DESC;
+  "
+```
+
+**Solutions:**
+
+**Solution 1: Increase Metabase query timeout**
+
+```bash
+kubectl set env deployment/metabase -n cmdb \
+  METABASE_QUERY_TIMEOUT=300
+
+kubectl rollout restart deployment/metabase -n cmdb
+```
+
+**Solution 2: Add database indexes**
+
+```bash
+# Add indexes on commonly queried columns
+kubectl exec -n cmdb postgresql-0 -- \
+  psql -U cmdb_user -d cmdb_datamart <<EOF
+    CREATE INDEX CONCURRENTLY idx_dim_ci_type ON dim_ci(ci_type);
+    CREATE INDEX CONCURRENTLY idx_dim_ci_env ON dim_ci(environment);
+    CREATE INDEX CONCURRENTLY idx_fact_cost_date ON fact_cost(cost_date);
+    CREATE INDEX CONCURRENTLY idx_fact_cost_pool ON fact_cost(cost_pool_id);
+    CREATE INDEX CONCURRENTLY idx_fact_incidents_date ON fact_incidents(incident_date);
+EOF
+```
+
+**Solution 3: Optimize queries with materialized views**
+
+```bash
+# Create materialized view for cost summary (refreshed hourly)
+kubectl exec -n cmdb postgresql-0 -- \
+  psql -U cmdb_user -d cmdb_datamart <<EOF
+    CREATE MATERIALIZED VIEW IF NOT EXISTS mv_cost_summary AS
+    SELECT
+      cp.tower,
+      cp.pool_name,
+      SUM(fc.amount) as total_cost,
+      DATE_TRUNC('month', fc.cost_date) as cost_month
+    FROM fact_cost fc
+    JOIN tbm_cost_pools cp ON fc.cost_pool_id = cp.cost_pool_id
+    GROUP BY cp.tower, cp.pool_name, DATE_TRUNC('month', fc.cost_date);
+
+    CREATE INDEX ON mv_cost_summary(tower);
+    CREATE INDEX ON mv_cost_summary(cost_month);
+EOF
+
+# Set up cron to refresh view hourly
+kubectl set env deployment/etl-processor -n cmdb \
+  ETL_REFRESH_MATERIALIZED_VIEWS=true \
+  ETL_MATERIALIZED_VIEW_SCHEDULE="0 * * * *"
+```
+
+**Solution 4: Archive old data**
+
+```bash
+# Archive fact tables older than 2 years
+kubectl exec -n cmdb postgresql-0 -- \
+  psql -U cmdb_user -d cmdb_datamart <<EOF
+    -- Create archive table
+    CREATE TABLE IF NOT EXISTS fact_cost_archive (LIKE fact_cost);
+
+    -- Move old data
+    WITH deleted AS (
+      DELETE FROM fact_cost
+      WHERE cost_date < NOW() - INTERVAL '2 years'
+      RETURNING *
+    )
+    INSERT INTO fact_cost_archive SELECT * FROM deleted;
+
+    -- Vacuum to reclaim space
+    VACUUM ANALYZE fact_cost;
+EOF
+```
+
+---
+
+#### Issue 3: Missing Dashboard Visualizations
+
+**Symptoms:**
+- Charts not rendering
+- Error: "No data available"
+- Blank dashboard panels
+
+**Diagnosis:**
+
+```bash
+# Check if required tables exist
+kubectl exec -n cmdb postgresql-0 -- \
+  psql -U cmdb_user -d cmdb_datamart -c "\dt"
+
+# Check if data exists in fact tables
+kubectl exec -n cmdb postgresql-0 -- \
+  psql -U cmdb_user -d cmdb_datamart <<EOF
+    SELECT 'Business Services' as metric, COUNT(*) as count
+    FROM dim_business_services
+    UNION ALL
+    SELECT 'Cost Records', COUNT(*) FROM fact_cost
+    UNION ALL
+    SELECT 'Incidents', COUNT(*) FROM fact_incidents
+    UNION ALL
+    SELECT 'Changes', COUNT(*) FROM fact_changes;
+EOF
+
+# Check Metabase logs for errors
+kubectl logs -n cmdb -l app=metabase | grep -i error
+```
+
+**Solutions:**
+
+**Solution 1: Populate missing dimensional data**
+
+```bash
+# Run business service sync
+curl -X POST https://cmdb.example.com/api/v1/etl/sync/business-services \
+  -H "Authorization: Bearer <api-key>"
+
+# Run cost pool sync
+curl -X POST https://cmdb.example.com/api/v1/etl/sync/cost-pools \
+  -H "Authorization: Bearer <api-key>"
+```
+
+**Solution 2: Import ITIL data**
+
+```bash
+# Enable ITIL APIs (if currently disabled)
+kubectl set env deployment/api-server -n cmdb \
+  ITIL_ENABLED=true
+
+# Create sample incidents for testing
+curl -X POST https://cmdb.example.com/api/v1/incidents \
+  -H "Authorization: Bearer <api-key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Database connection timeout",
+    "priority": "P2",
+    "affected_ci_id": "db-prod-001",
+    "status": "open"
+  }'
+```
+
+**Solution 3: Re-import Metabase dashboards**
+
+```bash
+# Export current dashboards (backup)
+# Metabase UI → Collections → Export
+
+# Re-import pre-configured v3.0 dashboards
+kubectl cp ./infrastructure/metabase/dashboards/ \
+  cmdb/<metabase-pod>:/tmp/dashboards/
+
+# Import via Metabase API
+curl -X POST https://cmdb.example.com/metabase/api/collection/root/items \
+  -H "X-Metabase-Session: <session-token>" \
+  -F "file=@/tmp/dashboards/executive-dashboard.json"
+```
+
+---
+
+### Cost Calculation Accuracy Problems
+
+#### Issue 1: Incorrect Cost Allocations
+
+**Symptoms:**
+- Service costs don't match expected values
+- Total allocated cost > actual cloud bill
+- Some services show $0 cost despite resource usage
+
+**Diagnosis:**
+
+```bash
+# Compare total allocated vs actual costs
+kubectl exec -n cmdb postgresql-0 -- \
+  psql -U cmdb_user -d cmdb_datamart <<EOF
+    SELECT
+      SUM(fc.amount) as total_allocated,
+      (SELECT SUM(actual_cost) FROM cloud_billing_import) as actual_cost,
+      SUM(fc.amount) - (SELECT SUM(actual_cost) FROM cloud_billing_import) as variance
+    FROM fact_cost fc
+    WHERE fc.cost_date >= DATE_TRUNC('month', CURRENT_DATE);
+EOF
+
+# Check allocation method
+kubectl exec -n cmdb <api-server-pod> -- env | grep COST_ALLOCATION_METHOD
+
+# Check for unallocated costs
+kubectl exec -n cmdb postgresql-0 -- \
+  psql -U cmdb_user -d cmdb_datamart <<EOF
+    SELECT
+      cp.pool_name,
+      SUM(fc.amount) as allocated,
+      cp.total_cost as actual,
+      (cp.total_cost - SUM(fc.amount)) as unallocated
+    FROM fact_cost fc
+    JOIN tbm_cost_pools cp ON fc.cost_pool_id = cp.cost_pool_id
+    WHERE fc.cost_date >= DATE_TRUNC('month', CURRENT_DATE)
+    GROUP BY cp.pool_name, cp.total_cost
+    HAVING cp.total_cost - SUM(fc.amount) > 0;
+EOF
+
+# Check cost allocation logs
+kubectl logs -n cmdb -l app=api-server | grep -i "cost allocation"
+```
+
+**Solutions:**
+
+**Solution 1: Switch allocation method**
+
+```bash
+# Try usage-based allocation (most accurate for shared resources)
+kubectl set env deployment/api-server -n cmdb \
+  COST_ALLOCATION_METHOD=usage_based
+
+# Re-run cost allocation
+curl -X POST https://cmdb.example.com/api/v1/financial/allocate-costs \
+  -H "Authorization: Bearer <api-key>"
+```
+
+**Solution 2: Fix tagging on cloud resources**
+
+For AWS resources:
+
+```bash
+# Tag EC2 instances with service names
+aws ec2 create-tags \
+  --resources i-1234567890abcdef0 \
+  --tags Key=Service,Value=payment-api Key=Environment,Value=production
+```
+
+For Azure resources:
+
+```bash
+# Tag VMs with service names
+az resource tag \
+  --resource-group production-rg \
+  --name vm-web-01 \
+  --resource-type Microsoft.Compute/virtualMachines \
+  --tags Service=payment-api Environment=production
+```
+
+Then re-run discovery to pick up new tags:
+
+```bash
+curl -X POST https://cmdb.example.com/api/v1/discovery/run?connector=aws \
+  -H "Authorization: Bearer <api-key>"
+```
+
+**Solution 3: Define allocation keys for shared resources**
+
+```bash
+# Set allocation keys for shared database
+curl -X PATCH https://cmdb.example.com/api/v1/ci/db-shared-001 \
+  -H "Authorization: Bearer <api-key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "cost_allocation_keys": {
+      "payment-api": 0.4,
+      "user-service": 0.3,
+      "inventory-service": 0.3
+    }
+  }'
+
+# Re-allocate costs
+curl -X POST https://cmdb.example.com/api/v1/financial/allocate-costs \
+  -H "Authorization: Bearer <api-key>"
+```
+
+**Solution 4: Reconcile with actual cloud bills**
+
+```bash
+# Import AWS Cost & Usage Report
+curl -X POST https://cmdb.example.com/api/v1/financial/import/aws-cur \
+  -H "Authorization: Bearer <api-key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "s3_bucket": "your-billing-bucket",
+    "report_name": "hourly-cost-usage",
+    "month": "2025-11"
+  }'
+
+# Import Azure Cost Management data
+curl -X POST https://cmdb.example.com/api/v1/financial/import/azure-costs \
+  -H "Authorization: Bearer <api-key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "subscription_id": "your-subscription-id",
+    "month": "2025-11"
+  }'
+```
+
+---
+
+#### Issue 2: Missing Cost Data from Cloud Providers
+
+**Symptoms:**
+- Some AWS/Azure/GCP resources show no costs
+- Cost sync job failing
+- Error: "Unable to fetch billing data"
+
+**Diagnosis:**
+
+```bash
+# Check cost sync job status
+curl -X GET https://cmdb.example.com/api/v1/jobs?type=cost_sync \
+  -H "Authorization: Bearer <api-key>"
+
+# Check if cost sync is enabled
+kubectl exec -n cmdb <api-server-pod> -- env | grep COST_SYNC_ENABLED
+
+# Check cost sync logs
+kubectl logs -n cmdb -l app=api-server | grep -i "cost sync"
+
+# Verify billing data source is configured
+kubectl exec -n cmdb <api-server-pod> -- env | grep -E "AWS_COST|AZURE_COST|GCP_COST"
+```
+
+**Solutions:**
+
+**Solution 1: Enable cost sync jobs**
+
+```bash
+kubectl set env deployment/api-server -n cmdb \
+  AWS_COST_SYNC_ENABLED=true \
+  AZURE_COST_SYNC_ENABLED=true \
+  GCP_COST_SYNC_ENABLED=true \
+  AWS_COST_SYNC_SCHEDULE="0 8 * * *" \
+  AZURE_COST_SYNC_SCHEDULE="0 9 * * *" \
+  GCP_COST_SYNC_SCHEDULE="0 10 * * *"
+
+kubectl rollout restart deployment/api-server -n cmdb
+```
+
+**Solution 2: Configure AWS Cost & Usage Report**
+
+```bash
+# Verify S3 bucket configuration
+kubectl set env deployment/api-server -n cmdb \
+  AWS_COST_SYNC_S3_BUCKET=your-aws-billing-bucket \
+  AWS_COST_SYNC_REPORT_PREFIX=cur/
+
+# Ensure IAM role has S3 read access
+# Required IAM policy:
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": ["s3:GetObject", "s3:ListBucket"],
+    "Resource": [
+      "arn:aws:s3:::your-aws-billing-bucket",
+      "arn:aws:s3:::your-aws-billing-bucket/*"
+    ]
+  }]
+}
+```
+
+**Solution 3: Configure Azure Cost Management API**
+
+```bash
+# Set Azure subscription ID
+kubectl set env deployment/api-server -n cmdb \
+  AZURE_COST_SYNC_SUBSCRIPTION_ID=your-subscription-id
+
+# Ensure service principal has Cost Management Reader role
+az role assignment create \
+  --assignee <service-principal-id> \
+  --role "Cost Management Reader" \
+  --scope /subscriptions/<subscription-id>
+```
+
+**Solution 4: Trigger manual cost sync**
+
+```bash
+# Run cost sync manually
+curl -X POST https://cmdb.example.com/api/v1/financial/sync-costs \
+  -H "Authorization: Bearer <api-key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "providers": ["aws", "azure", "gcp"],
+    "start_date": "2025-11-01",
+    "end_date": "2025-11-30"
+  }'
+```
+
+---
+
+#### Issue 3: TBM Cost Pool Mapping Errors
+
+**Symptoms:**
+- Cloud resources not mapped to TBM towers
+- Cost pools empty or showing unexpected totals
+- Error: "Unable to determine cost pool"
+
+**Diagnosis:**
+
+```bash
+# Check TBM cost pool definitions
+kubectl exec -n cmdb postgresql-0 -- \
+  psql -U cmdb_user -d cmdb_datamart -c "
+    SELECT tower, pool_name, COUNT(*) as ci_count, SUM(total_cost) as total
+    FROM tbm_cost_pools
+    GROUP BY tower, pool_name;
+  "
+
+# Check if CIs have cost pool assignments
+kubectl exec -n cmdb neo4j-0 -- cypher-shell -u neo4j -p <password> "
+  MATCH (n:CI)
+  RETURN n.tbm_tower, n.tbm_cost_pool, COUNT(*) as count
+  LIMIT 20;
+"
+
+# Check cost pool mapping logs
+kubectl logs -n cmdb -l app=api-server | grep -i "cost pool"
+```
+
+**Solutions:**
+
+**Solution 1: Run TBM tower classification**
+
+```bash
+# Classify CIs into TBM towers based on type
+curl -X POST https://cmdb.example.com/api/v1/financial/classify-tbm \
+  -H "Authorization: Bearer <api-key>"
+
+# Verify classification
+kubectl exec -n cmdb neo4j-0 -- cypher-shell -u neo4j -p <password> "
+  MATCH (n:CI)
+  WHERE n.tbm_tower IS NOT NULL
+  RETURN n._type, n.tbm_tower, COUNT(*) as count
+  GROUP BY n._type, n.tbm_tower;
+"
+```
+
+**Solution 2: Map services to cost pools manually**
+
+```bash
+# Configure tower mappings
+kubectl set env deployment/api-server -n cmdb \
+  TBM_TOWER_COMPUTE=EC2,Lambda,ECS,EKS,VirtualMachine \
+  TBM_TOWER_STORAGE=S3,EBS,EFS,BlobStorage,FileStorage \
+  TBM_TOWER_NETWORK=VPC,LoadBalancer,VirtualNetwork,CDN \
+  TBM_TOWER_DATA=RDS,DynamoDB,PostgreSQL,MySQL,SQLDatabase
+
+# Re-run classification
+curl -X POST https://cmdb.example.com/api/v1/financial/classify-tbm \
+  -H "Authorization: Bearer <api-key>"
+```
+
+**Solution 3: Create custom cost pools**
+
+```bash
+# Add cost pool for specific service
+curl -X POST https://cmdb.example.com/api/v1/financial/cost-pools \
+  -H "Authorization: Bearer <api-key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pool_name": "Payment Processing",
+    "tower": "compute",
+    "category": "application",
+    "allocation_method": "usage_based",
+    "ci_filter": {"service": "payment-api"}
+  }'
+```
+
+---
+
 ## Diagnostic Commands
 
 ### General Diagnostics

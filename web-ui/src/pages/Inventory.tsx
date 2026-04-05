@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 import React, { useState } from 'react';
 import { Plus, LayoutList, LayoutGrid, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';

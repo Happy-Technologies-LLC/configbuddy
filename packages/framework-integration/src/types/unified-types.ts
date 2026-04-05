@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Unified Types for Framework Integration
  * Complete service views combining ITIL, TBM, and BSM

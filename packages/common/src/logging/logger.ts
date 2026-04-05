@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Structured Logging Infrastructure
  * Winston-based logger with JSON formatting and context injection

@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Graph Traversal Utility
  * Efficient Neo4j graph traversal for dependency analysis

@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Dashboard Data Hooks
  * React Query hooks for Business Insights dashboards (REST API)

@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Mock API handlers for testing
  * Using simple vi.mock approach instead of MSW for simplicity

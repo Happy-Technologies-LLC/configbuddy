@@ -1,6 +1,7 @@
 {
   "name": "@cmdb/data-mapper",
   "version": "2.0.0",
+  "license": "Apache-2.0",
   "description": "Visual transformation engine for no-code data mapping",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

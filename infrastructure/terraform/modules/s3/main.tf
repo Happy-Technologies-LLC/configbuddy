@@ -1,8 +1,8 @@
 resource "aws_s3_bucket" "backups" {
-  bucket_prefix = "happyconfig-backups-${var.environment}-"
+  bucket_prefix = "configbuddy-backups-${var.environment}-"
 
   tags = {
-    Name        = "happyconfig-backups-${var.environment}"
+    Name        = "configbuddy-backups-${var.environment}"
     Environment = var.environment
   }
 }

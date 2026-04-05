@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Connector Configuration Operations Controller
  * Handles operational actions: enable, disable, test, run

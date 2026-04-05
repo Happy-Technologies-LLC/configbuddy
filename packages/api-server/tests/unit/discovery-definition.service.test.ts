@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 import { DiscoveryDefinitionService } from '../../src/services/discovery-definition.service';
 import { getPostgresClient } from '@cmdb/database';
 import { DiscoveryDefinitionInput } from '@cmdb/common';

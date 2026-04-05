@@ -1,0 +1,47 @@
+ConfigBuddy
+Copyright 2026 Happy Technologies LLC
+
+Licensed under the Apache License, Version 2.0.
+
+========================================================================
+Third-Party Software Notices
+========================================================================
+
+Neo4j Driver (neo4j-driver) - Apache License 2.0 - Neo4j, Inc.
+Express (express) - MIT License - TJ Holowaychuk and contributors
+Apollo Server (@apollo/server) - MIT License - Apollo Graph, Inc.
+React (react, react-dom) - MIT License - Meta Platforms, Inc.
+PostgreSQL Client (pg) - MIT License - Brian Carlson
+Redis Client (ioredis) - MIT License - Zihua Li
+BullMQ (bullmq) - MIT License - Taskforce.sh Inc.
+Kafka Client (kafkajs) - MIT License - Tulio Ornelas
+Axios (axios) - MIT License - Matt Zabriskie
+JSON Web Tokens (jsonwebtoken) - MIT License - Auth0, Inc.
+Winston Logger (winston) - MIT License - Charlie Robbins
+Joi Validation (joi) - BSD 3-Clause - Sideway Inc.
+Zod (zod) - MIT License - Colin McDonnell
+Commander.js (commander) - MIT License - TJ Holowaychuk
+Helmet (helmet) - MIT License - Adam Baldwin
+Vite (vite) - MIT License - Evan You
+TailwindCSS (tailwindcss) - MIT License - Tailwind Labs, Inc.
+TypeScript (typescript) - Apache License 2.0 - Microsoft Corporation
+Jest (jest) - MIT License - Meta Platforms, Inc.
+
+========================================================================
+Trademark Notices
+========================================================================
+
+ServiceNow is a registered trademark of ServiceNow, Inc.
+Jira and Atlassian are registered trademarks of Atlassian Pty Ltd.
+VMware and vSphere are registered trademarks of Broadcom Inc.
+Datadog is a registered trademark of Datadog, Inc.
+PagerDuty is a registered trademark of PagerDuty, Inc.
+Amazon Web Services and AWS are trademarks of Amazon.com, Inc.
+Microsoft and Azure are trademarks of Microsoft Corporation.
+Google Cloud is a trademark of Google LLC.
+Oracle is a registered trademark of Oracle Corporation.
+Kubernetes is a registered trademark of The Linux Foundation.
+Docker is a registered trademark of Docker, Inc.
+
+ConfigBuddy is not affiliated with, endorsed by, or sponsored by any of
+the above trademark holders.

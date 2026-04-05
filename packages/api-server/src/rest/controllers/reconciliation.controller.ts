@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Reconciliation Controller
  * REST API endpoints for identity resolution and CI reconciliation

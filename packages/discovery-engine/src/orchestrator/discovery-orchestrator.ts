@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 // packages/discovery-engine/src/orchestrator/discovery-orchestrator.ts
 
 import { queueManager, QUEUE_NAMES, getPostgresClient, getUnifiedCredentialService } from '@cmdb/database';

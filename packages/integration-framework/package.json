@@ -1,6 +1,7 @@
 {
   "name": "@cmdb/integration-framework",
   "version": "2.0.0",
+  "license": "Apache-2.0",
   "description": "Integration connector framework for external system integrations",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

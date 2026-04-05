@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { LiquidGlass } from '@/components/ui/liquid-glass';

@@ -1,6 +1,7 @@
 {
   "name": "@cmdb/identity-resolution",
   "version": "2.0.0",
+  "license": "Apache-2.0",
   "description": "Identity resolution and reconciliation engine for multi-source CI deduplication",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

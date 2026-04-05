@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Application Service - Unified v3.0
  * Maps to TBM IT Solution + ITIL Application CI

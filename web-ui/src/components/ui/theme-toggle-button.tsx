@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 'use client';
 
 import { Moon, Sun } from 'lucide-react';

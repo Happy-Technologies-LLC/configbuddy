@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 import express, { Express, Request, Response, NextFunction } from 'express';
 import { Server as HTTPServer } from 'http';
 import helmet from 'helmet';

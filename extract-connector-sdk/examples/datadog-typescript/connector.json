@@ -1,0 +1,220 @@
+{
+  "type": "datadog",
+  "category": "connector",
+  "connector_category": "monitoring",
+  "icon": "datadog",
+  "name": "Datadog Monitoring",
+  "version": "1.0.0",
+  "description": "Integration with Datadog monitoring platform for infrastructure, containers, services, and monitors",
+  "author": "ConfigBuddy",
+  "verified": true,
+  "capabilities": {
+    "extraction": true,
+    "relationships": true,
+    "incremental": false,
+    "bidirectional": false
+  },
+  "configuration_schema": {
+    "type": "object",
+    "required": ["api_key", "app_key"],
+    "properties": {
+      "api_key": {
+        "type": "string",
+        "description": "Datadog API key",
+        "format": "password"
+      },
+      "app_key": {
+        "type": "string",
+        "description": "Datadog application key",
+        "format": "password"
+      },
+      "site": {
+        "type": "string",
+        "description": "Datadog site (e.g., datadoghq.com, datadoghq.eu)",
+        "default": "datadoghq.com"
+      }
+    }
+  },
+  "resources": [
+    {
+      "id": "hosts",
+      "name": "Infrastructure Hosts",
+      "description": "Infrastructure hosts monitored by Datadog agents",
+      "ci_type": "server",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "filter": {
+            "type": "string",
+            "description": "Host filter query (e.g., env:production)",
+            "default": ""
+          },
+          "include_muted": {
+            "type": "boolean",
+            "description": "Include muted hosts",
+            "default": true
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 1000,
+        "rate_limit": 10
+      },
+      "field_mappings": {
+        "name": "name",
+        "ci_type": "server",
+        "attributes.host_id": "id",
+        "attributes.aliases": "aliases",
+        "attributes.apps": "apps",
+        "attributes.aws_name": "aws_name",
+        "attributes.is_muted": "is_muted",
+        "attributes.up": "up",
+        "attributes.last_reported_time": "last_reported_time",
+        "attributes.sources": "sources",
+        "attributes.tags_by_source": "tags_by_source",
+        "attributes.agent_version": "meta.agent_version",
+        "attributes.platform": "meta.platform",
+        "attributes.processor": "meta.processor",
+        "attributes.cpu_cores": "meta.cpuCores",
+        "attributes.os": "meta.os",
+        "attributes.python_version": "meta.pythonV",
+        "attributes.socket_fqdn": "meta.socketFqdn",
+        "attributes.socket_hostname": "meta.socketHostname",
+        "attributes.cpu_usage": "metrics.cpu",
+        "attributes.iowait": "metrics.iowait",
+        "attributes.load": "metrics.load",
+        "identifiers.external_id": "id",
+        "identifiers.hostname": "name",
+        "identifiers.fqdn": "meta.socketFqdn",
+        "identifiers.custom_identifiers.datadog_id": "id",
+        "identifiers.custom_identifiers.aws_name": "aws_name",
+        "source_id": "id"
+      }
+    },
+    {
+      "id": "containers",
+      "name": "Container Inventory",
+      "description": "Container instances discovered by Datadog",
+      "ci_type": "container",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "filter": {
+            "type": "string",
+            "description": "Container filter query",
+            "default": ""
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 1000
+      },
+      "field_mappings": {
+        "name": "attributes.name",
+        "ci_type": "container",
+        "attributes.container_id": "id",
+        "attributes.image_name": "attributes.image_name",
+        "attributes.image_tag": "attributes.image_tag",
+        "attributes.image_digest": "attributes.image_digest",
+        "attributes.state": "attributes.state",
+        "attributes.started_at": "attributes.started_at",
+        "attributes.host": "attributes.host",
+        "attributes.created_at": "attributes.created_at",
+        "attributes.runtime": "attributes.runtime",
+        "attributes.tags": "attributes.tags",
+        "identifiers.external_id": "id",
+        "identifiers.hostname": "attributes.name",
+        "identifiers.custom_identifiers.container_id": "id",
+        "identifiers.custom_identifiers.image_name": "attributes.image_name",
+        "source_id": "id"
+      }
+    },
+    {
+      "id": "services",
+      "name": "APM Services",
+      "description": "Application services from Datadog APM",
+      "ci_type": "service",
+      "enabled_by_default": true,
+      "operations": ["extract", "transform", "load"],
+      "configuration_schema": {
+        "properties": {
+          "env": {
+            "type": "string",
+            "description": "Environment filter (e.g., production, staging)",
+            "default": ""
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 500
+      },
+      "field_mappings": {
+        "name": "attributes.name",
+        "ci_type": "service",
+        "environment": "attributes.env",
+        "attributes.service_id": "id",
+        "attributes.env": "attributes.env",
+        "attributes.last_seen": "attributes.last_seen",
+        "attributes.languages": "attributes.schema.languages",
+        "attributes.type": "attributes.schema.type",
+        "attributes.dd_service": "attributes.schema.dd_service",
+        "attributes.schema_version": "attributes.schema.schema_version",
+        "identifiers.external_id": "id",
+        "identifiers.hostname": "attributes.name",
+        "identifiers.custom_identifiers.service_name": "attributes.name",
+        "identifiers.custom_identifiers.env": "attributes.env",
+        "source_id": "id"
+      }
+    },
+    {
+      "id": "monitors",
+      "name": "Monitoring Definitions",
+      "description": "Datadog monitor configurations",
+      "ci_type": null,
+      "enabled_by_default": true,
+      "operations": ["extract"],
+      "configuration_schema": {
+        "properties": {
+          "group_states": {
+            "type": "string",
+            "description": "Filter by group states (all, alert, warn, no data)",
+            "default": "all"
+          },
+          "tags": {
+            "type": "string",
+            "description": "Filter by tags (comma-separated)",
+            "default": ""
+          }
+        }
+      },
+      "extraction": {
+        "incremental": false,
+        "batch_size": 1000,
+        "depends_on": ["services"]
+      },
+      "field_mappings": {
+        "name": "name",
+        "ci_type": "service",
+        "attributes.monitor_id": "id",
+        "attributes.type": "type",
+        "attributes.query": "query",
+        "attributes.message": "message",
+        "attributes.tags": "tags",
+        "attributes.options": "options",
+        "attributes.overall_state": "overall_state",
+        "attributes.created": "created",
+        "attributes.modified": "modified",
+        "attributes.creator": "creator",
+        "identifiers.external_id": "id",
+        "identifiers.custom_identifiers.monitor_id": "id",
+        "identifiers.custom_identifiers.monitor_name": "name",
+        "source_id": "id"
+      }
+    }
+  ]
+}

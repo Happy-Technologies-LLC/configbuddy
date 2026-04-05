@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * GCP Billing Integration
  * Fetches cost and usage data from GCP Cloud Billing API

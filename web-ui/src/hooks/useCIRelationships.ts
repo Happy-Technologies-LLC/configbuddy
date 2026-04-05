@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 import { useQuery } from '@tanstack/react-query';
 import ciService, { CIRelationship, ImpactAnalysis } from '../services/ci.service';
 import { CI_QUERY_KEYS } from './useCIs';

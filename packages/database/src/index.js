@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.QUEUE_NAMES = exports.queueManager = exports.QueueManager = exports.getRedisClient = exports.RedisClient = exports.resetDataMartClient = exports.getDataMartClient = exports.DataMartClient = exports.getCredentialSetService = exports.CredentialSetService = exports.getUnifiedCredentialService = exports.UnifiedCredentialService = exports.getAuditService = exports.AuditService = exports.getMigrationStatus = exports.runMigrations = exports.getPostgresClient = exports.PostgresClient = exports.initializeNeo4jSchema = exports.getNeo4jClient = exports.Neo4jClient = void 0;

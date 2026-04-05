@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Discovery Job Metrics
  * Tracks discovery operations, CI counts, and confidence scores

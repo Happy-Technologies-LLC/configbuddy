@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 import * as os from 'os';
 import { exec } from 'child_process';
 import { promisify } from 'util';

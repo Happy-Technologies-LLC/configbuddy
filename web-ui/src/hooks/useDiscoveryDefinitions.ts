@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * useDiscoveryDefinitions Hook
  * Custom hook for managing discovery definitions with CRUD operations

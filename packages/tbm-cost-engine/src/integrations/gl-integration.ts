@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * General Ledger Integration
  * Handles GL account mapping, cost synchronization, and reconciliation

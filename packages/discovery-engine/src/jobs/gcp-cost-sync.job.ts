@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * GCP Cost Sync Job
  * Scheduled BullMQ job to fetch GCP cost data and sync to PostgreSQL

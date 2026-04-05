@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Dynatrace APM Connector (v1.0)
  * Multi-resource integration with Dynatrace for hosts, processes, services, and applications

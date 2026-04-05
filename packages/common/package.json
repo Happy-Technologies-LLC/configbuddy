@@ -17,7 +17,7 @@
     "utilities"
   ],
   "author": "",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "dependencies": {
     "winston": "^3.11.0",
     "joi": "^17.11.0",

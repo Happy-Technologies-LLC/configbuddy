@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Microsoft Intune Connector Tests (v1.0)
  * Tests for multi-resource Intune connector functionality

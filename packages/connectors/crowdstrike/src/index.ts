@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * CrowdStrike Falcon Connector (v1.0)
  * Real-time threat intelligence and endpoint protection integration

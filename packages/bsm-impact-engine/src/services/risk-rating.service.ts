@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Risk Rating Service
  * Calculates risk ratings (Critical/High/Medium/Low) based on multiple factors

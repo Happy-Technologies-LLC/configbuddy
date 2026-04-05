@@ -1,6 +1,7 @@
 {
   "name": "@cmdb/api-server",
   "version": "1.0.0",
+  "license": "Apache-2.0",
   "description": "REST and GraphQL API server for CMDB platform",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

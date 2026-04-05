@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Field Mapping Builder Component
  * Visual interface for creating source-to-target field mappings with transformations

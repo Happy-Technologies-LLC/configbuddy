@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * KPI Types for Framework Integration
  * Unified key performance indicators across ITIL, TBM, and BSM

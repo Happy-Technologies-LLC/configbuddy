@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Allocation Method Selector
  * Determines the appropriate cost allocation method for CIs

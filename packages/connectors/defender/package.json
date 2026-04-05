@@ -1,6 +1,7 @@
 {
   "name": "@cmdb/connector-defender",
   "version": "1.0.0",
+  "license": "Apache-2.0",
   "description": "Microsoft Defender for Endpoint integration connector",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 import React from 'react';
 import { ArrowUpDown, Eye, Edit2, Trash2 } from 'lucide-react';
 import {

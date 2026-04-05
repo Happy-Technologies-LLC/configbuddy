@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Authentication Middleware
  * Handles JWT and API key authentication for Express and GraphQL

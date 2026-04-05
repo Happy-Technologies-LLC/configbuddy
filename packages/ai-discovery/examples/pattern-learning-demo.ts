@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Pattern Learning Demo
  * Demonstrates automatic pattern generation from AI discoveries

@@ -20,7 +20,7 @@
     "cloud-costs"
   ],
   "author": "",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "dependencies": {
     "@cmdb/common": "*",
     "@cmdb/database": "*",

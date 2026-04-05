@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * ServiceNow CMDB Connector (v3.0)
  * Multi-resource bi-directional integration with ServiceNow CMDB

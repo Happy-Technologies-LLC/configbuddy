@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Unit Tests - Merge Strategies and Conflict Resolution
  * Tests field merging, authority-based resolution, and conflict detection

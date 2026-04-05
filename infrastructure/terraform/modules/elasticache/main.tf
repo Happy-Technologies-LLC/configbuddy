@@ -1,15 +1,15 @@
 resource "aws_elasticache_subnet_group" "main" {
-  name       = "happyconfig-redis-${var.environment}"
+  name       = "configbuddy-redis-${var.environment}"
   subnet_ids = var.subnet_ids
 
   tags = {
-    Name        = "happyconfig-redis-subnet-group-${var.environment}"
+    Name        = "configbuddy-redis-subnet-group-${var.environment}"
     Environment = var.environment
   }
 }
 
 resource "aws_security_group" "redis" {
-  name_prefix = "happyconfig-redis-${var.environment}-"
+  name_prefix = "configbuddy-redis-${var.environment}-"
   description = "Security group for ElastiCache Redis"
   vpc_id      = var.vpc_id
 
@@ -30,7 +30,7 @@ resource "aws_security_group" "redis" {
   }
 
   tags = {
-    Name        = "happyconfig-redis-sg-${var.environment}"
+    Name        = "configbuddy-redis-sg-${var.environment}"
     Environment = var.environment
   }
 }
@@ -41,7 +41,7 @@ resource "random_password" "auth_token" {
 }
 
 resource "aws_secretsmanager_secret" "redis_auth_token" {
-  name_prefix = "happyconfig-redis-token-${var.environment}-"
+  name_prefix = "configbuddy-redis-token-${var.environment}-"
   description = "Redis authentication token"
 
   tags = {
@@ -55,8 +55,8 @@ resource "aws_secretsmanager_secret_version" "redis_auth_token" {
 }
 
 resource "aws_elasticache_replication_group" "main" {
-  replication_group_id       = "happyconfig-redis-${var.environment}"
-  replication_group_description = "HappyConfig Redis cluster"
+  replication_group_id       = "configbuddy-redis-${var.environment}"
+  replication_group_description = "ConfigBuddy Redis cluster"
 
   engine               = "redis"
   engine_version       = "7.1"
@@ -86,13 +86,13 @@ resource "aws_elasticache_replication_group" "main" {
   }
 
   tags = {
-    Name        = "happyconfig-redis-${var.environment}"
+    Name        = "configbuddy-redis-${var.environment}"
     Environment = var.environment
   }
 }
 
 resource "aws_cloudwatch_log_group" "redis_slow_log" {
-  name              = "/aws/elasticache/happyconfig-redis-${var.environment}/slow-log"
+  name              = "/aws/elasticache/configbuddy-redis-${var.environment}/slow-log"
   retention_in_days = 7
 
   tags = {

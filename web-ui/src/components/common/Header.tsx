@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 import React from 'react';
 import { Menu, User, Settings, LogOut, Bell } from 'lucide-react';
 import { useAuth } from '@contexts/AuthContext';

@@ -6,7 +6,7 @@ set -e
 
 NEO4J_URI="${NEO4J_URI:-neo4j://neo4j-core-1:7687}"
 NEO4J_USER="${NEO4J_USER:-neo4j}"
-NEO4J_PASSWORD="${NEO4J_PASSWORD:-cmdb_prod_password}"
+NEO4J_PASSWORD="${NEO4J_PASSWORD:-cmdb_dev_password}"
 
 echo "Waiting for Neo4j cluster to be ready..."
 sleep 120
@@ -58,7 +58,7 @@ execute_cypher "SHOW INDEXES;"
 # Create sample data structure
 echo "Creating initial system nodes..."
 execute_cypher "
-MERGE (sys:System {id: 'happyconfig-cmdb', name: 'HappyConfig CMDB'})
+MERGE (sys:System {id: 'configbuddy-cmdb', name: 'ConfigBuddy CMDB'})
 SET sys.version = '1.0.0',
     sys.initialized_at = datetime(),
     sys.last_updated = datetime()

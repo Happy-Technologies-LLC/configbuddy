@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.VALID_SORT_DIRECTIONS = exports.VALID_CONNECTOR_RUN_SORT_FIELDS = exports.VALID_CONNECTOR_CONFIG_SORT_FIELDS = exports.VALID_CONNECTOR_SORT_FIELDS = exports.VALID_CI_SORT_FIELDS = exports.VALID_TABLE_NAMES = void 0;

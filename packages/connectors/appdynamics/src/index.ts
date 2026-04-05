@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * AppDynamics APM Connector (v1.0)
  * Multi-resource integration with AppDynamics Application Performance Monitoring

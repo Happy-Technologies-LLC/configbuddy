@@ -204,7 +204,7 @@ RETURN
   collect(DISTINCT vs.name) as affected_value_streams;
 
 // Example execution:
-// MATCH (ci:CI {name: 'db-prod-01.happyconfig.local'})
+// MATCH (ci:CI {name: 'db-prod-01.configbuddy.local'})
 // [use ci.id in the query above]
 
 // ============================================

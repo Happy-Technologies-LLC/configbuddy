@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 // Export classes for library usage
 export { RestAPIServer } from './rest/server';
 export { ciRoutes } from './rest/routes/ci.routes';

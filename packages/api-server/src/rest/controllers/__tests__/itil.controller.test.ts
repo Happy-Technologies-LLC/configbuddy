@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 // packages/api-server/src/rest/controllers/__tests__/itil.controller.test.ts
 
 /**

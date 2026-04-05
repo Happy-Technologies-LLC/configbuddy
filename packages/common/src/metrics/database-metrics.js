@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.recordDatabaseDeadlock = exports.recordDatabaseTransaction = exports.updatePostgresTableSizes = exports.updateNeo4jMetrics = exports.recordDatabaseError = exports.updateConnectionPoolMetrics = exports.recordDatabaseQuery = exports.databaseDeadlocks = exports.databaseTransactionDuration = exports.postgresTableSize = exports.neo4jRelationshipCount = exports.neo4jNodeCount = exports.databaseErrors = exports.databaseConnectionsActive = exports.databaseConnectionPoolSize = exports.databaseQueriesTotal = exports.databaseQueryDuration = void 0;

@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 import { Request, Response } from 'express';
 import { getNeo4jClient, getPostgresClient, getAuditService } from '@cmdb/database';
 import { logger, validateCISortField, validateSortDirection } from '@cmdb/common';

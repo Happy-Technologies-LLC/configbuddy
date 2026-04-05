@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Connector Configuration CRUD Operations
  * Handles create, read, update, delete operations for connector configurations

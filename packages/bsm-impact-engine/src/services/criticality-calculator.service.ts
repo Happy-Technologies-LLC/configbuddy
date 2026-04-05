@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Criticality Calculator Service
  * Calculates business criticality tiers (0-4) for business services

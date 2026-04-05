@@ -1,6 +1,7 @@
 {
   "name": "@cmdb/database",
   "version": "1.0.0",
+  "license": "Apache-2.0",
   "description": "Database clients and connections for CMDB platform",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

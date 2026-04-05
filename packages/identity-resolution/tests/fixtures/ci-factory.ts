@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * CI Factory - Test Data Builders
  * Factory functions for creating test CI data with various scenarios

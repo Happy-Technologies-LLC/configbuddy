@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.updateActiveResources = exports.recordGCEvent = exports.startSystemMetricsCollection = exports.measureEventLoopLag = exports.collectSystemMetrics = exports.gcDuration = exports.fileDescriptors = exports.activeRequests = exports.activeHandles = exports.processUptime = exports.systemLoadAverage = exports.systemMemoryUsage = exports.cpuUsagePercent = exports.externalMemoryUsage = exports.heapMemoryTotal = exports.heapMemoryUsage = exports.eventLoopLag = void 0;

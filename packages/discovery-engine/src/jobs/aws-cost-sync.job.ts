@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * AWS Cost Sync Job
  * Scheduled BullMQ job to fetch AWS cost data and sync to PostgreSQL

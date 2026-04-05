@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Jira Connector (v2.0)
  * Integration with Jira for asset management and project tracking

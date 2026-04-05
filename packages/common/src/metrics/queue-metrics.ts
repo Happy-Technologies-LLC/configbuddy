@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Queue (BullMQ) Metrics
  * Tracks queue operations, job processing, and worker health

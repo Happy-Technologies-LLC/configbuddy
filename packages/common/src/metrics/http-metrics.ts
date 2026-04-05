@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * HTTP Request Metrics
  * Tracks HTTP request duration, count, and status codes

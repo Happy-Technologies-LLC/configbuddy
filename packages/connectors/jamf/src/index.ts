@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * JAMF Pro Connector (v1.0)
  * Multi-resource integration with JAMF Pro for macOS/iOS device management

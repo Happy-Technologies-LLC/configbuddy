@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Infoblox IPAM/DNS Connector (v1.0)
  * Multi-resource integration with Infoblox for network discovery, DNS records, and DHCP management

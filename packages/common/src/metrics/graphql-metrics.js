@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.recordGraphQLError = exports.recordGraphQLResolver = exports.recordGraphQLOperation = exports.graphqlComplexity = exports.graphqlErrors = exports.graphqlResolverDuration = exports.graphqlOperationTotal = exports.graphqlOperationDuration = void 0;

@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Connector Catalog Page
  * Browse, search, filter, and install connectors from the registry

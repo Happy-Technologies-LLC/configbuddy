@@ -9,7 +9,7 @@
 import { DiscoveryPattern, PatternMatch, AIDiscoveryContext, IPatternMatcher } from './types';
 import { PatternStorageService } from './pattern-storage';
 import { logger } from '@cmdb/common';
-import { VM } from 'vm2';
+import * as vm from 'node:vm';
 import { getRedisClient } from '@cmdb/database';
 import * as crypto from 'crypto';
 
@@ -130,16 +130,14 @@ export class PatternMatcher implements IPatternMatcher {
     scanResult: any
   ): { matches: boolean; confidence: number; indicators?: string[] } {
     try {
-      // Create sandboxed VM for pattern execution
-      const vm = new VM({
-        timeout: 1000, // 1 second max
-        sandbox: {
-          scanResult,
-          console: {
-            log: (...args: any[]) => logger.debug('Pattern log', { pattern: pattern.patternId, args }),
-          },
+      // Create sandboxed context for pattern execution
+      const sandbox = {
+        scanResult,
+        console: {
+          log: (...args: any[]) => logger.debug('Pattern log', { pattern: pattern.patternId, args }),
         },
-      });
+      };
+      vm.createContext(sandbox);
 
       // Execute detection code
       const code = `
@@ -147,7 +145,7 @@ export class PatternMatcher implements IPatternMatcher {
         detect(scanResult);
       `;
 
-      const result = vm.run(code);
+      const result = vm.runInContext(code, sandbox, { timeout: 1000 });
 
       return {
         matches: !!result.matches,
@@ -230,18 +228,16 @@ export class PatternMatcher implements IPatternMatcher {
     context: AIDiscoveryContext
   ): Promise<any[]> {
     try {
-      // Create sandboxed VM with more capabilities for discovery
-      const vm = new VM({
-        timeout: 10000, // 10 seconds max for discovery
-        sandbox: {
-          context,
-          fetch: this.createSafeFetch(),
-          console: {
-            log: (...args: any[]) => logger.debug('Pattern discovery log', { pattern: pattern.patternId, args }),
-            error: (...args: any[]) => logger.error('Pattern discovery error', { pattern: pattern.patternId, args }),
-          },
+      // Create sandboxed context with more capabilities for discovery
+      const sandbox = {
+        context,
+        fetch: this.createSafeFetch(),
+        console: {
+          log: (...args: any[]) => logger.debug('Pattern discovery log', { pattern: pattern.patternId, args }),
+          error: (...args: any[]) => logger.error('Pattern discovery error', { pattern: pattern.patternId, args }),
         },
-      });
+      };
+      vm.createContext(sandbox);
 
       // Execute discovery code
       const code = `
@@ -251,7 +247,7 @@ export class PatternMatcher implements IPatternMatcher {
         })();
       `;
 
-      const result = await vm.run(code);
+      const result = await vm.runInContext(code, sandbox, { timeout: 10000 });
 
       return Array.isArray(result) ? result : [result];
     } catch (error) {

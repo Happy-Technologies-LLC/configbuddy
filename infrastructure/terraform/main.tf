@@ -9,7 +9,7 @@ terraform {
   }
 
   backend "s3" {
-    bucket         = "happyconfig-terraform-state"
+    bucket         = "configbuddy-terraform-state"
     key            = "prod/terraform.tfstate"
     region         = "us-east-1"
     encrypt        = true
@@ -22,7 +22,7 @@ provider "aws" {
 
   default_tags {
     tags = {
-      Project     = "HappyConfig-CMDB"
+      Project     = "ConfigBuddy-CMDB"
       Environment = var.environment
       ManagedBy   = "Terraform"
     }

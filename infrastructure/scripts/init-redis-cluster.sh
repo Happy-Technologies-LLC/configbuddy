@@ -4,7 +4,7 @@
 
 set -e
 
-REDIS_PASSWORD="${REDIS_PASSWORD:-redis_prod_password}"
+REDIS_PASSWORD="${REDIS_PASSWORD:-redis_dev_password}"
 REDIS_NODES="${REDIS_NODES:-redis-1:6379 redis-2:6379 redis-3:6379 redis-4:6379 redis-5:6379 redis-6:6379}"
 
 echo "Waiting for Redis instances to be ready..."

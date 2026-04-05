@@ -54,7 +54,7 @@
 - [ ] **Enable GitHub Security Advisories** (Settings > Security)
 - [ ] **Enable Dependabot** alerts and security updates
 - [ ] **Set repository topics**: `cmdb`, `configuration-management`, `neo4j`, `typescript`, `itsm`, `infrastructure`, `discovery`, `ai`
-- [ ] **Add repository description**: "Open-source CMDB with graph-based relationships, AI discovery, and 45 integration connectors"
+- [ ] **Add repository description**: "Open-source CMDB with graph-based relationships, AI discovery, and 43 integration connectors"
 - [ ] **Set default branch** to `main`
 - [ ] **Enable GitHub Discussions** if you want community Q&A
 

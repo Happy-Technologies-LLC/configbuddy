@@ -1,6 +1,6 @@
 # ConfigBuddy
 
-Open-source Configuration Management Database (CMDB) with graph-based relationship modeling, AI-powered discovery, and 45 integration connectors.
+Open-source Configuration Management Database (CMDB) with graph-based relationship modeling, AI-powered discovery, and 43 integration connectors.
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
@@ -12,7 +12,7 @@ ConfigBuddy is an enterprise CMDB platform that discovers, maps, and tracks infr
 
 ### Key Capabilities
 
-- **45 Integration Connectors** (17 TypeScript + 28 JSON declarative) — AWS, Azure, GCP, ServiceNow, Jira, VMware, Kubernetes, SCCM, Datadog, and more
+- **43 Integration Connectors** (17 TypeScript + 26 JSON declarative) — AWS, Azure, GCP, ServiceNow, Jira, VMware, Kubernetes, SCCM, Datadog, and more
 - **AI-Powered Discovery** — LLM-based infrastructure discovery (Anthropic, OpenAI) with automatic pattern learning that compiles successful discoveries into reusable zero-cost patterns
 - **Graph-Based Relationships** — Neo4j models CI dependencies, hosting, and connectivity for impact analysis and dependency mapping
 - **ITIL v4 + TBM v5 + BSM** — Built-in service management, cost transparency, and business service impact frameworks
@@ -98,7 +98,7 @@ npm run dev:api
 | `packages/event-processor` | Event consumer and change processor |
 | `packages/framework-integration` | Adapter layer between frameworks |
 | `packages/integration-hub` | Integration orchestration |
-| `packages/connectors/*` | 45 connectors (17 TypeScript + 28 JSON-only) |
+| `packages/connectors/*` | 43 connectors (17 TypeScript + 26 JSON-only) |
 | `web-ui` | React dashboard with TailwindCSS |
 | `doc-site` | VitePress documentation site (80+ pages) |
 | `infrastructure` | Docker, Kubernetes, Terraform, monitoring configs |

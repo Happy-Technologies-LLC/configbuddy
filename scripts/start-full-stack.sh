@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ###############################################################################
-# HappyConfig Full Stack Startup Script
+# ConfigBuddy Full Stack Startup Script
 #
 # This script:
 # 1. Checks if Docker services are running (Neo4j, PostgreSQL, Redis)
@@ -55,7 +55,7 @@ for arg in "$@"; do
 done
 
 echo -e "${BLUE}=========================================${NC}"
-echo -e "${BLUE}HappyConfig Full Stack Startup${NC}"
+echo -e "${BLUE}ConfigBuddy Full Stack Startup${NC}"
 echo -e "${BLUE}=========================================${NC}"
 echo ""
 
@@ -240,7 +240,7 @@ echo ""
 ###############################################################################
 
 echo -e "${GREEN}=========================================${NC}"
-echo -e "${GREEN}HappyConfig Full Stack Started Successfully!${NC}"
+echo -e "${GREEN}ConfigBuddy Full Stack Started Successfully!${NC}"
 echo -e "${GREEN}=========================================${NC}"
 echo ""
 
@@ -252,7 +252,7 @@ echo "  Metrics:          http://localhost:$API_PORT/metrics"
 echo ""
 
 echo -e "${BLUE}Test Credentials:${NC}"
-echo "  Email:            admin@happyconfig.local"
+echo "  Email:            admin@configbuddy.local"
 echo "  Password:         Admin123!"
 echo "  Role:             admin"
 echo ""

@@ -9,7 +9,7 @@
 import { DiscoveryPattern } from './types';
 import { PatternMatcher } from './pattern-matcher';
 import { logger } from '@cmdb/common';
-import { VM } from 'vm2';
+import * as vm from 'node:vm';
 
 export interface ValidationResult {
   isValid: boolean;
@@ -237,17 +237,15 @@ export class PatternValidator {
 
     try {
       // Test detection function
-      const vm = new VM({
-        timeout: 1000,
-        sandbox: {
-          scanResult: testCase.input,
-        },
-      });
+      const sandbox = {
+        scanResult: testCase.input,
+      };
+      vm.createContext(sandbox);
 
-      const detectionResult = vm.run(`
+      const detectionResult = vm.runInContext(`
         ${pattern.detectionCode}
         detect(scanResult);
-      `);
+      `, sandbox, { timeout: 1000 });
 
       // Check expectations
       const expected = testCase.expected;
@@ -307,20 +305,18 @@ export class PatternValidator {
     try {
       const start = Date.now();
 
-      const vm = new VM({
-        timeout: 1000,
-        sandbox: {
-          scanResult: {
-            http: { headers: {}, endpoints: [] },
-            services: [],
-          },
+      const perfSandbox = {
+        scanResult: {
+          http: { headers: {}, endpoints: [] },
+          services: [],
         },
-      });
+      };
+      vm.createContext(perfSandbox);
 
-      vm.run(`
+      vm.runInContext(`
         ${pattern.detectionCode}
         detect(scanResult);
-      `);
+      `, perfSandbox, { timeout: 1000 });
 
       const duration = Date.now() - start;
 

@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Business Service - Unified v3.0
  * Bridge between IT (ITIL/TBM) and Business (BSM)

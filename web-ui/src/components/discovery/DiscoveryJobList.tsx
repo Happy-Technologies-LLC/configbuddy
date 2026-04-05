@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 import React, { useState } from 'react';
 import { DiscoveryJob, DiscoveryProvider, JobStatus } from '../../services/discovery.service';
 import { useDiscoveryJobs } from '../../hooks/useDiscoveryJobs';

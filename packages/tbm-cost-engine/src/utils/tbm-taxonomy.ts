@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * TBM Taxonomy Mapping Utilities
  * Maps CI types to TBM Resource Towers and Sub-Towers per TBM v5.0.1

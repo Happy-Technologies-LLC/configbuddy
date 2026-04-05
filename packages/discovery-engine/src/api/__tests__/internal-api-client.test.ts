@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 // packages/discovery-engine/src/api/__tests__/internal-api-client.test.ts
 
 import axios from 'axios';

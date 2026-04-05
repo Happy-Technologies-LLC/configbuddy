@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Anomaly Detection Engine Unit Tests
  * Tests for ML-based anomaly detection using statistical analysis

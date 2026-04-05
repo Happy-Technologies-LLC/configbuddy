@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getETLScheduler = exports.ETLWorkerManager = exports.DimensionTransformer = exports.CITransformer = exports.processFullRefreshJob = exports.FullRefreshJob = exports.processChangeDetectionJob = exports.ChangeDetectionJob = exports.processReconciliationJob = exports.ReconciliationJob = exports.processNeo4jToPostgresJob = exports.Neo4jToPostgresJob = void 0;

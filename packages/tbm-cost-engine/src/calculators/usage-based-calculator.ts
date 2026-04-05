@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Usage-Based Cost Calculator
  * Allocates costs based on actual usage metrics (CPU hours, storage GB, bandwidth, etc.)

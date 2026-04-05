@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Rubrik CDM Connector Tests (v1.0)
  * Tests for multi-resource connector functionality

@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Cloud Cost Integration Types
  * Types for AWS, Azure, and GCP cost data

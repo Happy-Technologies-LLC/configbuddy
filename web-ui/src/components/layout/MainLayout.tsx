@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 import React, { useState } from 'react';
 import Header from '../common/Header';
 import Sidebar, { DRAWER_WIDTH } from '../common/Sidebar';

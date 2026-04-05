@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * TBM Cost Engine
  * Technology Business Management v5.0.1 implementation for ConfigBuddy v3.0

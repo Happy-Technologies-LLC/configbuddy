@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * ITIL Enricher
  * Enriches discovered CIs with ITIL v4 attributes during discovery

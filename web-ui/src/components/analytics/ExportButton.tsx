@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * ExportButton Component
  * Button with dropdown menu to export analytics data as CSV or JSON

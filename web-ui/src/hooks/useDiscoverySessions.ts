@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { aiPatternService, AIDiscoverySession, SessionFilters, CostAnalytics, PatternAnalysisResult } from '../services/ai-pattern.service';
 import { useToast } from '../contexts/ToastContext';

@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * ITIL CI Class Classifier
  * Infers ITIL CI class from CI type and metadata

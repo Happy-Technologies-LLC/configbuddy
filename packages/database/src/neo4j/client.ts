@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 // packages/database/src/neo4j/client.ts
 
 import neo4j, { Driver, Session } from 'neo4j-driver';

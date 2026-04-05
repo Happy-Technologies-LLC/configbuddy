@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 // packages/database/src/bullmq/queue-manager.ts
 
 import { Queue, Worker, Job } from 'bullmq';

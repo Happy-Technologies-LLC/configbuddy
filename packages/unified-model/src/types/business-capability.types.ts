@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Business Capability - Unified v3.0
  * Maps to TBM Business Layer + BSM top level

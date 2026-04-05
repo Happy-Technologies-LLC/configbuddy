@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Wiz Cloud Identities Extractor
  * Handles extraction of cloud identities from Wiz GraphQL API

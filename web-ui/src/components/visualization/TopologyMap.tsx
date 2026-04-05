@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 import React, { useEffect, useRef, useState } from 'react';
 import { ZoomIn, ZoomOut, Focus, Download, RefreshCw } from 'lucide-react';
 import cytoscape, { Core, ElementDefinition } from 'cytoscape';

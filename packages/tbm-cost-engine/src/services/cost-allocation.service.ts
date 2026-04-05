@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Cost Allocation Service
  * Implements TBM v5.0.1 cost allocation methods

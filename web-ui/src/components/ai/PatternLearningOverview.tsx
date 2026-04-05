@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 import React from 'react';
 import { LiquidGlass } from '@/components/ui/liquid-glass';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

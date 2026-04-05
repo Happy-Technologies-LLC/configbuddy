@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Integration Tests - Reconciliation Workflow
  * End-to-end tests with real database interactions

@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.recordEtlBatchSize = exports.updateActiveEtlJobs = exports.recordEtlError = exports.recordChangeDetection = exports.updateDataQualityScore = exports.updateEtlSyncLag = exports.recordCiSync = exports.recordEtlJob = exports.etlBatchSize = exports.activeEtlJobs = exports.etlErrors = exports.changeDetectionRate = exports.dataQualityScore = exports.etlSyncLag = exports.cisSynced = exports.etlRecordsProcessed = exports.etlJobsTotal = exports.etlJobDuration = void 0;

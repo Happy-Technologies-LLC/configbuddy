@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * IdentityReconciliationEngine (v2.0)
  * Multi-source CI deduplication and reconciliation

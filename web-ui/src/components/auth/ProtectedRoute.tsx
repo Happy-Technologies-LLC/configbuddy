@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Protected route component
  * Redirects to login if not authenticated, shows 403 if insufficient role

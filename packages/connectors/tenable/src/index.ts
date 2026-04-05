@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Tenable.io Vulnerability Management Connector (v1.0)
  * Comprehensive integration with Tenable.io for vulnerability management

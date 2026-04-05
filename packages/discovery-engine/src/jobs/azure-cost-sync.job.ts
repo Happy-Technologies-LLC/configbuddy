@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Azure Cost Sync Job
  * Scheduled BullMQ job to fetch Azure cost data and sync to PostgreSQL

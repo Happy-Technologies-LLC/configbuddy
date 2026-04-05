@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 import { Request, Response } from 'express';
 import { queueManager, QUEUE_NAMES } from '@cmdb/database';
 import { logger, DiscoveryJob, DiscoveryProvider } from '@cmdb/common';

@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Rate Limit Metrics Controller
  * Provides monitoring endpoints for rate limiting statistics

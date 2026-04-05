@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.QUEUE_NAMES = exports.QUEUE_CONFIGS = void 0;

@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Veeam Backup & Replication Connector (v1.0)
  * Multi-resource integration with Veeam Enterprise Manager REST API

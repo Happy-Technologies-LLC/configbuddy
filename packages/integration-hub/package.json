@@ -1,6 +1,7 @@
 {
   "name": "@cmdb/integration-hub",
   "version": "2.0.0",
+  "license": "Apache-2.0",
   "description": "Integration Hub API and management console",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

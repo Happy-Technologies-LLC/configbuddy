@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * BSM (Business Service Mapping) Types
  * Re-exports from @cmdb/unified-model plus additional types for impact engine

@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 import { Router } from 'express';
 import Joi from 'joi';
 import { ConnectorController } from '../controllers/connector.controller';

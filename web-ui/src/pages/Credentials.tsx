@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Filter, Trash2, Edit2, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';

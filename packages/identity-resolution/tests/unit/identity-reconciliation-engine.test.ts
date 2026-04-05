@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Unit Tests - IdentityReconciliationEngine
  * Tests matching algorithms, merge strategies, and conflict resolution

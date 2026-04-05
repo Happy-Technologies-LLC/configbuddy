@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Test Fixtures - Duplicate CI Scenarios
  * Realistic scenarios of the same server/device discovered via multiple sources

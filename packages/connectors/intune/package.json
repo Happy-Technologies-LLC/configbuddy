@@ -20,7 +20,7 @@
     "graph-api"
   ],
   "author": "ConfigBuddy",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "dependencies": {
     "@cmdb/common": "*",
     "@cmdb/integration-framework": "*",

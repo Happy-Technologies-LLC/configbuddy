@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * RelationshipMatrix Component
  * Heatmap showing relationship type counts between CI types

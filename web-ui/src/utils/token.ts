@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * JWT Token utility functions
  * Handles token storage, retrieval, decoding, and validation

@@ -1,6 +1,7 @@
 {
   "name": "@cmdb/connector-cisco-meraki",
   "version": "1.0.0",
+  "license": "Apache-2.0",
   "description": "Cisco Meraki Dashboard API integration connector",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

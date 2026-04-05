@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Wiz Cloud Security Connector (v1.0)
  * Cloud security posture management integration with multi-resource support

@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 // packages/api-server/src/graphql/schema/analytics.schema.ts
 
 export const analyticsTypeDefs = `

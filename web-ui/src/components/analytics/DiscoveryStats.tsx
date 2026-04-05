@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * DiscoveryStats Component
  * Discovery job statistics with success/failure metrics

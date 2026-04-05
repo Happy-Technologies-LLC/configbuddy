@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 import React, { useState, useEffect } from 'react';
 import { Trash2, Settings, PlayCircle, CheckCircle, AlertCircle, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';

@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Configuration Drift Detector Unit Tests
  * Tests for configuration drift detection by comparing baseline snapshots

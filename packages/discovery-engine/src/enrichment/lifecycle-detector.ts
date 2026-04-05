@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * ITIL Lifecycle Stage Detector
  * Detects the lifecycle stage of a CI based on metadata and status

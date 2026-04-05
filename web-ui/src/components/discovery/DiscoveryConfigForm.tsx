@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import {
   DiscoveryProvider,

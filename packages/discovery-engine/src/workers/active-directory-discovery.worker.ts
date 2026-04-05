@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 // packages/discovery-engine/src/workers/active-directory-discovery.worker.ts
 
 import * as ldap from 'ldapjs';

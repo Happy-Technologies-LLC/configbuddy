@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Infoblox IPAM/DNS Connector Tests (v1.0)
  * Comprehensive tests for multi-resource connector functionality

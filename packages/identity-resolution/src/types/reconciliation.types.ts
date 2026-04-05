@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Identity Resolution Types (v2.0)
  * Types for multi-source CI reconciliation

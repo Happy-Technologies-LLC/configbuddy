@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * useDiscoveryJobs Hook
  * Custom hook for job listing with polling and real-time updates

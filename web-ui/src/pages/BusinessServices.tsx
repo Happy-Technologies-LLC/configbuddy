@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit, Trash2, Network, DollarSign, Users, TrendingUp } from 'lucide-react';
 import { LiquidGlass } from '../components/ui/liquid-glass';

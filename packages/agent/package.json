@@ -20,7 +20,7 @@
     "monitoring"
   ],
   "author": "",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "dependencies": {
     "@cmdb/common": "*",
     "axios": "^1.6.0",

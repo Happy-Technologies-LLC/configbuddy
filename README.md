@@ -1,33 +1,27 @@
-# CMDB Platform
+# ConfigBuddy
 
-> Enterprise-grade Configuration Management Database (CMDB) built with Node.js, TypeScript, and Neo4j
+Open-source Configuration Management Database (CMDB) with graph-based relationship modeling, AI-powered discovery, and 45 integration connectors.
 
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
 [![Node](https://img.shields.io/badge/Node.js-20.x-green.svg)](https://nodejs.org/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## Overview
+## What Is This
 
-ConfigBuddy is an open-source CMDB platform that provides comprehensive infrastructure discovery, relationship mapping, and change management across multi-cloud and on-premise environments.
+ConfigBuddy is an enterprise CMDB platform that discovers, maps, and tracks infrastructure across multi-cloud and on-premise environments. It stores configuration items (CIs) and their relationships in a Neo4j graph database, syncs to a PostgreSQL analytics data mart, and exposes everything via REST and GraphQL APIs.
 
-### Key Features (v2.0)
+### Key Capabilities
 
-- **AI-Powered Discovery**: LLM-based infrastructure discovery with multi-provider support (Anthropic, OpenAI, custom)
-- **Pattern Learning**: Automatically compiles successful discoveries into reusable patterns (10x faster, zero LLM cost)
-- **Hybrid Discovery**: Combines pattern matching with AI fallback for optimal performance and cost
-- **37 Integration Connectors**: 17 TypeScript + 20 JSON-only declarative connectors for ServiceNow, Jira, SCCM, cloud providers, and more
-- **Unified Credential System**: Protocol-based authentication with encrypted storage in PostgreSQL
-- **Discovery Agents**: Smart routing for network protocols (NMAP, SSH, SNMP, Active Directory)
-- **Graph Database**: Neo4j-powered relationship modeling and impact analysis
-- **Data Mart**: PostgreSQL with TimescaleDB for analytics and reporting
-- **AI/ML Engines**: Anomaly detection, drift detection, and impact analysis
-- **Identity Resolution**: Cross-source entity matching and deduplication
-- **Dynamic Metadata**: Schema-less custom attributes with indexed search
-- **Event Streaming**: Kafka-based event pipeline for real-time processing
-- **Real-time Updates**: WebSocket-based notifications for pattern updates and discoveries
-- **REST & GraphQL APIs**: Comprehensive API layer (20+ endpoints)
-- **React Web UI**: Modern dashboard with advanced visualization and pattern management
-- **CLI Tool**: Command-line interface for operations
+- **45 Integration Connectors** (17 TypeScript + 28 JSON declarative) — AWS, Azure, GCP, ServiceNow, Jira, VMware, Kubernetes, SCCM, Datadog, and more
+- **AI-Powered Discovery** — LLM-based infrastructure discovery (Anthropic, OpenAI) with automatic pattern learning that compiles successful discoveries into reusable zero-cost patterns
+- **Graph-Based Relationships** — Neo4j models CI dependencies, hosting, and connectivity for impact analysis and dependency mapping
+- **ITIL v4 + TBM v5 + BSM** — Built-in service management, cost transparency, and business service impact frameworks
+- **Hybrid Discovery** — Network protocols (NMAP, SSH, SNMP, Active Directory) via agents + cloud/SaaS APIs via connectors
+- **Unified Credentials** — Protocol-based authentication with encrypted storage and affinity matching
+- **Analytics Data Mart** — PostgreSQL with TimescaleDB for reporting, with ETL pipeline from Neo4j
+- **Event Streaming** — Kafka-based pipeline for real-time CI change processing
+- **React Dashboard** — 5 executive dashboards (CIO, ITSM, FinOps, Business Service, Executive)
+- **REST + GraphQL APIs** — 20+ endpoints with JWT authentication
 
 ## Architecture
 
@@ -44,487 +38,127 @@ ConfigBuddy is an open-source CMDB platform that provides comprehensive infrastr
 └────────────┬──────────────────────────────────┬──────────────┘
              │                                  │
 ┌────────────▼──────────────────────────────────▼──────────────┐
-│   Discovery Workers │  ETL Processors  │  Change Detection   │
+│   Discovery Engine │  ETL Processors  │  Event Streaming     │
 └────────────┬──────────────────────────────────┬──────────────┘
              │                                  │
 ┌────────────▼──────────────────────────────────▼──────────────┐
-│  Neo4j (Graph)  │  PostgreSQL (Mart)  │  Redis (Cache)       │
+│  Neo4j (Graph)  │  PostgreSQL (Mart)  │  Redis (Cache/Queue) │
 └───────────────────────────────────────────────────────────────┘
 ```
 
 ## Quick Start
 
-**Deploy the entire platform with one command:**
+**Prerequisites**: Docker >= 20.10, Docker Compose >= 2.0, Node.js >= 20
 
 ```bash
-# Full deployment (builds TypeScript + Docker images + starts all services)
-./deploy.sh
-
-# Quick deployment (uses existing builds)
-./deploy.sh --skip-build
-
-# Clean deployment with test data
-./deploy.sh --clean --seed
-```
-
-**Then access:**
-- **Web UI**: http://localhost:3001
-- **API Server**: http://localhost:3000
-- **GraphQL Playground**: http://localhost:3000/graphql
-- **Neo4j Browser**: http://localhost:7474
-  - Credentials: `neo4j` / `cmdb_password_dev`
-- **Admin Login** (with --seed): `admin@configbuddy.local` / `Admin123!`
-
-### Deployment Options
-
-```bash
-./deploy.sh --help                 # Show all options
-./deploy.sh --clean                # Clean Docker volumes and rebuild from scratch
-./deploy.sh --skip-build           # Skip TypeScript build (use existing dist/)
-./deploy.sh --seed                 # Seed database with test data
-```
-
-📖 **Full documentation**: http://localhost:8080 (after deployment)
-
-### Prerequisites
-
-- **Docker** >= 20.10
-- **Docker Compose** >= 2.0
-- **Node.js** >= 20.0.0
-- **npm** or **pnpm** >= 8.0.0
-
-### Installation
-
-```bash
-# Clone repository
-git clone <repository-url>
+git clone https://github.com/nickzitzer/configbuddy.git
 cd configbuddy
-
-# Run setup script (installs dependencies, starts Docker services, initializes databases)
-./scripts/setup-dev.sh
-
-# Start development
-pnpm dev
+cp .env.example .env
+./deploy.sh --seed
 ```
+
+Access points after deployment:
+- **Web UI**: http://localhost:3001
+- **API**: http://localhost:3000
+- **GraphQL Playground**: http://localhost:3000/graphql
+- **Documentation**: http://localhost:8080
 
 ### Manual Setup
 
 ```bash
-# Install dependencies
-pnpm install
-
-# Copy environment variables
+npm install
 cp .env.example .env
-
-# Start infrastructure (Neo4j, PostgreSQL, Redis, Kafka)
 docker-compose -f infrastructure/docker/docker-compose.yml up -d
-
-# Initialize databases
 ./scripts/db-init.sh
-
-# Build all packages
-pnpm build
-
-# Start API server
-pnpm dev:api
+npm run build
+npm run dev:api
 ```
 
-## Project Structure
+## Repository Structure
 
-```
-cmdb-platform/
-├── packages/
-│   ├── common/              # Shared types and utilities
-│   ├── database/            # Database clients (Neo4j, PostgreSQL, Redis)
-│   ├── api-server/          # REST + GraphQL API
-│   ├── discovery-engine/    # Multi-cloud discovery workers
-│   ├── etl-processor/       # ETL jobs and transformers
-│   ├── agent/              # Lightweight discovery agent
-│   └── cli/                # Command-line interface
-├── web-ui/                 # React dashboard with advanced UI components
-├── doc-site/              # VitePress documentation site
-├── infrastructure/         # Docker, Kubernetes, Terraform
-│   ├── docker/            # Docker compose files and Dockerfiles
-│   ├── config/            # Configuration templates
-│   └── scripts/           # Database initialization
-├── scripts/               # Development and deployment scripts
-└── docs/                  # Archived documentation
-```
+| Package | Description |
+|---------|-------------|
+| `packages/common` | Shared types, utilities, logging, validation, security |
+| `packages/database` | Neo4j, PostgreSQL, Redis clients and BullMQ queue manager |
+| `packages/api-server` | REST (Express) + GraphQL (Apollo) API server |
+| `packages/discovery-engine` | Connector orchestration, job routing, enrichment pipeline |
+| `packages/etl-processor` | Neo4j → PostgreSQL data mart sync, reconciliation |
+| `packages/agent` | Lightweight discovery agent (NMAP, SSH, SNMP) |
+| `packages/cli` | Command-line interface |
+| `packages/ai-discovery` | LLM-powered discovery with pattern learning |
+| `packages/ai-ml-engine` | Anomaly detection, drift detection, impact prediction |
+| `packages/integration-framework` | Base connector framework, auth adapters, registry |
+| `packages/data-mapper` | Field mapping and transformation engine |
+| `packages/identity-resolution` | Cross-source entity matching and deduplication |
+| `packages/itil-service-manager` | ITIL v4 incident, change, and problem management |
+| `packages/tbm-cost-engine` | TBM v5.0.1 cost allocation and financial analysis |
+| `packages/bsm-impact-engine` | Business service impact analysis |
+| `packages/unified-model` | Shared domain model across ITIL, TBM, BSM |
+| `packages/event-streaming` | Kafka event pub/sub infrastructure |
+| `packages/event-processor` | Event consumer and change processor |
+| `packages/framework-integration` | Adapter layer between frameworks |
+| `packages/integration-hub` | Integration orchestration |
+| `packages/connectors/*` | 45 connectors (17 TypeScript + 28 JSON-only) |
+| `web-ui` | React dashboard with TailwindCSS |
+| `doc-site` | VitePress documentation site (80+ pages) |
+| `infrastructure` | Docker, Kubernetes, Terraform, monitoring configs |
+
+## Companion Repositories
+
+ConfigBuddy's connector framework and AI discovery module are also available as standalone packages:
+
+- **[configbuddy-connector-sdk](https://github.com/nickzitzer/configbuddy-connector-sdk)** — Build custom connectors for any REST/GraphQL API (coming soon)
+- **[configbuddy-ai-discovery](https://github.com/nickzitzer/configbuddy-ai-discovery)** — AI-powered infrastructure discovery with pattern learning (coming soon)
 
 ## Development
 
-### Available Scripts
-
 ```bash
-# Development
-pnpm dev                    # Start all services in development mode
-pnpm dev:api                # Start API server only
-
-# Building
-pnpm build                  # Build all packages
-./scripts/build-all.sh      # Build with options (--clean, --skip-lint)
-
-# Testing
-pnpm test                   # Run all tests
-./scripts/test-all.sh       # Run with options (--unit-only, --integration-only)
-
-# Database
-./scripts/db-init.sh        # Initialize databases
-./scripts/db-migrate.sh     # Run PostgreSQL migrations
-
-# Cleanup
-./scripts/clean.sh          # Clean build artifacts
-./scripts/clean.sh --docker # Also clean Docker volumes
+npm run dev               # Start all services in dev mode
+npm run build             # Build all packages
+npm run test:unit         # Unit tests
+npm run test:integration  # Integration tests (requires Docker services)
+npm run lint              # ESLint
+npm run format            # Prettier
 ```
 
-### Running Discovery
+## API Examples
 
 ```bash
-# Using CLI
-pnpm --filter @cmdb/cli start discovery scan --provider aws --region us-east-1
+# List all CIs
+curl http://localhost:3000/api/v1/cis
 
-# Using API
-curl -X POST http://localhost:3000/api/v1/discovery/schedule \
+# Create a CI
+curl -X POST http://localhost:3000/api/v1/cis \
   -H "Content-Type: application/json" \
-  -d '{
-    "provider": "aws",
-    "config": {
-      "region": "us-east-1"
-    }
-  }'
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"id":"vm-001","name":"web-server-01","type":"virtual-machine","status":"active"}'
+
+# GraphQL query
+curl -X POST http://localhost:3000/graphql \
+  -H "Content-Type: application/json" \
+  -d '{"query":"{ getCIs(type: \"server\") { id name status } }"}'
 ```
 
-## Configuration
+Full API reference: `doc-site/docs/api/`
 
-All configuration is via environment variables. Copy `.env.example` to `.env` and update:
+## Documentation
+
+The documentation site at `doc-site/` covers architecture, deployment, operations, API reference, and connector development. Start it with `./deploy.sh` or:
 
 ```bash
-# Application Configuration
-NODE_ENV=development
-LOG_LEVEL=info
-API_PORT=3000
-
-# Authentication & Security
-JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-ENCRYPTION_KEY=your-encryption-key-for-sensitive-data-minimum-32-characters
-
-# Neo4j Graph Database
-NEO4J_URI=bolt://localhost:7687
-NEO4J_USERNAME=neo4j
-NEO4J_PASSWORD=your-neo4j-password
-
-# PostgreSQL (Connector Registry, Credentials, Metadata)
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_DATABASE=cmdb
-POSTGRES_USER=cmdb_user
-POSTGRES_PASSWORD=your-postgres-password
-
-# Redis (Cache & Job Queue)
-REDIS_HOST=localhost
-REDIS_PORT=6379
-
-# AI/ML Features (v2.0)
-AI_ANOMALY_DETECTION_ENABLED=true
-AI_DRIFT_DETECTION_ENABLED=true
-AI_IMPACT_ANALYSIS_ENABLED=true
-
-# AI Discovery (v2.0)
-AI_DISCOVERY_ENABLED=true
-AI_DISCOVERY_PROVIDER=anthropic                 # anthropic | openai | custom
-AI_DISCOVERY_MODEL=claude-sonnet-4-20250514
-ANTHROPIC_API_KEY=your-anthropic-api-key-here
-
-# Pattern Learning
-AI_PATTERN_LEARNING_ENABLED=true
-AI_PATTERN_MIN_SESSIONS=3
-AI_PATTERN_AUTO_APPROVAL_ENABLED=true
-
-# Cost Controls
-AI_DISCOVERY_MONTHLY_BUDGET=100.00
-AI_DISCOVERY_MAX_COST_PER_SESSION=0.50
-```
-
-### v2.0 Credential Management
-
-**IMPORTANT**: ConfigBuddy v2.0 uses a **unified credential system** stored in PostgreSQL.
-
-Connector credentials (AWS, Azure, GCP, ServiceNow, etc.) are **NOT** configured via environment variables. Instead:
-
-1. Create credential records via Web UI or API
-2. Associate credentials with discovery definitions
-3. Credentials support multiple auth methods per provider
-
-See documentation: http://localhost:8080/components/credentials
-
-## API Documentation
-
-### REST API
-
-Base URL: `http://localhost:3000/api/v1`
-
-#### Configuration Items (CIs)
-
-- `GET /cis` - List all CIs (supports filtering)
-- `GET /cis/:id` - Get CI by ID
-- `POST /cis` - Create new CI
-- `PUT /cis/:id` - Update CI
-- `DELETE /cis/:id` - Delete CI
-- `GET /cis/:id/relationships` - Get CI relationships
-- `GET /cis/:id/dependencies` - Get dependency tree
-- `GET /cis/:id/impact` - Get impact analysis
-- `POST /cis/search` - Full-text search
-
-#### Discovery
-
-- `POST /discovery/schedule` - Schedule discovery job
-- `GET /discovery/jobs/:id` - Get job status
-- `GET /discovery/jobs` - List all jobs
-
-### GraphQL API
-
-Endpoint: `http://localhost:3000/graphql`
-
-```graphql
-query {
-  getCIs(type: "virtual-machine", status: "active") {
-    id
-    name
-    type
-    status
-    environment
-    metadata
-  }
-}
-
-mutation {
-  createCI(input: {
-    id: "vm-001"
-    name: "web-server-01"
-    type: "virtual-machine"
-    status: "active"
-    environment: "production"
-  }) {
-    id
-    name
-  }
-}
-```
-
-## Testing
-
-```bash
-# Run all tests
-pnpm test
-
-# Run unit tests only
-pnpm test:unit
-
-# Run integration tests
-pnpm test:integration
-
-# Run with coverage
-pnpm test:coverage
-
-# Watch mode
-pnpm test -- --watch
-```
-
-## Docker Support
-
-### Development Environment
-
-```bash
-# Start all infrastructure services
-docker-compose -f infrastructure/docker/docker-compose.yml up -d
-
-# View logs
-docker-compose -f infrastructure/docker/docker-compose.yml logs -f
-
-# Stop services
-docker-compose -f infrastructure/docker/docker-compose.yml down
-
-# Clean everything (including volumes)
-docker-compose -f infrastructure/docker/docker-compose.yml down -v
-```
-
-### Building Application Images
-
-```bash
-# Build API server
-docker build -f infrastructure/docker/Dockerfile.api -t cmdb-api:latest .
-
-# Build discovery engine
-docker build -f infrastructure/docker/Dockerfile.discovery -t cmdb-discovery:latest .
-
-# Build ETL processor
-docker build -f infrastructure/docker/Dockerfile.etl -t cmdb-etl:latest .
-
-# Build agent
-docker build -f infrastructure/docker/Dockerfile.agent -t cmdb-agent:latest .
-```
-
-## Packages
-
-### @cmdb/common
-
-Shared TypeScript types, utilities, and logging.
-
-```typescript
-import { CI, logger, validators } from '@cmdb/common';
-```
-
-### @cmdb/database
-
-Database clients for Neo4j, PostgreSQL, Redis, and BullMQ queue manager.
-
-```typescript
-import { getNeo4jClient, getPostgresClient, getRedisClient } from '@cmdb/database';
-```
-
-### @cmdb/api-server
-
-REST and GraphQL API servers.
-
-```typescript
-import { RestAPIServer } from '@cmdb/api-server';
-
-const server = new RestAPIServer(3000);
-server.start();
-```
-
-### @cmdb/discovery-engine
-
-Multi-cloud discovery workers (AWS, Azure, GCP, SSH, Nmap).
-
-```typescript
-import { DiscoveryOrchestrator } from '@cmdb/discovery-engine';
-
-const orchestrator = new DiscoveryOrchestrator();
-orchestrator.registerWorkers();
-```
-
-### @cmdb/etl-processor
-
-ETL jobs for syncing Neo4j to PostgreSQL data mart.
-
-```typescript
-import { Neo4jToPostgresJob } from '@cmdb/etl-processor';
-```
-
-### @cmdb/agent
-
-Lightweight agent for server-based discovery.
-
-```typescript
-import { Agent } from '@cmdb/agent';
-
-const agent = new Agent({ schedule: '0 */6 * * *' });
-agent.start();
-```
-
-### @cmdb/cli
-
-Command-line interface for CMDB operations.
-
-```bash
-cmdb-cli discovery scan --provider aws
-cmdb-cli ci list --type virtual-machine
-cmdb-cli query impact --id vm-001
+cd doc-site && npm run docs:dev
 ```
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
+See [CONTRIBUTING.md](CONTRIBUTING.md). All contributors must sign the [CLA](CLA.md).
+
+## Commercial Support
+
+For deployment assistance, custom connectors, or commercial licensing inquiries, contact **commercial@happy-tech.biz**.
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+Copyright 2026 Happy Technologies LLC. Licensed under the [Apache License, Version 2.0](LICENSE).
 
-## Roadmap
-
-### v2.0 Complete ✅
-- [x] **AI-Powered Discovery** with multi-provider LLM support (Anthropic, OpenAI, custom)
-- [x] **Pattern Learning** - Automatically compiles discoveries into reusable patterns
-- [x] **Hybrid Discovery** - Pattern matching with AI fallback (10x faster, 90% cost reduction)
-- [x] **Real-time Updates** - WebSocket-based notifications for discoveries and patterns
-- [x] 37 Integration Connectors (ServiceNow, Jira, SCCM, cloud providers, etc.)
-- [x] Unified Credential System with protocol-based authentication
-- [x] Discovery Agents with smart routing
-- [x] Identity Resolution Engine
-- [x] AI/ML Engines (anomaly, drift, impact analysis)
-- [x] Dynamic Metadata System
-- [x] Event Streaming (Kafka)
-- [x] React Web UI with advanced components and pattern management
-- [x] Comprehensive API (20+ endpoints)
-- [x] VitePress Documentation Site (30+ pages)
-
-### v3.0 Planned
-- [ ] Real-time collaboration features
-- [ ] Advanced compliance reporting
-- [ ] Custom workflow automation
-- [ ] Plugin marketplace
-- [ ] Multi-tenancy support
-- [ ] Advanced visualization (3D topology maps)
-- [ ] Mobile application
-
-## Documentation
-
-### Official Documentation Site
-
-**Primary Documentation**: http://localhost:8080 (VitePress site)
-
-The comprehensive documentation site includes:
-
-- **Getting Started** - Quick start guides and installation
-- **Architecture** - System design, connector framework, version history
-- **Components** - Credentials, discovery agents, connector registry, API server
-- **Configuration** - Environment variables, security, service configuration
-- **Deployment** - Docker and Kubernetes deployment guides
-- **Operations** - Daily operations, monitoring, troubleshooting
-- **API Reference** - REST and GraphQL API documentation
-- **Development** - Building custom connectors, contributing
-
-To start the documentation site:
-```bash
-./deploy.sh  # Automatically builds and starts docs at port 8080
-```
-
-### Archived Documentation
-
-Historical development documentation:
-- Phase reports and technical design documents in `/docs/archive/`
-- v1.0 to v2.0 migration information
-
-## Production Status
-
-✅ **Production Ready** - v2.0 Complete
-
-ConfigBuddy CMDB v2.0 is a production-ready enterprise platform with advanced features:
-
-- ✅ **AI-Powered Discovery** - LLM-based infrastructure discovery (Anthropic, OpenAI, custom models)
-- ✅ **Pattern Learning** - Auto-compile discoveries into patterns (10x faster, 90% cost reduction)
-- ✅ **Real-time Updates** - WebSocket-based notifications for discoveries and patterns
-- ✅ **37 Integration Connectors** - ServiceNow, Jira, SCCM, cloud providers, and more
-- ✅ **AI/ML Capabilities** - Anomaly detection, drift detection, impact analysis
-- ✅ **Identity Resolution** - Cross-source entity matching and deduplication
-- ✅ **Event Streaming** - Kafka-based real-time event pipeline
-- ✅ **Unified Credentials** - Encrypted credential storage with protocol-based authentication
-- ✅ **Docker & Kubernetes Ready** - Production-grade deployment configurations
-- ✅ **Comprehensive Documentation** - 30+ documentation pages with full-text search
-- ✅ **Security Hardened** - JWT authentication, role-based access, encrypted secrets
-- ✅ **Performance Optimized** - Redis caching, database indexes, connection pooling
-
-See documentation site (http://localhost:8080) for complete details.
-
-## Support
-
-- **Documentation**: http://localhost:8080 (comprehensive VitePress site)
-- **Quick Start**: Run `./deploy.sh` to get started in minutes
-- **Issues**: GitHub Issues
-- **Discussions**: GitHub Discussions
-- **Architecture**: See `/doc-site/docs/architecture/` for technical details
-
----
-
-Built with ❤️ using Node.js, TypeScript, Neo4j, and modern cloud-native technologies.
+See [NOTICE](NOTICE) for third-party attribution and trademark notices.

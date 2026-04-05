@@ -16,7 +16,7 @@
     "vitepress"
   ],
   "author": "ConfigBuddy Team",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "devDependencies": {
     "vitepress": "^1.0.0",
     "vue": "^3.4.0"

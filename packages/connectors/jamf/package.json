@@ -1,6 +1,7 @@
 {
   "name": "@cmdb/connector-jamf",
   "version": "1.0.0",
+  "license": "Apache-2.0",
   "description": "JAMF Pro integration connector",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

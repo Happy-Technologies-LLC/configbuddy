@@ -1,3 +1,6 @@
+// Copyright 2026 Happy Technologies LLC
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * BSM Service Manager Wrapper
  * Wraps Phase 4 BSM functionality for unified interface

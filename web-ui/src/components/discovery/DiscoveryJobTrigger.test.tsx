@@ -7,293 +7,253 @@ import userEvent from '@testing-library/user-event';
 import { renderWithQueryClient } from '@/tests/utils/test-utils';
 import DiscoveryJobTrigger from './DiscoveryJobTrigger';
 import * as useDiscoveryHook from '@hooks/useDiscovery';
+import * as useDiscoveryDefinitionsHook from '@hooks/useDiscoveryDefinitions';
 import { mockApiHandlers } from '@/tests/mocks/handlers';
 
-// Mock the useDiscovery hook
+// Mock the hooks
 vi.mock('@hooks/useDiscovery');
+vi.mock('@hooks/useDiscoveryDefinitions');
 
-// Mock the DiscoveryConfigForm component for simplicity
-vi.mock('./DiscoveryConfigForm', () => ({
-  default: ({ provider, onSubmit }: any) => (
-    <div data-testid="discovery-config-form">
-      <h3>Mock Config Form for {provider}</h3>
-      <button
-        onClick={() => onSubmit({ region: 'us-east-1', accountId: '123456789' })}
-        data-testid="submit-config"
-      >
-        Submit Config
-      </button>
-    </div>
-  ),
+// Mock navigate
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
+
+// Capture callbacks passed to DiscoveryDefinitionForm
+let capturedProps: any = {};
+vi.mock('./DiscoveryDefinitionForm', () => ({
+  default: (props: any) => {
+    capturedProps = props;
+    return (
+      <div data-testid="discovery-definition-form">
+        <span data-testid="show-adhoc">{String(props.showAdHocAction)}</span>
+        <button
+          data-testid="adhoc-run-btn"
+          onClick={() =>
+            props.onAdHocRun?.({
+              provider: 'nmap',
+              config: { targets: ['192.168.1.0/24'] },
+              name: 'Test Scan',
+              schedule: { enabled: false },
+            })
+          }
+        >
+          Ad Hoc Run
+        </button>
+        <button
+          data-testid="save-run-btn"
+          onClick={() =>
+            props.onSubmit({
+              provider: 'ssh',
+              config: { hosts: ['10.0.0.1'] },
+              name: 'SSH Scan',
+              schedule: { enabled: false },
+            })
+          }
+        >
+          Save & Run
+        </button>
+        <button
+          data-testid="cancel-btn"
+          onClick={() => props.onCancel()}
+        >
+          Cancel
+        </button>
+      </div>
+    );
+  },
 }));
 
 describe('DiscoveryJobTrigger Component', () => {
-  const defaultMockDiscovery = {
-    triggerJob: vi.fn(),
+  const mockTriggerJob = vi.fn();
+  const mockCreateDefinition = vi.fn();
+
+  const defaultDiscoveryMock = {
+    stats: [],
+    schedules: [],
     loading: false,
+    error: null,
+    loadStats: vi.fn(),
+    loadSchedules: vi.fn(),
+    triggerJob: mockTriggerJob,
+    updateSchedule: vi.fn(),
+    testCredentials: vi.fn(),
+    retryJob: vi.fn(),
+    cancelJob: vi.fn(),
+    getJobResult: vi.fn(),
+  };
+
+  const defaultDefinitionsMock = {
+    definitions: [],
+    loading: false,
+    error: null,
+    filters: {},
+    loadDefinitions: vi.fn(),
+    createDefinition: mockCreateDefinition,
+    updateDefinition: vi.fn(),
+    deleteDefinition: vi.fn(),
+    runDefinition: vi.fn(),
+    enableSchedule: vi.fn(),
+    disableSchedule: vi.fn(),
+    setFilters: vi.fn(),
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
+    capturedProps = {};
+    vi.mocked(useDiscoveryHook.useDiscovery).mockReturnValue(defaultDiscoveryMock as any);
+    vi.mocked(useDiscoveryDefinitionsHook.useDiscoveryDefinitions).mockReturnValue(
+      defaultDefinitionsMock as any
+    );
   });
 
-  it('renders initial step with provider selection', () => {
-    vi.mocked(useDiscoveryHook.useDiscovery).mockReturnValue(defaultMockDiscovery);
-
+  it('renders the Ad Hoc Discovery heading and description', () => {
     renderWithQueryClient(<DiscoveryJobTrigger />);
 
-    expect(screen.getByText('Trigger New Discovery')).toBeInTheDocument();
-    expect(screen.getByText('Select Provider')).toBeInTheDocument();
-
-    // Verify all providers are shown
-    expect(screen.getByText('Amazon Web Services')).toBeInTheDocument();
-    expect(screen.getByText('Microsoft Azure')).toBeInTheDocument();
-    expect(screen.getByText('Google Cloud Platform')).toBeInTheDocument();
-    expect(screen.getByText('SSH Discovery')).toBeInTheDocument();
-    expect(screen.getByText('Network Scan (Nmap)')).toBeInTheDocument();
+    expect(screen.getByText('Ad Hoc Discovery')).toBeInTheDocument();
+    expect(
+      screen.getByText(/run a one-time discovery job/i)
+    ).toBeInTheDocument();
   });
 
-  it('navigates through stepper workflow', async () => {
+  it('renders an info alert with usage instructions', () => {
+    renderWithQueryClient(<DiscoveryJobTrigger />);
+
+    expect(
+      screen.getByText(/configure your discovery settings below/i)
+    ).toBeInTheDocument();
+  });
+
+  it('renders the DiscoveryDefinitionForm', () => {
+    renderWithQueryClient(<DiscoveryJobTrigger />);
+
+    expect(screen.getByTestId('discovery-definition-form')).toBeInTheDocument();
+  });
+
+  it('passes showAdHocAction=true to the form', () => {
+    renderWithQueryClient(<DiscoveryJobTrigger />);
+
+    expect(screen.getByTestId('show-adhoc')).toHaveTextContent('true');
+  });
+
+  it('triggers an ad-hoc discovery job and navigates on success', async () => {
     const user = userEvent.setup();
-    vi.mocked(useDiscoveryHook.useDiscovery).mockReturnValue(defaultMockDiscovery);
+    mockTriggerJob.mockResolvedValue(mockApiHandlers.triggerDiscoveryJob.success);
 
     renderWithQueryClient(<DiscoveryJobTrigger />);
 
-    // Step 1: Select provider
-    const awsOption = screen.getByLabelText(/amazon web services/i);
-    await user.click(awsOption);
+    await user.click(screen.getByTestId('adhoc-run-btn'));
 
-    // Next button should be enabled
-    const nextButton = screen.getByRole('button', { name: /next/i });
-    expect(nextButton).not.toBeDisabled();
-
-    await user.click(nextButton);
-
-    // Step 2: Configure
-    await waitFor(() => {
-      expect(screen.getByText('Configure')).toBeInTheDocument();
-      expect(screen.getByTestId('discovery-config-form')).toBeInTheDocument();
-    });
-
-    // Submit configuration
-    const submitConfigButton = screen.getByTestId('submit-config');
-    await user.click(submitConfigButton);
-
-    // Step 3: Review
-    await waitFor(() => {
-      expect(screen.getByText('Review & Trigger')).toBeInTheDocument();
-      expect(screen.getByText(/review your configuration/i)).toBeInTheDocument();
-    });
-  });
-
-  it('disables next button when no provider selected', () => {
-    vi.mocked(useDiscoveryHook.useDiscovery).mockReturnValue(defaultMockDiscovery);
-
-    renderWithQueryClient(<DiscoveryJobTrigger />);
-
-    const nextButton = screen.getByRole('button', { name: /next/i });
-    expect(nextButton).toBeDisabled();
-  });
-
-  it('allows going back to previous steps', async () => {
-    const user = userEvent.setup();
-    vi.mocked(useDiscoveryHook.useDiscovery).mockReturnValue(defaultMockDiscovery);
-
-    renderWithQueryClient(<DiscoveryJobTrigger />);
-
-    // Select provider and go to step 2
-    const awsOption = screen.getByLabelText(/amazon web services/i);
-    await user.click(awsOption);
-    await user.click(screen.getByRole('button', { name: /next/i }));
-
-    // Go back
-    const backButton = screen.getByRole('button', { name: /back/i });
-    await user.click(backButton);
-
-    // Should be back at step 1
-    expect(screen.getByText('Select Provider')).toBeInTheDocument();
-    expect(screen.getByLabelText(/amazon web services/i)).toBeChecked();
-  });
-
-  it('disables back button on first step', () => {
-    vi.mocked(useDiscoveryHook.useDiscovery).mockReturnValue(defaultMockDiscovery);
-
-    renderWithQueryClient(<DiscoveryJobTrigger />);
-
-    const backButton = screen.getByRole('button', { name: /back/i });
-    expect(backButton).toBeDisabled();
-  });
-
-  it('successfully triggers discovery job', async () => {
-    const user = userEvent.setup();
-    const mockTriggerJob = vi.fn().mockResolvedValue(mockApiHandlers.triggerDiscoveryJob.success);
-
-    vi.mocked(useDiscoveryHook.useDiscovery).mockReturnValue({
-      triggerJob: mockTriggerJob,
-      loading: false,
-    });
-
-    renderWithQueryClient(<DiscoveryJobTrigger />);
-
-    // Step 1: Select AWS
-    const awsOption = screen.getByLabelText(/amazon web services/i);
-    await user.click(awsOption);
-    await user.click(screen.getByRole('button', { name: /next/i }));
-
-    // Step 2: Configure
-    await waitFor(() => {
-      expect(screen.getByTestId('submit-config')).toBeInTheDocument();
-    });
-    await user.click(screen.getByTestId('submit-config'));
-
-    // Step 3: Review and trigger
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /trigger discovery/i })).toBeInTheDocument();
-    });
-
-    const triggerButton = screen.getByRole('button', { name: /trigger discovery/i });
-    await user.click(triggerButton);
-
-    // Verify trigger was called with correct parameters
     await waitFor(() => {
       expect(mockTriggerJob).toHaveBeenCalledWith({
-        provider: 'aws',
-        config: {
-          region: 'us-east-1',
-          accountId: '123456789',
-        },
+        provider: 'nmap',
+        config: { targets: ['192.168.1.0/24'] },
       });
     });
 
-    // Should reset to initial state after successful trigger
     await waitFor(() => {
-      expect(screen.getByText('Select Provider')).toBeInTheDocument();
+      expect(mockNavigate).toHaveBeenCalledWith('/discovery?tab=jobs');
     });
   });
 
-  it('displays provider-specific descriptions', () => {
-    vi.mocked(useDiscoveryHook.useDiscovery).mockReturnValue(defaultMockDiscovery);
-
-    renderWithQueryClient(<DiscoveryJobTrigger />);
-
-    expect(screen.getByText(/discover ec2, rds, s3/i)).toBeInTheDocument();
-    expect(screen.getByText(/discover vms, databases/i)).toBeInTheDocument();
-    expect(screen.getByText(/discover compute engine/i)).toBeInTheDocument();
-    expect(screen.getByText(/discover linux\/unix servers/i)).toBeInTheDocument();
-    expect(screen.getByText(/discover network devices/i)).toBeInTheDocument();
-  });
-
-  it('shows configuration in review step', async () => {
+  it('does not navigate when ad-hoc trigger returns null (failure)', async () => {
     const user = userEvent.setup();
-    vi.mocked(useDiscoveryHook.useDiscovery).mockReturnValue(defaultMockDiscovery);
+    mockTriggerJob.mockResolvedValue(null);
 
     renderWithQueryClient(<DiscoveryJobTrigger />);
 
-    // Navigate to review step
-    await user.click(screen.getByLabelText(/amazon web services/i));
-    await user.click(screen.getByRole('button', { name: /next/i }));
+    await user.click(screen.getByTestId('adhoc-run-btn'));
 
     await waitFor(() => {
-      expect(screen.getByTestId('submit-config')).toBeInTheDocument();
+      expect(mockTriggerJob).toHaveBeenCalled();
     });
-    await user.click(screen.getByTestId('submit-config'));
 
-    // Review step should show configuration
-    await waitFor(() => {
-      expect(screen.getByText('Configuration')).toBeInTheDocument();
-      expect(screen.getByText(/us-east-1/i)).toBeInTheDocument();
-      expect(screen.getByText(/123456789/i)).toBeInTheDocument();
-    });
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it('disables trigger button during loading', async () => {
+  it('saves definition then triggers ad-hoc job on Save & Run', async () => {
     const user = userEvent.setup();
-    const mockTriggerJob = vi.fn().mockImplementation(
-      () => new Promise((resolve) => setTimeout(() => resolve(mockApiHandlers.triggerDiscoveryJob.success), 100))
-    );
-
-    vi.mocked(useDiscoveryHook.useDiscovery).mockReturnValue({
-      triggerJob: mockTriggerJob,
-      loading: true,
-    });
+    mockCreateDefinition.mockResolvedValue(undefined);
+    mockTriggerJob.mockResolvedValue(mockApiHandlers.triggerDiscoveryJob.success);
 
     renderWithQueryClient(<DiscoveryJobTrigger />);
 
-    // Navigate to review step
-    await user.click(screen.getByLabelText(/amazon web services/i));
-    await user.click(screen.getByRole('button', { name: /next/i }));
-    await waitFor(() => screen.getByTestId('submit-config'));
-    await user.click(screen.getByTestId('submit-config'));
+    await user.click(screen.getByTestId('save-run-btn'));
 
     await waitFor(() => {
-      const triggerButton = screen.getByRole('button', { name: /trigger discovery/i });
-      expect(triggerButton).toBeDisabled();
+      expect(mockCreateDefinition).toHaveBeenCalledWith({
+        provider: 'ssh',
+        config: { hosts: ['10.0.0.1'] },
+        name: 'SSH Scan',
+        schedule: { enabled: false },
+      });
     });
-  });
-
-  it('highlights selected provider', async () => {
-    const user = userEvent.setup();
-    vi.mocked(useDiscoveryHook.useDiscovery).mockReturnValue(defaultMockDiscovery);
-
-    renderWithQueryClient(<DiscoveryJobTrigger />);
-
-    const awsOption = screen.getByLabelText(/amazon web services/i);
-    await user.click(awsOption);
-
-    // The selected provider should be highlighted (checked)
-    expect(awsOption).toBeChecked();
-  });
-
-  it('displays stepper with correct active step', async () => {
-    const user = userEvent.setup();
-    vi.mocked(useDiscoveryHook.useDiscovery).mockReturnValue(defaultMockDiscovery);
-
-    renderWithQueryClient(<DiscoveryJobTrigger />);
-
-    // Initially step 1 should be active
-    expect(screen.getByText('Select Provider')).toBeInTheDocument();
-
-    // Navigate to step 2
-    await user.click(screen.getByLabelText(/amazon web services/i));
-    await user.click(screen.getByRole('button', { name: /next/i }));
 
     await waitFor(() => {
-      expect(screen.getByText('Configure')).toBeInTheDocument();
+      expect(mockTriggerJob).toHaveBeenCalledWith({
+        provider: 'ssh',
+        config: { hosts: ['10.0.0.1'] },
+      });
     });
   });
 
-  it('resets configuration when changing provider', async () => {
+  it('does not trigger job when createDefinition fails on Save & Run', async () => {
     const user = userEvent.setup();
-    vi.mocked(useDiscoveryHook.useDiscovery).mockReturnValue(defaultMockDiscovery);
+    mockCreateDefinition.mockRejectedValue(new Error('Creation failed'));
 
     renderWithQueryClient(<DiscoveryJobTrigger />);
 
-    // Select AWS
-    await user.click(screen.getByLabelText(/amazon web services/i));
+    await user.click(screen.getByTestId('save-run-btn'));
 
-    // Change to Azure
-    await user.click(screen.getByLabelText(/microsoft azure/i));
-
-    // Configuration should be reset (implicitly tested by checking the selected provider)
-    const azureOption = screen.getByLabelText(/microsoft azure/i);
-    expect(azureOption).toBeChecked();
-  });
-
-  it('shows alert message in review step', async () => {
-    const user = userEvent.setup();
-    vi.mocked(useDiscoveryHook.useDiscovery).mockReturnValue(defaultMockDiscovery);
-
-    renderWithQueryClient(<DiscoveryJobTrigger />);
-
-    // Navigate to review step
-    await user.click(screen.getByLabelText(/amazon web services/i));
-    await user.click(screen.getByRole('button', { name: /next/i }));
-    await waitFor(() => screen.getByTestId('submit-config'));
-    await user.click(screen.getByTestId('submit-config'));
-
-    // Should show review alert
     await waitFor(() => {
-      expect(screen.getByText(/review your configuration before triggering/i)).toBeInTheDocument();
+      expect(mockCreateDefinition).toHaveBeenCalled();
     });
+
+    // triggerJob should NOT be called because createDefinition failed
+    expect(mockTriggerJob).not.toHaveBeenCalled();
+  });
+
+  it('navigates to dashboard on cancel', async () => {
+    const user = userEvent.setup();
+
+    renderWithQueryClient(<DiscoveryJobTrigger />);
+
+    await user.click(screen.getByTestId('cancel-btn'));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/discovery?tab=dashboard');
+  });
+
+  it('passes onAdHocRun callback to the form', () => {
+    renderWithQueryClient(<DiscoveryJobTrigger />);
+
+    expect(capturedProps.onAdHocRun).toBeDefined();
+    expect(typeof capturedProps.onAdHocRun).toBe('function');
+  });
+
+  it('passes onSubmit callback to the form', () => {
+    renderWithQueryClient(<DiscoveryJobTrigger />);
+
+    expect(capturedProps.onSubmit).toBeDefined();
+    expect(typeof capturedProps.onSubmit).toBe('function');
+  });
+
+  it('passes onCancel callback to the form', () => {
+    renderWithQueryClient(<DiscoveryJobTrigger />);
+
+    expect(capturedProps.onCancel).toBeDefined();
+    expect(typeof capturedProps.onCancel).toBe('function');
+  });
+
+  it('wraps content in a LiquidGlass container', () => {
+    const { container } = renderWithQueryClient(<DiscoveryJobTrigger />);
+
+    // The component renders inside a LiquidGlass which has specific class patterns
+    const heading = screen.getByText('Ad Hoc Discovery');
+    expect(heading.closest('.p-6')).toBeInTheDocument();
   });
 });

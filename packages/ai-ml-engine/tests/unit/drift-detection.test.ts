@@ -6,7 +6,6 @@
  * Tests for configuration drift detection by comparing baseline snapshots
  */
 
-import { ConfigurationDriftDetector } from '../../src/engines/configuration-drift-detector';
 import { AnomalySeverity } from '../../src/types/anomaly.types';
 import {
   mockCIs,
@@ -16,6 +15,7 @@ import {
   createMockNeo4jSession,
   createMockPgClient,
   createMockEventProducer,
+  createMockNeo4jRecord,
 } from '../fixtures/test-data';
 
 // Mock dependencies
@@ -26,6 +26,8 @@ jest.mock('uuid', () => ({ v4: () => 'drift-test-uuid' }));
 import { getNeo4jClient, getPostgresClient } from '@cmdb/database';
 import { getEventProducer } from '@cmdb/event-processor';
 
+import { ConfigurationDriftDetector } from '../../src/engines/configuration-drift-detector';
+
 describe('ConfigurationDriftDetector', () => {
   let detector: ConfigurationDriftDetector;
   let mockNeo4jClient: any;
@@ -34,6 +36,9 @@ describe('ConfigurationDriftDetector', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Reset singleton so each test gets a fresh instance
+    (ConfigurationDriftDetector as any).instance = undefined;
 
     mockNeo4jClient = {
       getSession: jest.fn(),
@@ -50,6 +55,8 @@ describe('ConfigurationDriftDetector', () => {
 
   describe('createBaseline', () => {
     it('should create configuration baseline snapshot', async () => {
+      // createBaseline calls neo4j to get CI, then filters system fields
+      // The CI node is accessed via record.get('ci').properties
       const mockSession = createMockNeo4jSession([
         {
           ci: mockCIs.webServer,
@@ -87,9 +94,13 @@ describe('ConfigurationDriftDetector', () => {
       ]);
 
       mockNeo4jClient.getSession.mockReturnValue(mockSession);
+
+      // For 'performance' snapshot, createBaseline first queries Neo4j for the CI,
+      // then calls capturePerformanceSnapshot which queries postgres for metrics.
+      // The storeBaseline call also queries postgres.
       mockPgClient.query
-        .mockResolvedValueOnce({ rows: mockTimeSeriesMetrics })
-        .mockResolvedValueOnce({ rows: [] });
+        .mockResolvedValueOnce({ rows: mockTimeSeriesMetrics }) // capturePerformanceSnapshot
+        .mockResolvedValueOnce({ rows: [] }); // storeBaseline INSERT
 
       const baseline = await detector.createBaseline(
         'ci-web-001',
@@ -103,46 +114,36 @@ describe('ConfigurationDriftDetector', () => {
     });
 
     it('should create relationships baseline', async () => {
-      const mockSession = createMockNeo4jSession([
+      // createBaseline for 'relationships' calls:
+      // 1. neo4j session.run to get CI node (first getSession call)
+      // 2. Then captureRelationshipsSnapshot opens a NEW session (second getSession call)
+
+      // First session: get CI node
+      const ciSession = createMockNeo4jSession([
         {
           ci: mockCIs.webServer,
         },
       ]);
 
-      // Mock relationships query
-      mockSession.run
-        .mockResolvedValueOnce({
+      // Second session: get relationships
+      const relSession = {
+        run: jest.fn().mockResolvedValueOnce({
           records: [
-            {
-              get: (key: string) => {
-                const data: Record<string, any> = {
-                  rel_type: 'DEPENDS_ON',
-                  related_id: 'ci-db-001',
-                  related_name: 'postgres-prod-01',
-                  is_outgoing: true,
-                };
-                return data[key];
-              },
-            },
+            createMockNeo4jRecord({
+              rel_type: 'DEPENDS_ON',
+              related_id: 'ci-db-001',
+              related_name: 'postgres-prod-01',
+              is_outgoing: true,
+            }),
           ],
-        })
-        .mockResolvedValueOnce({
-          records: [
-            {
-              get: (key: string) => {
-                const data: Record<string, any> = {
-                  rel_type: 'DEPENDS_ON',
-                  related_id: 'ci-db-001',
-                  related_name: 'postgres-prod-01',
-                  is_outgoing: true,
-                };
-                return data[key];
-              },
-            },
-          ],
-        });
+        }),
+        close: jest.fn().mockResolvedValue(undefined),
+      };
 
-      mockNeo4jClient.getSession.mockReturnValue(mockSession);
+      mockNeo4jClient.getSession
+        .mockReturnValueOnce(ciSession)
+        .mockReturnValueOnce(relSession);
+
       mockPgClient.query.mockResolvedValue({ rows: [] });
 
       const baseline = await detector.createBaseline(
@@ -168,19 +169,28 @@ describe('ConfigurationDriftDetector', () => {
   });
 
   describe('detectDrift', () => {
+    /**
+     * Helper: detectDrift flow:
+     * 1. getApprovedBaseline -> postgres query (needs is_approved baseline row)
+     * 2. neo4j session.run to get current CI
+     * 3. captureConfigurationSnapshot (filters system fields)
+     * 4. compareConfigurations
+     * 5. storeDriftResult -> postgres INSERT
+     * 6. optionally emit event
+     */
+
     it('should detect no drift when configuration unchanged', async () => {
-      // Mock approved baseline
+      // First postgres query: getApprovedBaseline
       mockPgClient.query
         .mockResolvedValueOnce({
           rows: [mockBaselineSnapshots.configuration],
         })
-        .mockResolvedValueOnce({ rows: [] });
+        .mockResolvedValue({ rows: [] }); // storeDriftResult
 
+      // Neo4j: get current CI config
       const mockSession = createMockNeo4jSession([
         {
-          ci: {
-            properties: mockDriftedConfig.noChange,
-          },
+          ci: mockDriftedConfig.noChange,
         },
       ]);
 
@@ -198,13 +208,11 @@ describe('ConfigurationDriftDetector', () => {
         .mockResolvedValueOnce({
           rows: [mockBaselineSnapshots.configuration],
         })
-        .mockResolvedValueOnce({ rows: [] });
+        .mockResolvedValue({ rows: [] });
 
       const mockSession = createMockNeo4jSession([
         {
-          ci: {
-            properties: mockDriftedConfig.minorDrift,
-          },
+          ci: mockDriftedConfig.minorDrift,
         },
       ]);
 
@@ -229,13 +237,11 @@ describe('ConfigurationDriftDetector', () => {
         .mockResolvedValueOnce({
           rows: [mockBaselineSnapshots.configuration],
         })
-        .mockResolvedValueOnce({ rows: [] });
+        .mockResolvedValue({ rows: [] });
 
       const mockSession = createMockNeo4jSession([
         {
-          ci: {
-            properties: mockDriftedConfig.criticalDrift,
-          },
+          ci: mockDriftedConfig.criticalDrift,
         },
       ]);
 
@@ -258,13 +264,11 @@ describe('ConfigurationDriftDetector', () => {
         .mockResolvedValueOnce({
           rows: [mockBaselineSnapshots.configuration],
         })
-        .mockResolvedValueOnce({ rows: [] });
+        .mockResolvedValue({ rows: [] });
 
       const mockSession = createMockNeo4jSession([
         {
-          ci: {
-            properties: mockDriftedConfig.fieldAdded,
-          },
+          ci: mockDriftedConfig.fieldAdded,
         },
       ]);
 
@@ -286,13 +290,11 @@ describe('ConfigurationDriftDetector', () => {
         .mockResolvedValueOnce({
           rows: [mockBaselineSnapshots.configuration],
         })
-        .mockResolvedValueOnce({ rows: [] });
+        .mockResolvedValue({ rows: [] });
 
       const mockSession = createMockNeo4jSession([
         {
-          ci: {
-            properties: mockDriftedConfig.fieldRemoved,
-          },
+          ci: mockDriftedConfig.fieldRemoved,
         },
       ]);
 
@@ -313,13 +315,11 @@ describe('ConfigurationDriftDetector', () => {
         .mockResolvedValueOnce({
           rows: [mockBaselineSnapshots.configuration],
         })
-        .mockResolvedValueOnce({ rows: [] });
+        .mockResolvedValue({ rows: [] });
 
       const mockSession = createMockNeo4jSession([
         {
-          ci: {
-            properties: mockDriftedConfig.criticalDrift,
-          },
+          ci: mockDriftedConfig.criticalDrift,
         },
       ]);
 
@@ -335,7 +335,7 @@ describe('ConfigurationDriftDetector', () => {
         .mockResolvedValueOnce({
           rows: [mockBaselineSnapshots.configuration],
         })
-        .mockResolvedValueOnce({ rows: [] });
+        .mockResolvedValue({ rows: [] });
 
       // Create config with very minor drift (score < 30)
       const minorConfig = {
@@ -345,9 +345,7 @@ describe('ConfigurationDriftDetector', () => {
 
       const mockSession = createMockNeo4jSession([
         {
-          ci: {
-            properties: minorConfig,
-          },
+          ci: minorConfig,
         },
       ]);
 
@@ -380,7 +378,7 @@ describe('ConfigurationDriftDetector', () => {
               approved_at: new Date(),
             },
           ],
-        }); // SELECT
+        }); // SELECT after update
 
       const result = await detector.approveBaseline('baseline-001', 'admin');
 
@@ -423,7 +421,7 @@ describe('ConfigurationDriftDetector', () => {
         .mockResolvedValueOnce({
           rows: [mockBaselineSnapshots.configuration],
         })
-        .mockResolvedValueOnce({ rows: [] });
+        .mockResolvedValue({ rows: [] });
 
       const configMissingIP = {
         ...mockDriftedConfig.noChange,
@@ -432,9 +430,7 @@ describe('ConfigurationDriftDetector', () => {
 
       const mockSession = createMockNeo4jSession([
         {
-          ci: {
-            properties: configMissingIP,
-          },
+          ci: configMissingIP,
         },
       ]);
 
@@ -464,13 +460,11 @@ describe('ConfigurationDriftDetector', () => {
         .mockResolvedValueOnce({
           rows: [baselineWithCreds],
         })
-        .mockResolvedValueOnce({ rows: [] });
+        .mockResolvedValue({ rows: [] });
 
       const mockSession = createMockNeo4jSession([
         {
-          ci: {
-            properties: currentWithNewCreds,
-          },
+          ci: currentWithNewCreds,
         },
       ]);
 
@@ -500,13 +494,11 @@ describe('ConfigurationDriftDetector', () => {
         .mockResolvedValueOnce({
           rows: [baselineWithArray],
         })
-        .mockResolvedValueOnce({ rows: [] });
+        .mockResolvedValue({ rows: [] });
 
       const mockSession = createMockNeo4jSession([
         {
-          ci: {
-            properties: currentWithChangedArray,
-          },
+          ci: currentWithChangedArray,
         },
       ]);
 
@@ -535,13 +527,11 @@ describe('ConfigurationDriftDetector', () => {
         .mockResolvedValueOnce({
           rows: [baselineWithNested],
         })
-        .mockResolvedValueOnce({ rows: [] });
+        .mockResolvedValue({ rows: [] });
 
       const mockSession = createMockNeo4jSession([
         {
-          ci: {
-            properties: currentWithChangedNested,
-          },
+          ci: currentWithChangedNested,
         },
       ]);
 
@@ -560,13 +550,11 @@ describe('ConfigurationDriftDetector', () => {
         .mockResolvedValueOnce({
           rows: [mockBaselineSnapshots.configuration],
         })
-        .mockResolvedValueOnce({ rows: [] });
+        .mockResolvedValue({ rows: [] });
 
       const mockSession = createMockNeo4jSession([
         {
-          ci: {
-            properties: mockDriftedConfig.criticalDrift,
-          },
+          ci: mockDriftedConfig.criticalDrift,
         },
       ]);
 
@@ -606,13 +594,11 @@ describe('ConfigurationDriftDetector', () => {
         .mockResolvedValueOnce({
           rows: [baselineWithManyFields],
         })
-        .mockResolvedValueOnce({ rows: [] });
+        .mockResolvedValue({ rows: [] });
 
       const mockSession = createMockNeo4jSession([
         {
-          ci: {
-            properties: extremelyDriftedConfig,
-          },
+          ci: extremelyDriftedConfig,
         },
       ]);
 

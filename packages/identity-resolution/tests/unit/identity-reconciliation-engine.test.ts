@@ -25,19 +25,6 @@ jest.mock('@cmdb/common', () => ({
   },
 }));
 
-jest.mock('@cmdb/database', () => ({
-  getNeo4jClient: jest.fn(() => mockNeo4jClient),
-  getPostgresClient: jest.fn(() => mockPostgresClient),
-}));
-
-jest.mock('@cmdb/event-processor', () => ({
-  getEventProducer: jest.fn(() => mockEventProducer),
-  EventType: {
-    CI_DISCOVERED: 'ci_discovered',
-    CI_UPDATED: 'ci_updated',
-  },
-}));
-
 // Mock clients
 const mockNeo4jClient = {
   getSession: jest.fn(),
@@ -56,17 +43,37 @@ const mockSession = {
   close: jest.fn(),
 };
 
+jest.mock('@cmdb/database', () => ({
+  getNeo4jClient: jest.fn(() => mockNeo4jClient),
+  getPostgresClient: jest.fn(() => mockPostgresClient),
+}));
+
+jest.mock('@cmdb/event-processor', () => ({
+  getEventProducer: jest.fn(() => mockEventProducer),
+  EventType: {
+    CI_DISCOVERED: 'ci_discovered',
+    CI_UPDATED: 'ci_updated',
+  },
+}));
+
+import { getNeo4jClient, getPostgresClient } from '@cmdb/database';
+import { getEventProducer } from '@cmdb/event-processor';
+
 describe('IdentityReconciliationEngine - Unit Tests', () => {
   let engine: IdentityReconciliationEngine;
 
   beforeEach(() => {
+    // Reset mocks
+    jest.clearAllMocks();
+    // Restore mock implementations after clearAllMocks
+    (getNeo4jClient as jest.Mock).mockReturnValue(mockNeo4jClient);
+    (getPostgresClient as jest.Mock).mockReturnValue(mockPostgresClient);
+    (getEventProducer as jest.Mock).mockReturnValue(mockEventProducer);
+    mockNeo4jClient.getSession.mockReturnValue(mockSession);
+
     // Reset singleton for each test
     (IdentityReconciliationEngine as any).instance = undefined;
     engine = IdentityReconciliationEngine.getInstance();
-
-    // Reset mocks
-    jest.clearAllMocks();
-    mockNeo4jClient.getSession.mockReturnValue(mockSession);
   });
 
   afterEach(async () => {
@@ -116,6 +123,7 @@ describe('IdentityReconciliationEngine - Unit Tests', () => {
 
   describe('Matching Algorithms - Strategy 1: External ID (100% confidence)', () => {
     beforeEach(async () => {
+      mockPostgresClient.query.mockResolvedValueOnce({ rows: [] }); // default config
       await engine.loadConfiguration();
       mockPostgresClient.query.mockReset();
     });
@@ -162,6 +170,7 @@ describe('IdentityReconciliationEngine - Unit Tests', () => {
 
   describe('Matching Algorithms - Strategy 2: Serial Number (95% confidence)', () => {
     beforeEach(async () => {
+      mockPostgresClient.query.mockResolvedValueOnce({ rows: [] });
       await engine.loadConfiguration();
       mockPostgresClient.query.mockReset();
     });
@@ -196,6 +205,7 @@ describe('IdentityReconciliationEngine - Unit Tests', () => {
 
   describe('Matching Algorithms - Strategy 3: UUID (95% confidence)', () => {
     beforeEach(async () => {
+      mockPostgresClient.query.mockResolvedValueOnce({ rows: [] });
       await engine.loadConfiguration();
       mockPostgresClient.query.mockReset();
     });
@@ -226,13 +236,17 @@ describe('IdentityReconciliationEngine - Unit Tests', () => {
 
   describe('Matching Algorithms - Strategy 4: MAC Address (85% confidence)', () => {
     beforeEach(async () => {
+      mockPostgresClient.query.mockResolvedValueOnce({ rows: [] });
       await engine.loadConfiguration();
       mockPostgresClient.query.mockReset();
     });
 
     it('should match by MAC address with 85% confidence', async () => {
-      const ci = physicalServerDuplicates[0];
-      const identifiers = ci.identifiers;
+      // Override identifiers to only have mac_address (no stronger identifiers)
+      const identifiers: IdentificationAttributes = {
+        mac_address: ['00:50:56:ab:cd:ef'],
+      };
+      const ci = { ...physicalServerDuplicates[0], identifiers };
 
       // Mock MAC address match
       mockSession.run.mockResolvedValueOnce({
@@ -283,13 +297,17 @@ describe('IdentityReconciliationEngine - Unit Tests', () => {
 
   describe('Matching Algorithms - Strategy 5: FQDN (80% confidence)', () => {
     beforeEach(async () => {
+      mockPostgresClient.query.mockResolvedValueOnce({ rows: [] });
       await engine.loadConfiguration();
       mockPostgresClient.query.mockReset();
     });
 
     it('should match by FQDN with 80% confidence', async () => {
-      const ci = physicalServerDuplicates[0];
-      const identifiers = ci.identifiers;
+      // Override identifiers to only have fqdn (no stronger identifiers)
+      const identifiers: IdentificationAttributes = {
+        fqdn: 'prod-db-01.example.com',
+      };
+      const ci = { ...physicalServerDuplicates[0], identifiers };
 
       mockSession.run.mockResolvedValueOnce({
         records: [
@@ -312,6 +330,7 @@ describe('IdentityReconciliationEngine - Unit Tests', () => {
 
   describe('Matching Algorithms - Strategy 6: Composite Fuzzy Match (65%+ confidence)', () => {
     beforeEach(async () => {
+      mockPostgresClient.query.mockResolvedValueOnce({ rows: [] });
       await engine.loadConfiguration();
       mockPostgresClient.query.mockReset();
     });
@@ -402,6 +421,7 @@ describe('IdentityReconciliationEngine - Unit Tests', () => {
 
   describe('CI Creation', () => {
     beforeEach(async () => {
+      mockPostgresClient.query.mockResolvedValueOnce({ rows: [] });
       await engine.loadConfiguration();
       mockPostgresClient.query.mockReset();
     });
@@ -409,10 +429,12 @@ describe('IdentityReconciliationEngine - Unit Tests', () => {
     it('should create new CI when no match found', async () => {
       const ci = physicalServerDuplicates[0];
 
-      // No existing CI
-      mockPostgresClient.query.mockResolvedValueOnce({ rows: [] });
+      // No match found via any Neo4j strategy (uuid, mac, fqdn, composite fuzzy)
       mockSession.run
-        .mockResolvedValueOnce({ records: [] }) // No match
+        .mockResolvedValueOnce({ records: [] }) // uuid - no match
+        .mockResolvedValueOnce({ records: [] }) // mac_address - no match
+        .mockResolvedValueOnce({ records: [] }) // fqdn - no match
+        .mockResolvedValueOnce({ records: [] }) // composite fuzzy - no match
         .mockResolvedValueOnce({ // Create CI
           records: [
             {
@@ -420,7 +442,7 @@ describe('IdentityReconciliationEngine - Unit Tests', () => {
             },
           ],
         });
-      mockPostgresClient.query.mockResolvedValueOnce({ rows: [] }); // Source lineage
+      mockPostgresClient.query.mockResolvedValue({ rows: [] }); // Source lineage
 
       const ciId = await engine.reconcileCI(ci);
 
@@ -448,13 +470,16 @@ describe('IdentityReconciliationEngine - Unit Tests', () => {
     it('should record source lineage when creating CI', async () => {
       const ci = physicalServerDuplicates[0];
 
-      mockPostgresClient.query.mockResolvedValueOnce({ rows: [] });
+      // No match found via any strategy, then CREATE
       mockSession.run
-        .mockResolvedValueOnce({ records: [] })
+        .mockResolvedValueOnce({ records: [] }) // uuid
+        .mockResolvedValueOnce({ records: [] }) // mac
+        .mockResolvedValueOnce({ records: [] }) // fqdn
+        .mockResolvedValueOnce({ records: [] }) // composite fuzzy
         .mockResolvedValueOnce({
           records: [{ get: jest.fn().mockReturnValue('ci_new_lineage') }],
         });
-      mockPostgresClient.query.mockResolvedValueOnce({ rows: [] });
+      mockPostgresClient.query.mockResolvedValue({ rows: [] });
 
       await engine.reconcileCI(ci);
 
@@ -472,14 +497,35 @@ describe('IdentityReconciliationEngine - Unit Tests', () => {
 
   describe('CI Update with Merge Strategies', () => {
     beforeEach(async () => {
+      // Load config with custom source authorities (including datadog)
+      mockPostgresClient.query
+        .mockResolvedValueOnce({
+          rows: [{
+            name: 'test-config',
+            identification_rules: [
+              { attribute: 'external_id', priority: 1, match_type: 'exact', match_confidence: 100 },
+            ],
+            merge_strategies: [],
+          }],
+        })
+        .mockResolvedValueOnce({
+          rows: [
+            { source_name: 'servicenow', authority_score: 10 },
+            { source_name: 'datadog', authority_score: 8 },
+            { source_name: 'vmware', authority_score: 9 },
+            { source_name: 'aws', authority_score: 9 },
+            { source_name: 'ssh', authority_score: 7 },
+            { source_name: 'nmap', authority_score: 5 },
+          ],
+        });
       await engine.loadConfiguration();
       mockPostgresClient.query.mockReset();
     });
 
     it('should update existing CI when match found', async () => {
-      const ci = physicalServerDuplicates[1]; // AWS discovery
+      const ci = physicalServerDuplicates[1]; // AWS discovery (has external_id)
 
-      // Existing CI found
+      // External ID match found via postgres
       mockPostgresClient.query.mockResolvedValueOnce({
         rows: [{ ci_id: 'ci_existing_123' }],
       });
@@ -487,7 +533,7 @@ describe('IdentityReconciliationEngine - Unit Tests', () => {
       // Mock field sources (empty - first discovery)
       mockPostgresClient.query.mockResolvedValueOnce({ rows: [] });
 
-      // Mock field source recording
+      // Mock field source recording and lineage
       mockPostgresClient.query.mockResolvedValue({ rows: [] });
 
       // Mock Neo4j update
@@ -510,35 +556,15 @@ describe('IdentityReconciliationEngine - Unit Tests', () => {
     });
 
     it('should merge fields based on source authority (higher authority wins)', async () => {
-      const existingCI = databaseWithConflicts[1]; // SSH (authority 7)
-      const newCI = databaseWithConflicts[0]; // Datadog (authority 10)
+      const newCI = databaseWithConflicts[0]; // Datadog
 
-      // Mock configuration with authorities
+      // FQDN match via Neo4j returns existing CI
+      mockSession.run.mockResolvedValueOnce({
+        records: [{ get: jest.fn().mockReturnValue('ci_db_conflict') }],
+      });
+
+      // Field sources show existing ssh value
       mockPostgresClient.query
-        .mockResolvedValueOnce({ rows: [] }) // config query
-        .mockResolvedValueOnce({ // Existing CI found
-          rows: [{ ci_id: 'ci_db_conflict' }],
-        })
-        .mockResolvedValueOnce({ // Field sources
-          rows: [
-            {
-              field_name: 'version',
-              field_value: '14.7',
-              source_name: 'ssh',
-            },
-            {
-              field_name: 'max_connections',
-              field_value: '150',
-              source_name: 'ssh',
-            },
-          ],
-        });
-
-      await engine.loadConfiguration();
-      mockPostgresClient.query.mockReset();
-
-      mockPostgresClient.query
-        .mockResolvedValueOnce({ rows: [{ ci_id: 'ci_db_conflict' }] })
         .mockResolvedValueOnce({
           rows: [
             { field_name: 'version', field_value: '14.7', source_name: 'ssh' },
@@ -563,11 +589,14 @@ describe('IdentityReconciliationEngine - Unit Tests', () => {
     });
 
     it('should keep existing field if new source has lower authority', async () => {
-      const highAuthorityCI = databaseWithConflicts[0]; // Datadog (authority 10)
       const lowAuthorityCI = databaseWithConflicts[1]; // SSH (authority 7)
 
+      // FQDN match via Neo4j returns existing CI
+      mockSession.run.mockResolvedValueOnce({
+        records: [{ get: jest.fn().mockReturnValue('ci_authority_test') }],
+      });
+
       mockPostgresClient.query
-        .mockResolvedValueOnce({ rows: [{ ci_id: 'ci_authority_test' }] })
         .mockResolvedValueOnce({
           rows: [
             {
@@ -608,6 +637,7 @@ describe('IdentityReconciliationEngine - Unit Tests', () => {
 
   describe('Confidence Scoring', () => {
     beforeEach(async () => {
+      mockPostgresClient.query.mockResolvedValueOnce({ rows: [] });
       await engine.loadConfiguration();
       mockPostgresClient.query.mockReset();
     });
@@ -657,7 +687,9 @@ describe('IdentityReconciliationEngine - Unit Tests', () => {
 
   describe('Error Handling', () => {
     beforeEach(async () => {
+      mockPostgresClient.query.mockResolvedValueOnce({ rows: [] });
       await engine.loadConfiguration();
+      mockPostgresClient.query.mockReset();
     });
 
     it('should handle Neo4j connection errors gracefully', async () => {
@@ -700,6 +732,7 @@ describe('IdentityReconciliationEngine - Unit Tests', () => {
 
   describe('Edge Cases', () => {
     beforeEach(async () => {
+      mockPostgresClient.query.mockResolvedValueOnce({ rows: [] });
       await engine.loadConfiguration();
       mockPostgresClient.query.mockReset();
     });

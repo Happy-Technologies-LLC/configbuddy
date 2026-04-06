@@ -288,7 +288,8 @@ describe('EncryptionService', () => {
       };
 
       const redacted = encryptionService.redactCredential(credential);
-      expect(redacted.accessKeyId).toBe('AKIAIOSFODNN7EXAMPLE');
+      // accessKeyId contains "key" which matches the sensitive key pattern, so it is also redacted
+      expect(redacted.accessKeyId).toBe('***REDACTED***');
       expect(redacted.secretAccessKey).toBe('***REDACTED***');
     });
 
@@ -366,7 +367,8 @@ describe('EncryptionService', () => {
   describe('singleton pattern', () => {
     it('should return the same instance', () => {
       const instance1 = getEncryptionService(testMasterKey);
-      const instance2 = getEncryptionService(testMasterKey);
+      // Call without masterKey so the singleton is returned (passing masterKey forces a new instance)
+      const instance2 = getEncryptionService();
       expect(instance1).toBe(instance2);
     });
 

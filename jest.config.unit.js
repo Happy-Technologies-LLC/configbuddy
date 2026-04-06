@@ -50,7 +50,7 @@ module.exports = {
   ],
 
   // Coverage thresholds (80% target)
-  coverageThresholds: {
+  coverageThreshold: {
     global: {
       branches: 80,
       functions: 80,
@@ -75,10 +75,21 @@ module.exports = {
       'ts-jest',
       {
         tsconfig: {
+          target: 'ES2022',
+          module: 'commonjs',
+          moduleResolution: 'node',
           esModuleInterop: true,
           allowSyntheticDefaultImports: true,
           resolveJsonModule: true,
-          moduleResolution: 'node',
+          strict: false,
+          noUnusedLocals: false,
+          noUnusedParameters: false,
+          noPropertyAccessFromIndexSignature: false,
+          composite: false,
+          incremental: false,
+          declaration: false,
+          declarationMap: false,
+          sourceMap: false,
         },
       },
     ],
@@ -113,13 +124,6 @@ module.exports = {
       },
     ],
   ],
-
-  // Globals
-  globals: {
-    'ts-jest': {
-      isolatedModules: true, // Faster compilation
-    },
-  },
 
   // Maximum number of workers (parallel test execution)
   maxWorkers: '50%',

@@ -46,6 +46,7 @@ export const CostBreakdownChart: React.FC<CostBreakdownChartProps> = ({
   onItemClick,
 }) => {
   const formatCurrency = (value: number) => {
+    if (value == null || isNaN(value)) return '$0';
     if (value >= 1000000) {
       return `$${(value / 1000000).toFixed(2)}M`;
     }

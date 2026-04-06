@@ -397,11 +397,15 @@ export function getETLWorkerManager(): ETLWorkerManager {
 // Export ETL Scheduler from the schedulers module
 export { getETLScheduler, ETLScheduler } from './schedulers/etl-scheduler';
 
+// v3.0 ETL Imports (needed for initializeV3ETL/shutdownV3ETL)
+import { getV3ETLScheduler, V3ETLScheduler } from './schedulers/v3-etl-scheduler';
+import { getV3ETLWorkerManager, V3ETLWorkerManager, CISyncWorker, CostValidationWorker, IncidentSyncWorker } from './workers/v3-etl.worker';
+
 // v3.0 ETL Exports
 export {
   getV3ETLScheduler,
   V3ETLScheduler,
-} from './schedulers/v3-etl-scheduler';
+};
 
 export {
   getV3ETLWorkerManager,
@@ -409,7 +413,7 @@ export {
   CISyncWorker,
   CostValidationWorker,
   IncidentSyncWorker,
-} from './workers/v3-etl.worker';
+};
 
 export {
   processSyncCIsToDatamart,

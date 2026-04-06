@@ -9,23 +9,7 @@ import { EventConsumer, createEventConsumer } from '../../src/kafka/event-consum
 import { EventType, CMDBEvent } from '../../src/types/events';
 
 // Mock kafkajs
-jest.mock('kafkajs', () => {
-  const mockConsumer = {
-    connect: jest.fn(),
-    disconnect: jest.fn(),
-    subscribe: jest.fn(),
-    run: jest.fn(),
-    pause: jest.fn(),
-    resume: jest.fn(),
-    seek: jest.fn(),
-  };
-
-  return {
-    Kafka: jest.fn(() => ({
-      consumer: jest.fn(() => mockConsumer),
-    })),
-  };
-});
+jest.mock('kafkajs');
 
 // Mock logger
 jest.mock('@cmdb/common', () => ({
@@ -47,13 +31,22 @@ describe('EventConsumer', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    const kafka = new Kafka({ clientId: 'test', brokers: ['localhost:9092'] });
-    mockKafkaConsumer = kafka.consumer({ groupId: 'test-group' });
+    mockKafkaConsumer = {
+      connect: jest.fn().mockResolvedValue(undefined),
+      disconnect: jest.fn().mockResolvedValue(undefined),
+      subscribe: jest.fn().mockResolvedValue(undefined),
+      run: jest.fn().mockResolvedValue(undefined),
+      pause: jest.fn(),
+      resume: jest.fn(),
+      seek: jest.fn(),
+    };
 
-    mockKafkaConsumer.connect.mockResolvedValue(undefined);
-    mockKafkaConsumer.disconnect.mockResolvedValue(undefined);
-    mockKafkaConsumer.subscribe.mockResolvedValue(undefined);
-    mockKafkaConsumer.run.mockResolvedValue(undefined);
+    (Kafka as jest.MockedClass<typeof Kafka>).mockImplementation(() => ({
+      consumer: jest.fn(() => mockKafkaConsumer),
+      producer: jest.fn(),
+      admin: jest.fn(),
+      logger: jest.fn(),
+    } as any));
 
     consumer = new EventConsumer('test-group', ['localhost:9092'], 'test-client');
   });
@@ -234,7 +227,11 @@ describe('EventConsumer', () => {
 
       await (consumer as any).handleMessage(payload);
 
-      expect(handler).toHaveBeenCalledWith(event);
+      // After JSON serialization/deserialization, the Date becomes an ISO string
+      expect(handler).toHaveBeenCalledWith({
+        ...event,
+        timestamp: event.timestamp.toISOString(),
+      });
       expect(logger.debug).toHaveBeenCalledWith('Event processed', expect.any(Object));
     });
 

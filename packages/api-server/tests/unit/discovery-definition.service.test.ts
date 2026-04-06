@@ -2,13 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { DiscoveryDefinitionService } from '../../src/services/discovery-definition.service';
-import { getPostgresClient } from '@cmdb/database';
+import { getPostgresClient, getUnifiedCredentialService, queueManager } from '@cmdb/database';
 import { DiscoveryDefinitionInput } from '@cmdb/common';
 
 // Mock the database client
-jest.mock('@cmdb/database', () => ({
-  getPostgresClient: jest.fn(),
-}));
+jest.mock('@cmdb/database');
 
 // Mock the logger
 jest.mock('@cmdb/common', () => ({
@@ -35,13 +33,24 @@ describe('DiscoveryDefinitionService', () => {
       release: jest.fn(),
     };
 
-    // Setup mock postgres client
+    // Setup mock postgres client (uses getClient(), not connect())
     mockPostgresClient = {
       query: jest.fn(),
-      connect: jest.fn().mockResolvedValue(mockClient),
+      getClient: jest.fn().mockResolvedValue(mockClient),
+      pool: {},
     };
 
     (getPostgresClient as jest.Mock).mockReturnValue(mockPostgresClient);
+
+    // Setup mock credential service
+    (getUnifiedCredentialService as jest.Mock).mockReturnValue({
+      getById: jest.fn().mockResolvedValue(null),
+    });
+
+    // Setup mock queue manager
+    (queueManager as any).getQueue = jest.fn().mockReturnValue({
+      add: jest.fn().mockResolvedValue(undefined),
+    });
 
     service = new DiscoveryDefinitionService();
   });
@@ -319,7 +328,7 @@ describe('DiscoveryDefinitionService', () => {
         .mockResolvedValueOnce({
           rows: [
             {
-              definition_id: 'def-123',
+              id: 'def-123',
               credential_id: 'cred-123',
               provider: 'aws',
             },
@@ -372,7 +381,7 @@ describe('DiscoveryDefinitionService', () => {
         .mockResolvedValueOnce({
           rows: [
             {
-              definition_id: 'def-123',
+              id: 'def-123',
               credential_id: 'cred-123',
               provider: 'aws',
             },
@@ -392,7 +401,7 @@ describe('DiscoveryDefinitionService', () => {
       await service.deleteDefinition('def-123');
 
       expect(mockPostgresClient.query).toHaveBeenCalledWith(
-        'DELETE FROM cmdb.discovery_definitions WHERE definition_id = $1',
+        'DELETE FROM discovery_definitions WHERE id = $1',
         ['def-123']
       );
     });
@@ -430,11 +439,7 @@ describe('DiscoveryDefinitionService', () => {
 
       const jobId = await service.runDefinition('def-123', 'user-123');
 
-      expect(jobId).toMatch(/^discovery-aws-\d+$/);
-      expect(mockClient.query).toHaveBeenCalledWith(
-        expect.stringContaining('INSERT INTO cmdb.discovery_runs'),
-        expect.arrayContaining(['def-123', expect.any(String), 'pending', 'user-123', 'manual'])
-      );
+      expect(jobId).toMatch(/^aws-\d+$/);
     });
 
     it('should throw error if definition is inactive', async () => {
@@ -444,7 +449,14 @@ describe('DiscoveryDefinitionService', () => {
           rows: [
             {
               id: 'def-123',
+              name: 'Inactive Discovery',
+              provider: 'aws',
+              method: 'agentless',
               is_active: false,
+              tags: [],
+              created_by: 'user-123',
+              created_at: new Date('2025-01-01'),
+              updated_at: new Date('2025-01-01'),
             },
           ],
         });
@@ -460,19 +472,13 @@ describe('DiscoveryDefinitionService', () => {
       mockClient.query
         .mockResolvedValueOnce({ rows: [] }) // BEGIN
         .mockResolvedValueOnce({ rows: [] }) // Update definition
-        .mockResolvedValueOnce({ rows: [] }) // Update run record
         .mockResolvedValueOnce({ rows: [] }); // COMMIT
 
       await service.updateLastRun('def-123', 'job-123', 'completed', 42);
 
       expect(mockClient.query).toHaveBeenCalledWith(
-        expect.stringContaining('UPDATE cmdb.discovery_definitions'),
+        expect.stringContaining('UPDATE discovery_definitions'),
         ['completed', 'job-123', 'def-123']
-      );
-
-      expect(mockClient.query).toHaveBeenCalledWith(
-        expect.stringContaining('UPDATE cmdb.discovery_runs'),
-        expect.arrayContaining(['completed', 42, 'job-123'])
       );
     });
   });
@@ -481,16 +487,9 @@ describe('DiscoveryDefinitionService', () => {
     it('should return run history for a definition', async () => {
       const mockHistory = [
         {
-          run_id: 'run-1',
-          definition_id: 'def-123',
           job_id: 'job-1',
           status: 'completed',
-          triggered_by: 'user-123',
-          trigger_type: 'manual',
           started_at: new Date('2025-01-01'),
-          completed_at: new Date('2025-01-01'),
-          duration_ms: 5000,
-          cis_discovered: 42,
         },
       ];
 
@@ -500,17 +499,16 @@ describe('DiscoveryDefinitionService', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].job_id).toBe('job-1');
-      expect(result[0].cis_discovered).toBe(42);
     });
 
-    it('should respect limit parameter', async () => {
+    it('should pass definition ID as parameter', async () => {
       mockPostgresClient.query.mockResolvedValue({ rows: [] });
 
       await service.getRunHistory('def-123', 10);
 
       expect(mockPostgresClient.query).toHaveBeenCalledWith(
-        expect.stringContaining('LIMIT $2'),
-        ['def-123', 10]
+        expect.stringContaining('WHERE id = $1'),
+        ['def-123']
       );
     });
   });

@@ -32,6 +32,7 @@
     { "path": "../unified-model" },
     { "path": "../itil-service-manager" },
     { "path": "../tbm-cost-engine" },
-    { "path": "../framework-integration" }
+    { "path": "../framework-integration" },
+    { "path": "../ai-ml-engine" }
   ]
 }

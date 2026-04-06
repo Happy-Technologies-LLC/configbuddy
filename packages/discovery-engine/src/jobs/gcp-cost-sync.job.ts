@@ -12,8 +12,54 @@
 import { Job } from 'bullmq';
 import { logger } from '@cmdb/common';
 import { getPostgresClient } from '@cmdb/database';
-import { GCPCloudBilling, GCPCredentials } from '@cmdb/tbm-cost-engine';
 import { subDays, startOfMonth, endOfMonth, format } from 'date-fns';
+
+/**
+ * GCP credentials for Cloud Billing access
+ */
+interface GCPCredentials {
+  serviceAccountKey: any;
+  projectId?: string;
+}
+
+/**
+ * GCP Cloud Billing client stub
+ * In production, this would use the Google Cloud Billing API.
+ * The @cmdb/tbm-cost-engine package provides TBM taxonomy/allocation logic,
+ * not cloud provider API clients.
+ */
+class GCPCloudBilling {
+  constructor(private credentials: GCPCredentials, private logger: any) {}
+
+  async getCostsByService(
+    _startDate: Date,
+    _endDate: Date,
+    _projectId?: string,
+    _billingAccountId?: string
+  ): Promise<Map<string, { totalCost: number; breakdown?: any }>> {
+    this.logger.warn('[GCPCloudBilling] Stub implementation - integrate Google Cloud Billing SDK');
+    return new Map();
+  }
+
+  async getCostsBySKU(
+    _startDate: Date,
+    _endDate: Date,
+    _projectId?: string,
+    _billingAccountId?: string
+  ): Promise<Map<string, { cost: number; description?: string; service?: string; region?: string; labels?: any }>> {
+    this.logger.warn('[GCPCloudBilling] Stub implementation - integrate Google Cloud Billing SDK');
+    return new Map();
+  }
+
+  async getCostsByProject(
+    _startDate: Date,
+    _endDate: Date,
+    _billingAccountId?: string
+  ): Promise<Map<string, { totalCost: number; projectName?: string }>> {
+    this.logger.warn('[GCPCloudBilling] Stub implementation - integrate Google Cloud Billing SDK');
+    return new Map();
+  }
+}
 
 export interface GCPCostSyncJobData {
   projectId?: string;
@@ -100,7 +146,7 @@ export async function processGCPCostSync(
 
     // Step 7: Insert/update cost data in PostgreSQL
     const pgClient = getPostgresClient();
-    const pool = pgClient.getPool();
+    const pool = pgClient.pool;
 
     let costsImported = 0;
     let totalCost = 0;
@@ -301,7 +347,7 @@ async function getGCPCredentials(
   if (credentialId) {
     // Query unified credentials table
     const pgClient = getPostgresClient();
-    const pool = pgClient.getPool();
+    const pool = pgClient.pool;
 
     const result = await pool.query(
       `

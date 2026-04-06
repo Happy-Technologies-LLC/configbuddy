@@ -229,7 +229,7 @@ export class CostLookupService {
     try {
       // Try to fetch from PostgreSQL tbm_cost_pools (populated by cost sync jobs)
       const pgClient = getPostgresClient();
-      const pool = pgClient.getPool();
+      const pool = pgClient.pool;
 
       // Query for resource-specific cost
       const result = await pool.query(
@@ -469,7 +469,7 @@ export class CostLookupService {
     try {
       // Try to fetch from PostgreSQL tbm_cost_pools
       const pgClient = getPostgresClient();
-      const pool = pgClient.getPool();
+      const pool = pgClient.pool;
 
       // Query for resource-specific cost
       const result = await pool.query(
@@ -572,7 +572,7 @@ export class CostLookupService {
     try {
       // Try to fetch from PostgreSQL tbm_cost_pools
       const pgClient = getPostgresClient();
-      const pool = pgClient.getPool();
+      const pool = pgClient.pool;
 
       // Query for resource-specific cost
       const result = await pool.query(

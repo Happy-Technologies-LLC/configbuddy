@@ -11,13 +11,12 @@
  * all v3.0 framework attributes are properly synced to the data mart for
  * reporting, analytics, and Metabase dashboards.
  *
- * Schedule: Every 6 hours (0 */6 * * *)
+ * Schedule: Every 6 hours (cron: 0 0/6 * * *)
  */
 
 import { Job } from 'bullmq';
 import { logger } from '@cmdb/common';
 import { getPostgresClient, getNeo4jClient } from '@cmdb/database';
-import { format } from 'date-fns';
 
 export interface SyncCIsJobData {
   /** Batch size for processing CIs (default: 100) */
@@ -158,12 +157,12 @@ async function extractCIsFromNeo4j(
 
     if (ciTypes && ciTypes.length > 0) {
       conditions.push('ci.ci_type IN $ciTypes');
-      params.ciTypes = ciTypes;
+      params['ciTypes'] = ciTypes;
     }
 
     if (incrementalSince && !fullRefresh) {
       conditions.push('ci.updated_at >= datetime($since)');
-      params.since = incrementalSince;
+      params['since'] = incrementalSince;
     }
 
     if (conditions.length > 0) {
@@ -218,8 +217,7 @@ async function processCIBatch(
   const result = { processed: 0, inserted: 0, updated: 0, skipped: 0 };
 
   const pgClient = getPostgresClient();
-  const pool = pgClient.getPool();
-  const client = await pool.connect();
+  const client = await pgClient.pool.connect();
 
   try {
     await client.query('BEGIN');

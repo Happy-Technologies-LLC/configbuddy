@@ -12,8 +12,54 @@
 import { Job } from 'bullmq';
 import { logger } from '@cmdb/common';
 import { getPostgresClient } from '@cmdb/database';
-import { AzureCostManagement, AzureCredentials } from '@cmdb/tbm-cost-engine';
 import { subDays, startOfMonth, endOfMonth, format } from 'date-fns';
+
+/**
+ * Azure credentials for Cost Management access
+ */
+interface AzureCredentials {
+  clientId: string;
+  clientSecret: string;
+  tenantId: string;
+  subscriptionId?: string;
+}
+
+/**
+ * Azure Cost Management client stub
+ * In production, this would use the Azure SDK Cost Management API.
+ * The @cmdb/tbm-cost-engine package provides TBM taxonomy/allocation logic,
+ * not cloud provider API clients.
+ */
+class AzureCostManagement {
+  constructor(private credentials: AzureCredentials, private logger: any) {}
+
+  async getCostsByService(
+    _startDate: Date,
+    _endDate: Date,
+    _subscriptionId?: string
+  ): Promise<Map<string, { totalCost: number; breakdown?: any }>> {
+    this.logger.warn('[AzureCostManagement] Stub implementation - integrate Azure SDK');
+    return new Map();
+  }
+
+  async getCostsByResourceGroup(
+    _startDate: Date,
+    _endDate: Date,
+    _subscriptionId?: string
+  ): Promise<Map<string, { totalCost: number }>> {
+    this.logger.warn('[AzureCostManagement] Stub implementation - integrate Azure SDK');
+    return new Map();
+  }
+
+  async getCostsByResource(
+    _startDate: Date,
+    _endDate: Date,
+    _subscriptionId?: string
+  ): Promise<Map<string, { cost: number; resourceType?: string; resourceGroupName?: string; location?: string; tags?: any }>> {
+    this.logger.warn('[AzureCostManagement] Stub implementation - integrate Azure SDK');
+    return new Map();
+  }
+}
 
 export interface AzureCostSyncJobData {
   subscriptionId?: string;
@@ -94,7 +140,7 @@ export async function processAzureCostSync(
 
     // Step 7: Insert/update cost data in PostgreSQL
     const pgClient = getPostgresClient();
-    const pool = pgClient.getPool();
+    const pool = pgClient.pool;
 
     let costsImported = 0;
     let totalCost = 0;
@@ -296,7 +342,7 @@ async function getAzureCredentials(
   if (credentialId) {
     // Query unified credentials table
     const pgClient = getPostgresClient();
-    const pool = pgClient.getPool();
+    const pool = pgClient.pool;
 
     const result = await pool.query(
       `

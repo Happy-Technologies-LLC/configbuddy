@@ -17,7 +17,7 @@
 import { Job } from 'bullmq';
 import { logger } from '@cmdb/common';
 import { getPostgresClient } from '@cmdb/database';
-import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { format, subMonths } from 'date-fns';
 
 export interface SyncCostsJobData {
   /** Fiscal period to process (YYYY-MM format), defaults to current month */
@@ -149,7 +149,14 @@ async function processFiscalPeriod(
   validationErrors: string[];
   enrichmentErrors: string[];
 }> {
-  const result = {
+  const result: {
+    validated: number;
+    enriched: number;
+    monthlyTotal: number;
+    annualTotal: number;
+    validationErrors: string[];
+    enrichmentErrors: string[];
+  } = {
     validated: 0,
     enriched: 0,
     monthlyTotal: 0,
@@ -159,7 +166,7 @@ async function processFiscalPeriod(
   };
 
   const pgClient = getPostgresClient();
-  const pool = pgClient.getPool();
+  const pool = pgClient.pool;
 
   // Step 1: Get all cost pools for this fiscal period
   const costPoolsResult = await pool.query(
@@ -254,7 +261,7 @@ async function validateCostPool(pool: any): Promise<{
   const annualCost = parseFloat(pool.annual_cost) || 0;
 
   if (monthlyConst < 0) {
-    errors.push(`Negative monthly_cost: ${monthlyCost}`);
+    errors.push(`Negative monthly_cost: ${monthlyConst}`);
   }
 
   if (annualCost < 0) {
@@ -289,7 +296,7 @@ async function enrichCostPoolMetadata(pool: any): Promise<{
   let enriched = false;
 
   const pgClient = getPostgresClient();
-  const poolInstance = pgClient.getPool();
+  const poolInstance = pgClient.pool;
 
   try {
     const metadata = pool.metadata || {};

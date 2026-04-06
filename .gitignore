@@ -10,6 +10,7 @@ build/
 
 # Testing
 coverage/
+test-results/
 .nyc_output
 *.lcov
 
@@ -120,3 +121,8 @@ servicenow-temp/
 *.backup
 docker-build.log
 *.log
+
+# Test artifacts
+screenshots/
+.playwright-mcp/
+test-results/

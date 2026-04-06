@@ -307,8 +307,8 @@ export class PatternValidator {
 
       const perfSandbox = {
         scanResult: {
-          http: { headers: {}, endpoints: [] },
-          services: [],
+          http: { headers: {} as Record<string, string>, endpoints: [] as unknown[] },
+          services: [] as unknown[],
         },
       };
       vm.createContext(perfSandbox);

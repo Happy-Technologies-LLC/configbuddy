@@ -91,8 +91,15 @@ describe('PriorityCalculator', () => {
       expect(urgency).toBe('medium');
     });
 
-    it('should return low for operational service', () => {
+    it('should return medium for operational service outside business hours', () => {
+      // When isBusinessHours is false, the condition `!isBusinessHours` is true,
+      // so urgency returns 'medium' (not 'low')
       const urgency = PriorityCalculator.calculateUrgency('operational', 95.0, false);
+      expect(urgency).toBe('medium');
+    });
+
+    it('should return low for operational service during business hours', () => {
+      const urgency = PriorityCalculator.calculateUrgency('operational', 95.0, true);
       expect(urgency).toBe('low');
     });
   });

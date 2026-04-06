@@ -49,6 +49,7 @@ export const CIODashboard: React.FC = () => {
   }
 
   const formatCurrency = (value: number) => {
+    if (value == null || isNaN(value)) return '$0';
     if (value >= 1000000) {
       return `$${(value / 1000000).toFixed(1)}M`;
     }
@@ -58,16 +59,26 @@ export const CIODashboard: React.FC = () => {
     return `$${value.toFixed(0)}`;
   };
 
+  // Safe defaults for potentially empty API responses
+  const serviceAvailability = data.serviceAvailability || [];
+  const changeSuccessRates = data.changeSuccessRates || {} as any;
+  const configurationAccuracy = data.configurationAccuracy || {} as any;
+  const costByCapability = data.costByCapability || [];
+  const incidentResponseTimes = data.incidentResponseTimes || [];
+  const capacityPlanning = data.capacityPlanning || [];
+
   // Calculate averages
-  const avgAvailability = data.serviceAvailability.reduce(
-    (acc: number, tier: any) => acc + tier.averageAvailability,
-    0
-  ) / data.serviceAvailability.length;
+  const avgAvailability = serviceAvailability.length > 0
+    ? serviceAvailability.reduce(
+        (acc: number, tier: any) => acc + tier.averageAvailability,
+        0
+      ) / serviceAvailability.length
+    : 0;
 
   const changeData = [
-    { name: 'Successful', value: data.changeSuccessRates.successful, color: '#10b981' },
-    { name: 'Failed', value: data.changeSuccessRates.failed, color: '#ef4444' },
-    { name: 'Rollbacks', value: data.changeSuccessRates.rollbacks, color: '#f59e0b' },
+    { name: 'Successful', value: changeSuccessRates.successful ?? 0, color: '#10b981' },
+    { name: 'Failed', value: changeSuccessRates.failed ?? 0, color: '#ef4444' },
+    { name: 'Rollbacks', value: changeSuccessRates.rollbacks ?? 0, color: '#f59e0b' },
   ];
 
   return (
@@ -123,22 +134,22 @@ export const CIODashboard: React.FC = () => {
         />
         <KPICard
           title="Change Success Rate"
-          value={`${data.changeSuccessRates.successRate.toFixed(1)}%`}
+          value={`${(changeSuccessRates?.successRate ?? 0).toFixed(1)}%`}
           icon={CheckCircle}
-          color={data.changeSuccessRates.successRate >= 85 ? 'green' : 'yellow'}
-          description={`${data.changeSuccessRates.total} changes (${timeRange.label})`}
+          color={(changeSuccessRates?.successRate ?? 0) >= 85 ? 'green' : 'yellow'}
+          description={`${changeSuccessRates?.total ?? 0} changes (${timeRange.label})`}
         />
         <KPICard
           title="Config Accuracy"
-          value={`${data.configurationAccuracy.accuracyPercentage.toFixed(1)}%`}
+          value={`${(configurationAccuracy?.accuracyPercentage ?? 0).toFixed(1)}%`}
           icon={Database}
-          color={data.configurationAccuracy.accuracyPercentage >= 95 ? 'green' : 'yellow'}
-          description={`${data.configurationAccuracy.driftDetected} CIs with drift`}
+          color={(configurationAccuracy?.accuracyPercentage ?? 0) >= 95 ? 'green' : 'yellow'}
+          description={`${configurationAccuracy?.driftDetected ?? 0} CIs with drift`}
         />
         <KPICard
           title="Total IT Budget"
           value={formatCurrency(
-            data.costByCapability.reduce((acc: number, c: any) => acc + c.budgetAllocated, 0)
+            costByCapability.reduce((acc: number, c: any) => acc + c.budgetAllocated, 0)
           )}
           icon={DollarSign}
           color="blue"
@@ -153,7 +164,7 @@ export const CIODashboard: React.FC = () => {
           <h3 className="text-lg font-semibold mb-1">Service Availability by Tier</h3>
           <p className="text-sm text-muted-foreground mb-4">SLA compliance by service tier</p>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={data.serviceAvailability}>
+              <BarChart data={serviceAvailability}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                 <XAxis dataKey="tier" />
                 <YAxis domain={[95, 100]} />
@@ -164,7 +175,7 @@ export const CIODashboard: React.FC = () => {
               </BarChart>
             </ResponsiveContainer>
             <div className="mt-4 space-y-2">
-              {data.serviceAvailability.map((tier: any) => (
+              {serviceAvailability.map((tier: any) => (
                 <div key={tier.tier} className="flex items-center justify-between p-2 rounded-lg hover:bg-accent">
                   <span className="text-sm font-medium">{tier.tier}</span>
                   <div className="flex items-center gap-2">
@@ -214,19 +225,19 @@ export const CIODashboard: React.FC = () => {
             <div className="mt-4 grid grid-cols-3 gap-4 text-center">
               <div>
                 <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  {data.changeSuccessRates.successful}
+                  {changeSuccessRates.successful}
                 </p>
                 <p className="text-xs text-muted-foreground">Successful</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-                  {data.changeSuccessRates.failed}
+                  {changeSuccessRates.failed}
                 </p>
                 <p className="text-xs text-muted-foreground">Failed</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                  {data.changeSuccessRates.rollbacks}
+                  {changeSuccessRates.rollbacks}
                 </p>
                 <p className="text-xs text-muted-foreground">Rollbacks</p>
               </div>
@@ -241,7 +252,7 @@ export const CIODashboard: React.FC = () => {
           <h3 className="text-lg font-semibold mb-1">Incident Response Times (MTTR)</h3>
           <p className="text-sm text-muted-foreground mb-4">Mean Time to Resolution by priority</p>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={data.incidentResponseTimes}>
+            <BarChart data={incidentResponseTimes}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
               <XAxis dataKey="priority" />
               <YAxis label={{ value: 'Hours', angle: -90, position: 'insideLeft' }} />
@@ -252,7 +263,7 @@ export const CIODashboard: React.FC = () => {
             </BarChart>
           </ResponsiveContainer>
           <div className="mt-4 space-y-2">
-            {data.incidentResponseTimes.map((priority: any) => (
+            {incidentResponseTimes.map((priority: any) => (
               <div key={priority.priority} className="flex items-center justify-between p-2 rounded-lg hover:bg-accent">
                 <span className="text-sm font-medium">{priority.priority}</span>
                 <div className="flex items-center gap-4">
@@ -287,31 +298,31 @@ export const CIODashboard: React.FC = () => {
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium">Configuration Accuracy</span>
                 <span className="text-sm font-bold">
-                  {data.configurationAccuracy.accuracyPercentage.toFixed(1)}%
+                  {(configurationAccuracy?.accuracyPercentage ?? 0).toFixed(1)}%
                 </span>
               </div>
-              <Progress value={data.configurationAccuracy.accuracyPercentage} className="h-3" />
+              <Progress value={configurationAccuracy?.accuracyPercentage ?? 0} className="h-3" />
             </div>
             <div className="grid grid-cols-3 gap-4 mt-4">
               <div className="text-center p-4 border border-border rounded-lg">
-                <p className="text-2xl font-bold">{data.configurationAccuracy.totalCIs}</p>
+                <p className="text-2xl font-bold">{configurationAccuracy.totalCIs}</p>
                 <p className="text-sm text-muted-foreground">Total CIs</p>
               </div>
               <div className="text-center p-4 border border-border rounded-lg">
                 <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  {data.configurationAccuracy.accurateCIs}
+                  {configurationAccuracy.accurateCIs}
                 </p>
                 <p className="text-sm text-muted-foreground">Accurate CIs</p>
               </div>
               <div className="text-center p-4 border border-border rounded-lg">
                 <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                  {data.configurationAccuracy.driftDetected}
+                  {configurationAccuracy.driftDetected}
                 </p>
                 <p className="text-sm text-muted-foreground">Drift Detected</p>
               </div>
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              Last audit: {new Date(data.configurationAccuracy.lastAuditDate).toLocaleString()}
+              Last audit: {new Date(configurationAccuracy.lastAuditDate).toLocaleString()}
             </p>
           </div>
         </div>
@@ -323,7 +334,7 @@ export const CIODashboard: React.FC = () => {
           <h3 className="text-lg font-semibold mb-1">Cost by Business Capability</h3>
           <p className="text-sm text-muted-foreground mb-4">Budget allocation and variance</p>
           <ResponsiveContainer width="100%" height={350}>
-            <BarChart data={data.costByCapability.slice(0, 10)} layout="vertical">
+            <BarChart data={costByCapability.slice(0, 10)} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
               <XAxis type="number" tickFormatter={formatCurrency} />
               <YAxis dataKey="capability" type="category" width={150} />
@@ -342,7 +353,7 @@ export const CIODashboard: React.FC = () => {
           <h3 className="text-lg font-semibold mb-1">Capacity Planning</h3>
           <p className="text-sm text-muted-foreground mb-4">Resource utilization trends and forecast</p>
           <ResponsiveContainer width="100%" height={350}>
-            <LineChart data={data.capacityPlanning}>
+            <LineChart data={capacityPlanning}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
               <XAxis dataKey="month" />
               <YAxis domain={[0, 100]} label={{ value: 'Utilization %', angle: -90, position: 'insideLeft' }} />

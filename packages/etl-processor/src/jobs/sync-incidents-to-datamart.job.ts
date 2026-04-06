@@ -16,7 +16,7 @@
 import { Job } from 'bullmq';
 import { logger } from '@cmdb/common';
 import { getPostgresClient } from '@cmdb/database';
-import { subDays, differenceInMinutes } from 'date-fns';
+import { subDays } from 'date-fns';
 
 export interface SyncIncidentsJobData {
   /** Only process incidents/changes updated since this timestamp (ISO 8601) */
@@ -129,7 +129,13 @@ async function processIncidents(
   validationErrors: string[];
   enrichmentErrors: string[];
 }> {
-  const result = {
+  const result: {
+    processed: number;
+    enriched: number;
+    slaViolations: number;
+    validationErrors: string[];
+    enrichmentErrors: string[];
+  } = {
     processed: 0,
     enriched: 0,
     slaViolations: 0,
@@ -138,7 +144,7 @@ async function processIncidents(
   };
 
   const pgClient = getPostgresClient();
-  const pool = pgClient.getPool();
+  const pool = pgClient.pool;
 
   // Get incidents updated since last sync
   const incidentsResult = await pool.query(
@@ -236,7 +242,12 @@ async function processChanges(
   validationErrors: string[];
   enrichmentErrors: string[];
 }> {
-  const result = {
+  const result: {
+    processed: number;
+    enriched: number;
+    validationErrors: string[];
+    enrichmentErrors: string[];
+  } = {
     processed: 0,
     enriched: 0,
     validationErrors: [],
@@ -244,7 +255,7 @@ async function processChanges(
   };
 
   const pgClient = getPostgresClient();
-  const pool = pgClient.getPool();
+  const pool = pgClient.pool;
 
   // Get changes updated since last sync
   const changesResult = await pool.query(
@@ -384,7 +395,7 @@ async function enrichIncident(incident: any): Promise<{
   let enriched = false;
 
   const pgClient = getPostgresClient();
-  const pool = pgClient.getPool();
+  const pool = pgClient.pool;
 
   try {
     const updates: string[] = [];
@@ -443,7 +454,7 @@ async function enrichIncident(incident: any): Promise<{
 /**
  * Enrich change with CI and business service details
  */
-async function enrichChange(change: any): Promise<{
+async function enrichChange(_change: any): Promise<{
   enriched: boolean;
   errors: string[];
 }> {

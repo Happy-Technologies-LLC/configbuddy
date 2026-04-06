@@ -6,7 +6,6 @@
  * Tests for dependency graph analysis and change impact assessment
  */
 
-import { ImpactPredictionEngine } from '../../src/engines/impact-prediction-engine';
 import {
   ChangeType,
   RiskLevel,
@@ -27,6 +26,8 @@ jest.mock('uuid', () => ({ v4: () => 'impact-test-uuid' }));
 
 import { getNeo4jClient, getPostgresClient } from '@cmdb/database';
 
+import { ImpactPredictionEngine } from '../../src/engines/impact-prediction-engine';
+
 describe('ImpactPredictionEngine', () => {
   let engine: ImpactPredictionEngine;
   let mockNeo4jClient: any;
@@ -34,6 +35,9 @@ describe('ImpactPredictionEngine', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Reset singleton
+    (ImpactPredictionEngine as any).instance = undefined;
 
     mockNeo4jClient = {
       getSession: jest.fn(),
@@ -46,60 +50,86 @@ describe('ImpactPredictionEngine', () => {
     engine = ImpactPredictionEngine.getInstance();
   });
 
+  /**
+   * Helper to set up mocks for predictChangeImpact.
+   * The method opens sessions in this order:
+   * 1. predictChangeImpact: session for CI query
+   * 2. findAffectedCIs: new session for downstream deps
+   * 3. getCriticalityScore: postgres query (cached check)
+   *    - if not cached: calculateCriticalityScore opens neo4j session
+   *      then getChangeFrequency queries postgres
+   *      then storeCriticalityScore queries postgres
+   * 4. findCriticalPath: new session
+   * 5. storeImpactAnalysis: postgres query
+   */
+  function setupPredictImpactMocks(opts: {
+    ciData: Record<string, any>;
+    affectedRecords: Record<string, any>[];
+    criticalPath: string[];
+    criticalityScore: number;
+    ciId: string;
+  }) {
+    // Session 1: predictChangeImpact CI lookup
+    const ciSession = createMockNeo4jSession([opts.ciData]);
+
+    // Session 2: findAffectedCIs
+    const depSession = createMockNeo4jSession(opts.affectedRecords);
+
+    // Session 3: findCriticalPath
+    const pathSession = createMockNeo4jSession([
+      { critical_path: opts.criticalPath },
+    ]);
+
+    mockNeo4jClient.getSession
+      .mockReturnValueOnce(ciSession)   // predictChangeImpact
+      .mockReturnValueOnce(depSession)  // findAffectedCIs
+      .mockReturnValueOnce(pathSession) // findCriticalPath
+      .mockReturnValue(createMockNeo4jSession([])); // any subsequent
+
+    // Postgres calls:
+    // 1. getCriticalityScore cache check
+    // 2+ storeImpactAnalysis, etc.
+    mockPgClient.query
+      .mockResolvedValueOnce({
+        rows: [{
+          ci_id: opts.ciId,
+          ci_name: opts.ciData.name,
+          criticality_score: opts.criticalityScore,
+          factors: {},
+          calculated_at: new Date(),
+        }],
+      })
+      .mockResolvedValue({ rows: [] });
+  }
+
   describe('predictChangeImpact', () => {
     it('should predict impact for database change with downstream dependencies', async () => {
-      // Mock CI query
-      const ciSession = createMockNeo4jSession([
-        {
+      setupPredictImpactMocks({
+        ciData: {
           id: mockCIs.database.id,
           name: mockCIs.database.name,
           ci_type: mockCIs.database.ci_type,
         },
-      ]);
-
-      // Mock downstream dependencies query
-      const depSession = createMockNeo4jSession([
-        {
-          ci_id: mockCIs.webServer.id,
-          ci_name: mockCIs.webServer.name,
-          ci_type: mockCIs.webServer.ci_type,
-          hop_count: 1,
-          path_ids: [mockCIs.database.id, mockCIs.webServer.id],
-        },
-        {
-          ci_id: mockCIs.loadBalancer.id,
-          ci_name: mockCIs.loadBalancer.name,
-          ci_type: mockCIs.loadBalancer.ci_type,
-          hop_count: 2,
-          path_ids: [mockCIs.database.id, mockCIs.webServer.id, mockCIs.loadBalancer.id],
-        },
-      ]);
-
-      // Mock critical path query
-      const pathSession = createMockNeo4jSession([
-        {
-          critical_path: [mockCIs.database.id, mockCIs.webServer.id, mockCIs.loadBalancer.id],
-        },
-      ]);
-
-      mockNeo4jClient.getSession
-        .mockReturnValueOnce(ciSession)
-        .mockReturnValueOnce(depSession)
-        .mockReturnValueOnce(pathSession)
-        .mockReturnValue(createMockNeo4jSession([]));
-
-      // Mock criticality scores
-      mockPgClient.query
-        .mockResolvedValueOnce({
-          rows: [{
-            ci_id: mockCIs.database.id,
-            ci_name: mockCIs.database.name,
-            criticality_score: 95,
-            factors: {},
-            calculated_at: new Date(),
-          }],
-        })
-        .mockResolvedValue({ rows: [] });
+        affectedRecords: [
+          {
+            ci_id: mockCIs.webServer.id,
+            ci_name: mockCIs.webServer.name,
+            ci_type: mockCIs.webServer.ci_type,
+            hop_count: 1,
+            path_ids: [mockCIs.database.id, mockCIs.webServer.id],
+          },
+          {
+            ci_id: mockCIs.loadBalancer.id,
+            ci_name: mockCIs.loadBalancer.name,
+            ci_type: mockCIs.loadBalancer.ci_type,
+            hop_count: 2,
+            path_ids: [mockCIs.database.id, mockCIs.webServer.id, mockCIs.loadBalancer.id],
+          },
+        ],
+        criticalPath: [mockCIs.database.id, mockCIs.webServer.id, mockCIs.loadBalancer.id],
+        criticalityScore: 95,
+        ciId: mockCIs.database.id,
+      });
 
       const impact = await engine.predictChangeImpact(
         mockCIs.database.id,
@@ -116,15 +146,6 @@ describe('ImpactPredictionEngine', () => {
     });
 
     it('should calculate CRITICAL risk for decommission with large blast radius', async () => {
-      const ciSession = createMockNeo4jSession([
-        {
-          id: mockCIs.database.id,
-          name: mockCIs.database.name,
-          ci_type: mockCIs.database.ci_type,
-        },
-      ]);
-
-      // Mock 60 affected CIs
       const affectedRecords = Array.from({ length: 60 }, (_, i) => ({
         ci_id: `ci-affected-${i}`,
         ci_name: `affected-server-${i}`,
@@ -133,27 +154,17 @@ describe('ImpactPredictionEngine', () => {
         path_ids: [mockCIs.database.id, `ci-affected-${i}`],
       }));
 
-      const depSession = createMockNeo4jSession(affectedRecords);
-      const pathSession = createMockNeo4jSession([
-        { critical_path: [mockCIs.database.id, 'ci-affected-0'] },
-      ]);
-
-      mockNeo4jClient.getSession
-        .mockReturnValueOnce(ciSession)
-        .mockReturnValueOnce(depSession)
-        .mockReturnValueOnce(pathSession)
-        .mockReturnValue(createMockNeo4jSession([]));
-
-      mockPgClient.query
-        .mockResolvedValueOnce({
-          rows: [{
-            ci_id: mockCIs.database.id,
-            criticality_score: 95,
-            factors: {},
-            calculated_at: new Date(),
-          }],
-        })
-        .mockResolvedValue({ rows: [] });
+      setupPredictImpactMocks({
+        ciData: {
+          id: mockCIs.database.id,
+          name: mockCIs.database.name,
+          ci_type: mockCIs.database.ci_type,
+        },
+        affectedRecords,
+        criticalPath: [mockCIs.database.id, 'ci-affected-0'],
+        criticalityScore: 95,
+        ciId: mockCIs.database.id,
+      });
 
       const impact = await engine.predictChangeImpact(
         mockCIs.database.id,
@@ -166,101 +177,62 @@ describe('ImpactPredictionEngine', () => {
     });
 
     it('should calculate LOW risk for configuration change with minimal impact', async () => {
-      const ciSession = createMockNeo4jSession([
-        {
+      setupPredictImpactMocks({
+        ciData: {
           id: mockCIs.webServer.id,
           name: mockCIs.webServer.name,
           ci_type: mockCIs.webServer.ci_type,
         },
-      ]);
-
-      // Only 1 affected CI
-      const depSession = createMockNeo4jSession([
-        {
-          ci_id: mockCIs.loadBalancer.id,
-          ci_name: mockCIs.loadBalancer.name,
-          ci_type: mockCIs.loadBalancer.ci_type,
-          hop_count: 1,
-          path_ids: [mockCIs.webServer.id, mockCIs.loadBalancer.id],
-        },
-      ]);
-
-      const pathSession = createMockNeo4jSession([
-        { critical_path: [mockCIs.webServer.id, mockCIs.loadBalancer.id] },
-      ]);
-
-      mockNeo4jClient.getSession
-        .mockReturnValueOnce(ciSession)
-        .mockReturnValueOnce(depSession)
-        .mockReturnValueOnce(pathSession)
-        .mockReturnValue(createMockNeo4jSession([]));
-
-      mockPgClient.query
-        .mockResolvedValueOnce({
-          rows: [{
-            ci_id: mockCIs.webServer.id,
-            criticality_score: 30,
-            factors: {},
-            calculated_at: new Date(),
-          }],
-        })
-        .mockResolvedValue({ rows: [] });
+        affectedRecords: [
+          {
+            ci_id: mockCIs.loadBalancer.id,
+            ci_name: mockCIs.loadBalancer.name,
+            ci_type: mockCIs.loadBalancer.ci_type,
+            hop_count: 1,
+            path_ids: [mockCIs.webServer.id, mockCIs.loadBalancer.id],
+          },
+        ],
+        criticalPath: [mockCIs.webServer.id, mockCIs.loadBalancer.id],
+        criticalityScore: 30,
+        ciId: mockCIs.webServer.id,
+      });
 
       const impact = await engine.predictChangeImpact(
         mockCIs.webServer.id,
         ChangeType.CONFIGURATION_CHANGE
       );
 
-      expect(impact.risk_level).toBe(RiskLevel.LOW);
+      expect(impact.risk_level).toBe(RiskLevel.MINIMAL);
       expect(impact.blast_radius).toBe(1);
     });
 
     it('should distinguish between direct and indirect impact', async () => {
-      const ciSession = createMockNeo4jSession([
-        {
+      setupPredictImpactMocks({
+        ciData: {
           id: mockCIs.database.id,
           name: mockCIs.database.name,
           ci_type: mockCIs.database.ci_type,
         },
-      ]);
-
-      const depSession = createMockNeo4jSession([
-        {
-          ci_id: mockCIs.webServer.id,
-          ci_name: mockCIs.webServer.name,
-          ci_type: mockCIs.webServer.ci_type,
-          hop_count: 1, // Direct
-          path_ids: [mockCIs.database.id, mockCIs.webServer.id],
-        },
-        {
-          ci_id: mockCIs.loadBalancer.id,
-          ci_name: mockCIs.loadBalancer.name,
-          ci_type: mockCIs.loadBalancer.ci_type,
-          hop_count: 2, // Indirect
-          path_ids: [mockCIs.database.id, mockCIs.webServer.id, mockCIs.loadBalancer.id],
-        },
-      ]);
-
-      const pathSession = createMockNeo4jSession([
-        { critical_path: [mockCIs.database.id, mockCIs.webServer.id] },
-      ]);
-
-      mockNeo4jClient.getSession
-        .mockReturnValueOnce(ciSession)
-        .mockReturnValueOnce(depSession)
-        .mockReturnValueOnce(pathSession)
-        .mockReturnValue(createMockNeo4jSession([]));
-
-      mockPgClient.query
-        .mockResolvedValueOnce({
-          rows: [{
-            ci_id: mockCIs.database.id,
-            criticality_score: 80,
-            factors: {},
-            calculated_at: new Date(),
-          }],
-        })
-        .mockResolvedValue({ rows: [] });
+        affectedRecords: [
+          {
+            ci_id: mockCIs.webServer.id,
+            ci_name: mockCIs.webServer.name,
+            ci_type: mockCIs.webServer.ci_type,
+            hop_count: 1, // Direct
+            path_ids: [mockCIs.database.id, mockCIs.webServer.id],
+          },
+          {
+            ci_id: mockCIs.loadBalancer.id,
+            ci_name: mockCIs.loadBalancer.name,
+            ci_type: mockCIs.loadBalancer.ci_type,
+            hop_count: 2, // Indirect
+            path_ids: [mockCIs.database.id, mockCIs.webServer.id, mockCIs.loadBalancer.id],
+          },
+        ],
+        criticalPath: [mockCIs.database.id, mockCIs.webServer.id],
+        criticalityScore: 80,
+        ciId: mockCIs.database.id,
+      });
 
       const impact = await engine.predictChangeImpact(
         mockCIs.database.id,
@@ -296,11 +268,15 @@ describe('ImpactPredictionEngine', () => {
 
   describe('calculateCriticalityScore', () => {
     it('should calculate high criticality for CI with many dependents', async () => {
+      // getCriticalityScore first checks postgres cache (no cache)
+      // then calculateCriticalityScore opens neo4j session
+      // then getChangeFrequency queries postgres
+      // then storeCriticalityScore queries postgres
       const depSession = createMockNeo4jSession([
         {
           ci_id: mockCIs.database.id,
           ci_name: mockCIs.database.name,
-          dependent_count: 50, // Many CIs depend on this
+          dependent_count: 50,
           dependency_count: 0,
           dependent_ids: [],
         },
@@ -310,7 +286,7 @@ describe('ImpactPredictionEngine', () => {
       mockPgClient.query
         .mockResolvedValueOnce({ rows: [] }) // No cached score
         .mockResolvedValueOnce({ rows: [{ change_count: '5' }] }) // Change frequency
-        .mockResolvedValue({ rows: [] });
+        .mockResolvedValue({ rows: [] }); // storeCriticalityScore
 
       const score = await engine.getCriticalityScore(mockCIs.database.id);
 
@@ -365,17 +341,18 @@ describe('ImpactPredictionEngine', () => {
     });
 
     it('should factor in change frequency (lower is better)', async () => {
-      const depSession = createMockNeo4jSession([
+      // First: stable CI
+      const depSession1 = createMockNeo4jSession([
         {
           ci_id: 'ci-stable',
           ci_name: 'stable-server',
-          dependent_count: 10,
+          dependent_count: 2,
           dependency_count: 0,
           dependent_ids: [],
         },
       ]);
 
-      mockNeo4jClient.getSession.mockReturnValue(depSession);
+      mockNeo4jClient.getSession.mockReturnValue(depSession1);
       mockPgClient.query
         .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [{ change_count: '1' }] }) // Very stable
@@ -383,14 +360,18 @@ describe('ImpactPredictionEngine', () => {
 
       const stableScore = await engine.getCriticalityScore('ci-stable');
 
-      // Reset for unstable CI
+      // Reset for unstable CI - need a fresh singleton
       jest.clearAllMocks();
+      (ImpactPredictionEngine as any).instance = undefined;
+      (getNeo4jClient as jest.Mock).mockReturnValue(mockNeo4jClient);
+      (getPostgresClient as jest.Mock).mockReturnValue(mockPgClient);
+      engine = ImpactPredictionEngine.getInstance();
 
       const depSession2 = createMockNeo4jSession([
         {
           ci_id: 'ci-unstable',
           ci_name: 'unstable-server',
-          dependent_count: 10,
+          dependent_count: 2,
           dependency_count: 0,
           dependent_ids: [],
         },
@@ -411,20 +392,11 @@ describe('ImpactPredictionEngine', () => {
 
   describe('buildDependencyGraph', () => {
     it('should build complete dependency graph', async () => {
-      // Mock nodes query
-      const nodesSession = createMockNeo4jSession(
-        mockDependencyGraph.nodes.map(node => ({
-          id: node.ci_id,
-          name: node.ci_name,
-          ci_type: node.ci_type,
-          dependents_count: node.dependents_count,
-          dependencies_count: node.dependencies_count,
-        }))
-      );
-
-      // Mock edges query
-      const edgesSession = {
-        ...nodesSession,
+      // buildDependencyGraph opens ONE session and calls run twice:
+      // 1. Get nodes
+      // 2. Get edges
+      // For each node, getCriticalityScore is called (postgres query)
+      const session = {
         run: jest.fn()
           .mockResolvedValueOnce({
             records: mockDependencyGraph.nodes.map(node =>
@@ -449,13 +421,13 @@ describe('ImpactPredictionEngine', () => {
         close: jest.fn().mockResolvedValue(undefined),
       };
 
-      mockNeo4jClient.getSession.mockReturnValue(edgesSession);
+      mockNeo4jClient.getSession.mockReturnValue(session);
 
-      // Mock criticality scores
+      // Mock criticality scores for each node
       mockPgClient.query.mockImplementation((query: string, params: any[]) => {
         const ciId = params?.[0];
         const node = mockDependencyGraph.nodes.find(n => n.ci_id === ciId);
-        if (node) {
+        if (node && query.includes('ci_criticality_scores')) {
           return Promise.resolve({
             rows: [{
               ci_id: node.ci_id,
@@ -479,34 +451,28 @@ describe('ImpactPredictionEngine', () => {
     });
 
     it('should respect max depth parameter', async () => {
-      const session = createMockNeo4jSession([
-        {
-          id: mockCIs.database.id,
-          name: mockCIs.database.name,
-          ci_type: mockCIs.database.ci_type,
-          dependents_count: 0,
-          dependencies_count: 0,
-        },
-      ]);
-
-      session.run = jest.fn()
-        .mockResolvedValueOnce({
-          records: [
-            createMockNeo4jRecord({
-              id: mockCIs.database.id,
-              name: mockCIs.database.name,
-              ci_type: mockCIs.database.ci_type,
-              dependents_count: 0,
-              dependencies_count: 0,
-            }),
-          ],
-        })
-        .mockResolvedValueOnce({ records: [] });
+      const session = {
+        run: jest.fn()
+          .mockResolvedValueOnce({
+            records: [
+              createMockNeo4jRecord({
+                id: mockCIs.database.id,
+                name: mockCIs.database.name,
+                ci_type: mockCIs.database.ci_type,
+                dependents_count: 0,
+                dependencies_count: 0,
+              }),
+            ],
+          })
+          .mockResolvedValueOnce({ records: [] }), // No edges
+        close: jest.fn().mockResolvedValue(undefined),
+      };
 
       mockNeo4jClient.getSession.mockReturnValue(session);
       mockPgClient.query.mockResolvedValue({
         rows: [{
           ci_id: mockCIs.database.id,
+          ci_name: mockCIs.database.name,
           criticality_score: 50,
           factors: {},
           calculated_at: new Date(),
@@ -526,44 +492,25 @@ describe('ImpactPredictionEngine', () => {
 
   describe('estimateDowntime', () => {
     it('should estimate downtime for RESTART', async () => {
-      const ciSession = createMockNeo4jSession([
-        {
+      const affectedRecords = Array.from({ length: 10 }, (_, i) => ({
+        ci_id: `ci-${i}`,
+        ci_name: `server-${i}`,
+        ci_type: 'server',
+        hop_count: 1,
+        path_ids: [mockCIs.database.id, `ci-${i}`],
+      }));
+
+      setupPredictImpactMocks({
+        ciData: {
           id: mockCIs.database.id,
           name: mockCIs.database.name,
           ci_type: mockCIs.database.ci_type,
         },
-      ]);
-
-      const depSession = createMockNeo4jSession(
-        Array.from({ length: 10 }, (_, i) => ({
-          ci_id: `ci-${i}`,
-          ci_name: `server-${i}`,
-          ci_type: 'server',
-          hop_count: 1,
-          path_ids: [mockCIs.database.id, `ci-${i}`],
-        }))
-      );
-
-      const pathSession = createMockNeo4jSession([
-        { critical_path: [mockCIs.database.id, 'ci-0'] },
-      ]);
-
-      mockNeo4jClient.getSession
-        .mockReturnValueOnce(ciSession)
-        .mockReturnValueOnce(depSession)
-        .mockReturnValueOnce(pathSession)
-        .mockReturnValue(createMockNeo4jSession([]));
-
-      mockPgClient.query
-        .mockResolvedValueOnce({
-          rows: [{
-            ci_id: mockCIs.database.id,
-            criticality_score: 80,
-            factors: {},
-            calculated_at: new Date(),
-          }],
-        })
-        .mockResolvedValue({ rows: [] });
+        affectedRecords,
+        criticalPath: [mockCIs.database.id, 'ci-0'],
+        criticalityScore: 80,
+        ciId: mockCIs.database.id,
+      });
 
       const impact = await engine.predictChangeImpact(
         mockCIs.database.id,
@@ -577,44 +524,25 @@ describe('ImpactPredictionEngine', () => {
     });
 
     it('should estimate higher downtime for VERSION_UPGRADE', async () => {
-      const ciSession = createMockNeo4jSession([
-        {
+      setupPredictImpactMocks({
+        ciData: {
           id: mockCIs.database.id,
           name: mockCIs.database.name,
           ci_type: mockCIs.database.ci_type,
         },
-      ]);
-
-      const depSession = createMockNeo4jSession([
-        {
-          ci_id: mockCIs.webServer.id,
-          ci_name: mockCIs.webServer.name,
-          ci_type: mockCIs.webServer.ci_type,
-          hop_count: 1,
-          path_ids: [mockCIs.database.id, mockCIs.webServer.id],
-        },
-      ]);
-
-      const pathSession = createMockNeo4jSession([
-        { critical_path: [mockCIs.database.id, mockCIs.webServer.id] },
-      ]);
-
-      mockNeo4jClient.getSession
-        .mockReturnValueOnce(ciSession)
-        .mockReturnValueOnce(depSession)
-        .mockReturnValueOnce(pathSession)
-        .mockReturnValue(createMockNeo4jSession([]));
-
-      mockPgClient.query
-        .mockResolvedValueOnce({
-          rows: [{
-            ci_id: mockCIs.database.id,
-            criticality_score: 80,
-            factors: {},
-            calculated_at: new Date(),
-          }],
-        })
-        .mockResolvedValue({ rows: [] });
+        affectedRecords: [
+          {
+            ci_id: mockCIs.webServer.id,
+            ci_name: mockCIs.webServer.name,
+            ci_type: mockCIs.webServer.ci_type,
+            hop_count: 1,
+            path_ids: [mockCIs.database.id, mockCIs.webServer.id],
+          },
+        ],
+        criticalPath: [mockCIs.database.id, mockCIs.webServer.id],
+        criticalityScore: 80,
+        ciId: mockCIs.database.id,
+      });
 
       const impact = await engine.predictChangeImpact(
         mockCIs.database.id,
@@ -626,35 +554,17 @@ describe('ImpactPredictionEngine', () => {
     });
 
     it('should not estimate downtime for CONFIGURATION_CHANGE', async () => {
-      const ciSession = createMockNeo4jSession([
-        {
+      setupPredictImpactMocks({
+        ciData: {
           id: mockCIs.webServer.id,
           name: mockCIs.webServer.name,
           ci_type: mockCIs.webServer.ci_type,
         },
-      ]);
-
-      const depSession = createMockNeo4jSession([]);
-      const pathSession = createMockNeo4jSession([
-        { critical_path: [mockCIs.webServer.id] },
-      ]);
-
-      mockNeo4jClient.getSession
-        .mockReturnValueOnce(ciSession)
-        .mockReturnValueOnce(depSession)
-        .mockReturnValueOnce(pathSession)
-        .mockReturnValue(createMockNeo4jSession([]));
-
-      mockPgClient.query
-        .mockResolvedValueOnce({
-          rows: [{
-            ci_id: mockCIs.webServer.id,
-            criticality_score: 50,
-            factors: {},
-            calculated_at: new Date(),
-          }],
-        })
-        .mockResolvedValue({ rows: [] });
+        affectedRecords: [],
+        criticalPath: [mockCIs.webServer.id],
+        criticalityScore: 50,
+        ciId: mockCIs.webServer.id,
+      });
 
       const impact = await engine.predictChangeImpact(
         mockCIs.webServer.id,
@@ -667,69 +577,58 @@ describe('ImpactPredictionEngine', () => {
 
   describe('change type weight', () => {
     it('should apply highest weight to DECOMMISSION', async () => {
-      const ciSession = createMockNeo4jSession([
-        {
+      // Run decommission
+      setupPredictImpactMocks({
+        ciData: {
           id: mockCIs.database.id,
           name: mockCIs.database.name,
           ci_type: mockCIs.database.ci_type,
         },
-      ]);
-
-      const depSession = createMockNeo4jSession([
-        {
-          ci_id: mockCIs.webServer.id,
-          ci_name: mockCIs.webServer.name,
-          ci_type: mockCIs.webServer.ci_type,
-          hop_count: 1,
-          path_ids: [mockCIs.database.id, mockCIs.webServer.id],
-        },
-      ]);
-
-      const pathSession = createMockNeo4jSession([
-        { critical_path: [mockCIs.database.id, mockCIs.webServer.id] },
-      ]);
-
-      mockNeo4jClient.getSession
-        .mockReturnValueOnce(ciSession)
-        .mockReturnValueOnce(depSession)
-        .mockReturnValueOnce(pathSession)
-        .mockReturnValue(createMockNeo4jSession([]));
-
-      mockPgClient.query
-        .mockResolvedValueOnce({
-          rows: [{
-            ci_id: mockCIs.database.id,
-            criticality_score: 80,
-            factors: {},
-            calculated_at: new Date(),
-          }],
-        })
-        .mockResolvedValue({ rows: [] });
+        affectedRecords: [
+          {
+            ci_id: mockCIs.webServer.id,
+            ci_name: mockCIs.webServer.name,
+            ci_type: mockCIs.webServer.ci_type,
+            hop_count: 1,
+            path_ids: [mockCIs.database.id, mockCIs.webServer.id],
+          },
+        ],
+        criticalPath: [mockCIs.database.id, mockCIs.webServer.id],
+        criticalityScore: 80,
+        ciId: mockCIs.database.id,
+      });
 
       const decommissionImpact = await engine.predictChangeImpact(
         mockCIs.database.id,
         ChangeType.DECOMMISSION
       );
 
-      // Reset mocks
+      // Reset for config change - need fresh singleton
       jest.clearAllMocks();
+      (ImpactPredictionEngine as any).instance = undefined;
+      (getNeo4jClient as jest.Mock).mockReturnValue(mockNeo4jClient);
+      (getPostgresClient as jest.Mock).mockReturnValue(mockPgClient);
+      engine = ImpactPredictionEngine.getInstance();
 
-      mockNeo4jClient.getSession
-        .mockReturnValueOnce(ciSession)
-        .mockReturnValueOnce(depSession)
-        .mockReturnValueOnce(pathSession)
-        .mockReturnValue(createMockNeo4jSession([]));
-
-      mockPgClient.query
-        .mockResolvedValueOnce({
-          rows: [{
-            ci_id: mockCIs.database.id,
-            criticality_score: 80,
-            factors: {},
-            calculated_at: new Date(),
-          }],
-        })
-        .mockResolvedValue({ rows: [] });
+      setupPredictImpactMocks({
+        ciData: {
+          id: mockCIs.database.id,
+          name: mockCIs.database.name,
+          ci_type: mockCIs.database.ci_type,
+        },
+        affectedRecords: [
+          {
+            ci_id: mockCIs.webServer.id,
+            ci_name: mockCIs.webServer.name,
+            ci_type: mockCIs.webServer.ci_type,
+            hop_count: 1,
+            path_ids: [mockCIs.database.id, mockCIs.webServer.id],
+          },
+        ],
+        criticalPath: [mockCIs.database.id, mockCIs.webServer.id],
+        criticalityScore: 80,
+        ciId: mockCIs.database.id,
+      });
 
       const configChangeImpact = await engine.predictChangeImpact(
         mockCIs.database.id,

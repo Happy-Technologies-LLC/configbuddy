@@ -57,6 +57,8 @@ export const mockCIs = {
 };
 
 // Mock Change Statistics (for anomaly detection)
+// Note: We need enough normal data points so the outlier has a Z-score > 2
+// and confidence (abs(z) * 30) >= min_confidence_score (default 70).
 export const mockChangeStatistics = {
   normal: [
     { ci_id: 'ci-001', change_count: '10', ci_name: 'server-01' },
@@ -64,6 +66,9 @@ export const mockChangeStatistics = {
     { ci_id: 'ci-003', change_count: '8', ci_name: 'server-03' },
     { ci_id: 'ci-004', change_count: '15', ci_name: 'server-04' },
     { ci_id: 'ci-005', change_count: '11', ci_name: 'server-05' },
+    { ci_id: 'ci-006', change_count: '9', ci_name: 'server-06' },
+    { ci_id: 'ci-007', change_count: '13', ci_name: 'server-07' },
+    { ci_id: 'ci-008', change_count: '10', ci_name: 'server-08' },
   ],
   withAnomalies: [
     { ci_id: 'ci-001', change_count: '10', ci_name: 'server-01' },
@@ -71,7 +76,22 @@ export const mockChangeStatistics = {
     { ci_id: 'ci-003', change_count: '8', ci_name: 'server-03' },
     { ci_id: 'ci-004', change_count: '15', ci_name: 'server-04' },
     { ci_id: 'ci-005', change_count: '11', ci_name: 'server-05' },
-    { ci_id: 'ci-anomaly-001', change_count: '150', ci_name: 'unstable-server' }, // Anomaly!
+    { ci_id: 'ci-006', change_count: '9', ci_name: 'server-06' },
+    { ci_id: 'ci-007', change_count: '13', ci_name: 'server-07' },
+    { ci_id: 'ci-008', change_count: '10', ci_name: 'server-08' },
+    { ci_id: 'ci-009', change_count: '11', ci_name: 'server-09' },
+    { ci_id: 'ci-010', change_count: '12', ci_name: 'server-10' },
+    { ci_id: 'ci-011', change_count: '10', ci_name: 'server-11' },
+    { ci_id: 'ci-012', change_count: '9', ci_name: 'server-12' },
+    { ci_id: 'ci-013', change_count: '14', ci_name: 'server-13' },
+    { ci_id: 'ci-014', change_count: '10', ci_name: 'server-14' },
+    { ci_id: 'ci-015', change_count: '11', ci_name: 'server-15' },
+    { ci_id: 'ci-016', change_count: '13', ci_name: 'server-16' },
+    { ci_id: 'ci-017', change_count: '10', ci_name: 'server-17' },
+    { ci_id: 'ci-018', change_count: '12', ci_name: 'server-18' },
+    { ci_id: 'ci-019', change_count: '11', ci_name: 'server-19' },
+    { ci_id: 'ci-020', change_count: '10', ci_name: 'server-20' },
+    { ci_id: 'ci-anomaly-001', change_count: '500', ci_name: 'unstable-server' }, // Anomaly!
   ],
 };
 

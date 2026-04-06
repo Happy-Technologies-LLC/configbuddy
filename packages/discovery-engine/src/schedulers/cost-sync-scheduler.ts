@@ -39,7 +39,7 @@ export class CostSyncScheduler {
 
   constructor() {
     const redisClient = getRedisClient();
-    const connection = redisClient.getClient();
+    const connection = redisClient.getConnection();
 
     // Initialize BullMQ queues for each cloud provider
     this.awsQueue = new Queue<AWSCostSyncJobData>('cost-sync:aws', {

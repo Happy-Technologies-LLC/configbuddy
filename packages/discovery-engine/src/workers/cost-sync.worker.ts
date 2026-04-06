@@ -34,7 +34,7 @@ export class AWSCostSyncWorker {
 
   constructor() {
     const redisClient = getRedisClient();
-    const connection = redisClient.getClient();
+    const connection = redisClient.getConnection();
 
     this.worker = new Worker<AWSCostSyncJobData, AWSCostSyncResult>(
       'cost-sync:aws',
@@ -93,7 +93,7 @@ export class AzureCostSyncWorker {
 
   constructor() {
     const redisClient = getRedisClient();
-    const connection = redisClient.getClient();
+    const connection = redisClient.getConnection();
 
     this.worker = new Worker<AzureCostSyncJobData, AzureCostSyncResult>(
       'cost-sync:azure',
@@ -152,7 +152,7 @@ export class GCPCostSyncWorker {
 
   constructor() {
     const redisClient = getRedisClient();
-    const connection = redisClient.getClient();
+    const connection = redisClient.getConnection();
 
     this.worker = new Worker<GCPCostSyncJobData, GCPCostSyncResult>(
       'cost-sync:gcp',

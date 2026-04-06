@@ -37,6 +37,7 @@ export const ExecutiveDashboard: React.FC = () => {
   }
 
   const formatCurrency = (value: number) => {
+    if (value == null || isNaN(value)) return '$0';
     if (value >= 1000000) {
       return `$${(value / 1000000).toFixed(1)}M`;
     }
@@ -46,14 +47,24 @@ export const ExecutiveDashboard: React.FC = () => {
     return `$${value.toFixed(0)}`;
   };
 
+  // Safe defaults for potentially empty API responses
+  const serviceHealthByTier = data.serviceHealthByTier || [];
+  const riskMatrixServices = data.riskMatrix?.services || [];
+  const valueScorecard = data.valueScorecard || [];
+  const costByCapability = data.costByCapability || [];
+  const costTrends = data.costTrends || [];
+  const topCostDrivers = data.topCostDrivers || [];
+
   // Calculate overall health score
-  const overallHealthScore = data.serviceHealthByTier.reduce(
-    (acc: number, tier: any) => acc + tier.averageHealthScore,
-    0
-  ) / data.serviceHealthByTier.length;
+  const overallHealthScore = serviceHealthByTier.length > 0
+    ? serviceHealthByTier.reduce(
+        (acc: number, tier: any) => acc + tier.averageHealthScore,
+        0
+      ) / serviceHealthByTier.length
+    : 0;
 
   // Calculate total risk exposure (services in critical+high risk)
-  const highRiskServices = data.riskMatrix.services.filter(
+  const highRiskServices = riskMatrixServices.filter(
     (s: any) => s.criticality === 'critical' && s.riskLevel === 'high'
   ).length;
 
@@ -129,8 +140,10 @@ export const ExecutiveDashboard: React.FC = () => {
         <KPICard
           title="Average ROI"
           value={`${(
-            data.valueScorecard.reduce((acc: number, s: any) => acc + s.roi, 0) /
-            data.valueScorecard.length
+            valueScorecard.length > 0
+              ? valueScorecard.reduce((acc: number, s: any) => acc + (s.roi || 0), 0) /
+                valueScorecard.length
+              : 0
           ).toFixed(1)}%`}
           icon={TrendingUp}
           color="green"
@@ -141,10 +154,10 @@ export const ExecutiveDashboard: React.FC = () => {
       {/* Cost Breakdown and Trends */}
       <div className="grid gap-4 md:grid-cols-2">
         <CostBreakdownChart
-          data={data.costByCapability.map((cap: any) => ({
+          data={costByCapability.map((cap: any) => ({
             name: cap.capability,
             value: cap.totalCost,
-            children: cap.businessServices.map((bs: any) => ({
+            children: (cap.businessServices || []).map((bs: any) => ({
               name: bs.serviceName,
               value: bs.monthlyCost,
             })),
@@ -154,7 +167,7 @@ export const ExecutiveDashboard: React.FC = () => {
           type="treemap"
         />
         <CostTrendChart
-          data={data.costTrends}
+          data={costTrends}
           title="Cost Trends"
           description="Monthly IT spend over time"
           showBudget={true}
@@ -167,7 +180,7 @@ export const ExecutiveDashboard: React.FC = () => {
           <h3 className="text-lg font-semibold mb-1">Service Health Scores by Tier</h3>
           <p className="text-sm text-muted-foreground mb-4">Average health across service tiers</p>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={data.serviceHealthByTier}>
+            <BarChart data={serviceHealthByTier}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
               <XAxis dataKey="tier" />
               <YAxis domain={[0, 100]} />
@@ -186,7 +199,7 @@ export const ExecutiveDashboard: React.FC = () => {
 
       {/* Risk Matrix */}
       <RiskMatrix
-        items={data.riskMatrix.services.map((s: any) => ({
+        items={riskMatrixServices.map((s: any) => ({
           id: s.id,
           name: s.name,
           criticality: s.criticality as 'low' | 'medium' | 'high' | 'critical',
@@ -204,7 +217,7 @@ export const ExecutiveDashboard: React.FC = () => {
           <h3 className="text-lg font-semibold mb-1">Top 5 Cost Drivers</h3>
           <p className="text-sm text-muted-foreground mb-4">Services with highest monthly cost</p>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={data.topCostDrivers.slice(0, 5)} layout="vertical">
+            <BarChart data={topCostDrivers.slice(0, 5)} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
               <XAxis type="number" tickFormatter={formatCurrency} />
               <YAxis dataKey="serviceName" type="category" width={150} />
@@ -214,7 +227,7 @@ export const ExecutiveDashboard: React.FC = () => {
             </BarChart>
           </ResponsiveContainer>
           <div className="mt-4 space-y-2">
-            {data.topCostDrivers.slice(0, 5).map((service: any) => (
+            {topCostDrivers.slice(0, 5).map((service: any) => (
               <div
                 key={service.serviceId}
                 className="flex items-center justify-between p-2 rounded-lg hover:bg-accent"
@@ -251,8 +264,8 @@ export const ExecutiveDashboard: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {data.valueScorecard
-                  .sort((a: any, b: any) => b.roi - a.roi)
+                {valueScorecard
+                  .sort((a: any, b: any) => (b.roi || 0) - (a.roi || 0))
                   .map((service: any) => (
                     <tr key={service.serviceId} className="border-b border-border hover:bg-accent">
                       <td className="py-3 px-2 text-sm font-medium">{service.serviceName}</td>

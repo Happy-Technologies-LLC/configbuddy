@@ -13,7 +13,8 @@
  */
 
 import { Worker, Job } from 'bullmq';
-import { logger, getRedisClient } from '@cmdb/common';
+import { logger } from '@cmdb/common';
+import { getRedisClient } from '@cmdb/database';
 import {
   processSyncCIsToDatamart,
   SyncCIsJobData,

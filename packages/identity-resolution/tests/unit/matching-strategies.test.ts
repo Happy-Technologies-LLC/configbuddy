@@ -25,19 +25,6 @@ jest.mock('@cmdb/common', () => ({
   },
 }));
 
-jest.mock('@cmdb/database', () => ({
-  getNeo4jClient: jest.fn(() => mockNeo4jClient),
-  getPostgresClient: jest.fn(() => mockPostgresClient),
-}));
-
-jest.mock('@cmdb/event-processor', () => ({
-  getEventProducer: jest.fn(() => mockEventProducer),
-  EventType: {
-    CI_DISCOVERED: 'ci_discovered',
-    CI_UPDATED: 'ci_updated',
-  },
-}));
-
 const mockNeo4jClient = {
   getSession: jest.fn(),
 };
@@ -55,14 +42,38 @@ const mockSession = {
   close: jest.fn(),
 };
 
+jest.mock('@cmdb/database', () => ({
+  getNeo4jClient: jest.fn(() => mockNeo4jClient),
+  getPostgresClient: jest.fn(() => mockPostgresClient),
+}));
+
+jest.mock('@cmdb/event-processor', () => ({
+  getEventProducer: jest.fn(() => mockEventProducer),
+  EventType: {
+    CI_DISCOVERED: 'ci_discovered',
+    CI_UPDATED: 'ci_updated',
+  },
+}));
+
+import { getNeo4jClient, getPostgresClient } from '@cmdb/database';
+import { getEventProducer } from '@cmdb/event-processor';
+
 describe('Matching Strategies - Detailed Tests', () => {
   let engine: IdentityReconciliationEngine;
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+    // Restore mock implementations after clearAllMocks
+    (getNeo4jClient as jest.Mock).mockReturnValue(mockNeo4jClient);
+    (getPostgresClient as jest.Mock).mockReturnValue(mockPostgresClient);
+    (getEventProducer as jest.Mock).mockReturnValue(mockEventProducer);
+    mockNeo4jClient.getSession.mockReturnValue(mockSession);
+
     (IdentityReconciliationEngine as any).instance = undefined;
     engine = IdentityReconciliationEngine.getInstance();
-    jest.clearAllMocks();
-    mockNeo4jClient.getSession.mockReturnValue(mockSession);
+
+    // Setup mock for loadConfiguration (returns no custom config => uses defaults)
+    mockPostgresClient.query.mockResolvedValueOnce({ rows: [] });
     await engine.loadConfiguration();
     mockPostgresClient.query.mockReset();
   });

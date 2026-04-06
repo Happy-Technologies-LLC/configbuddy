@@ -51,6 +51,7 @@ export const FinOpsDashboard: React.FC = () => {
   }
 
   const formatCurrency = (value: number) => {
+    if (value == null || isNaN(value)) return '$0';
     if (value >= 1000000) {
       return `$${(value / 1000000).toFixed(2)}M`;
     }
@@ -66,7 +67,9 @@ export const FinOpsDashboard: React.FC = () => {
   const lastMonthCost = cloudCosts.data[cloudCosts.data.length - 1]?.total || 0;
   const previousMonthCost = cloudCosts.data[cloudCosts.data.length - 2]?.total || lastMonthCost;
   const costTrend = lastMonthCost > previousMonthCost ? 'up' : 'down';
-  const costTrendPercent = ((lastMonthCost - previousMonthCost) / previousMonthCost) * 100;
+  const costTrendPercent = previousMonthCost > 0
+    ? ((lastMonthCost - previousMonthCost) / previousMonthCost) * 100
+    : 0;
 
   const totalPotentialSavings = costOptimization.data?.totalPotentialSavings || 0;
 

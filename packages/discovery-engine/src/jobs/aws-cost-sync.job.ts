@@ -12,8 +12,44 @@
 import { Job } from 'bullmq';
 import { logger } from '@cmdb/common';
 import { getPostgresClient } from '@cmdb/database';
-import { AWSCostExplorer, AWSCredentials } from '@cmdb/tbm-cost-engine';
 import { subDays, startOfMonth, endOfMonth, format } from 'date-fns';
+
+/**
+ * AWS credentials for Cost Explorer access
+ */
+interface AWSCredentials {
+  accessKeyId: string;
+  secretAccessKey: string;
+  region?: string;
+  sessionToken?: string;
+  accountId?: string;
+}
+
+/**
+ * AWS Cost Explorer client stub
+ * In production, this would use the AWS SDK Cost Explorer API.
+ * The @cmdb/tbm-cost-engine package provides TBM taxonomy/allocation logic,
+ * not cloud provider API clients.
+ */
+class AWSCostExplorer {
+  constructor(private credentials: AWSCredentials, private logger: any) {}
+
+  async getCostsByService(
+    _startDate: Date,
+    _endDate: Date
+  ): Promise<Map<string, { totalCost: number; breakdown?: any }>> {
+    this.logger.warn('[AWSCostExplorer] Stub implementation - integrate AWS SDK CostExplorer');
+    return new Map();
+  }
+
+  async getCostsByResource(
+    _startDate: Date,
+    _endDate: Date
+  ): Promise<Map<string, { cost: number; resourceType?: string; region?: string; tags?: any }>> {
+    this.logger.warn('[AWSCostExplorer] Stub implementation - integrate AWS SDK CostExplorer');
+    return new Map();
+  }
+}
 
 export interface AWSCostSyncJobData {
   accountId?: string;
@@ -79,7 +115,7 @@ export async function processAWSCostSync(
 
     // Step 6: Insert/update cost data in PostgreSQL
     const pgClient = getPostgresClient();
-    const pool = pgClient.getPool();
+    const pool = pgClient.pool;
 
     let costsImported = 0;
     let totalCost = 0;
@@ -236,7 +272,7 @@ async function getAWSCredentials(
   if (credentialId) {
     // Query unified credentials table
     const pgClient = getPostgresClient();
-    const pool = pgClient.getPool();
+    const pool = pgClient.pool;
 
     const result = await pool.query(
       `

@@ -368,7 +368,7 @@ configbuddy-connectors/
 │   │   └── src/
 │   ├── vmware-vsphere/
 │   ├── aws-discovery/
-│   └── ... (38 connectors)
+│   └── ... (43 connectors)
 └── .github/workflows/
     ├── build-and-test.yml
     ├── publish-connector.yml

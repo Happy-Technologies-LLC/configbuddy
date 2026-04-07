@@ -99,7 +99,7 @@ ConfigBuddy follows a **layered architecture** with 14 packages organized by res
 - Discovery management
 - **Depends on**: `@cmdb/common`, `@cmdb/discovery-engine`, `@cmdb/etl-processor`
 
-### Layer 7: Connectors (37 connectors)
+### Layer 7: Connectors (43 connectors)
 
 **[connectors/](./connectors/)**
 - **17 TypeScript connectors**: Custom logic (AWS, Azure, GCP, VMware, Kubernetes, etc.)

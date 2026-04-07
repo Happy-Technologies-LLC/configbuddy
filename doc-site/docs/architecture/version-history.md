@@ -362,7 +362,7 @@ const sshConfig = CredentialProtocolAdapter.toSSHConfig(unifiedCred);
 19. Documentation completion
 20. Identity resolution engine
 21. Enhanced data mart with TimescaleDB
-22. Connector library (38 connectors delivered)
+22. Connector library (43 connectors delivered)
 
 ## Roadmap
 

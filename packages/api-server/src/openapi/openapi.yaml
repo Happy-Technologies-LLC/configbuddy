@@ -8,7 +8,7 @@ info:
 
     ConfigBuddy v2.0 features:
     - Graph-based CI relationships with Neo4j
-    - 37 connectors (17 TypeScript + 20 JSON-only)
+    - 43 connectors (17 TypeScript + 26 JSON-only)
     - Unified credential system with affinity matching
     - Discovery agent architecture with smart routing
     - AI-powered anomaly detection and impact analysis

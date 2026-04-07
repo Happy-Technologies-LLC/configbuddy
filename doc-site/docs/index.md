@@ -64,7 +64,7 @@ features:
 
   - icon: 🔌
     title: Connector Framework
-    details: Extensible connector architecture with 38 connectors for cloud providers, monitoring tools, and enterprise systems.
+    details: Extensible connector architecture with 43 connectors for cloud providers, monitoring tools, and enterprise systems.
     link: /architecture/connector-framework
     linkText: Connector Architecture
 

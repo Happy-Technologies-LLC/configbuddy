@@ -160,7 +160,7 @@ ConfigBuddy v2.0 introduces a major architectural evolution focused on extensibi
 - **Security**: Encrypted storage with Vault integration
 
 ### Connector Ecosystem
-- **38 connectors**: 18 TypeScript (custom logic) + 20 JSON-only (declarative ETL)
+- **43 connectors**: 17 TypeScript (custom logic) + 26 JSON-only (declarative ETL)
 - **Dynamic loading**: Install/update connectors without code changes
 - **Version management**: Semantic versioning with compatibility checking
 - **Registry system**: Browse, search, and install connectors via UI/CLI

@@ -51,7 +51,7 @@ ConfigBuddy is an enterprise CMDB platform that discovers, maps, and tracks infr
 **Prerequisites**: Docker >= 20.10, Docker Compose >= 2.0, Node.js >= 20
 
 ```bash
-git clone https://github.com/nickzitzer/configbuddy.git
+git clone https://github.com/Happy-Technologies-LLC/configbuddy.git
 cd configbuddy
 cp .env.example .env
 ./deploy.sh --seed
@@ -103,12 +103,12 @@ npm run dev:api
 | `doc-site` | VitePress documentation site (80+ pages) |
 | `infrastructure` | Docker, Kubernetes, Terraform, monitoring configs |
 
-## Companion Repositories
+## Roadmap
 
-ConfigBuddy's connector framework and AI discovery module are also available as standalone packages:
-
-- **[configbuddy-connector-sdk](https://github.com/nickzitzer/configbuddy-connector-sdk)** — Build custom connectors for any REST/GraphQL API (coming soon)
-- **[configbuddy-ai-discovery](https://github.com/nickzitzer/configbuddy-ai-discovery)** — AI-powered infrastructure discovery with pattern learning (coming soon)
+- **Connector SDK** — Standalone SDK for building custom connectors for any REST/GraphQL API
+- **AI Discovery Module** — Standalone AI-powered infrastructure discovery with pattern learning
+- **Terraform Provider** — Manage ConfigBuddy resources as infrastructure-as-code
+- **Helm Chart** — Production Kubernetes deployment with auto-scaling
 
 ## Development
 

@@ -51,7 +51,7 @@
     "jwt": {
       "accessTokenExpiresIn": "30m",
       "refreshTokenExpiresIn": "7d",
-      "issuer": "cmdb-platform",
+      "issuer": "configbuddy",
       "audience": "cmdb-api"
     },
     "bcrypt": {

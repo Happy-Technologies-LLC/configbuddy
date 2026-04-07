@@ -1,10 +1,18 @@
-# ConfigBuddy
+<p align="center">
+  <img src=".github/assets/configbuddy-logo.png" alt="ConfigBuddy" width="120" />
+</p>
 
-Open-source Configuration Management Database (CMDB) with graph-based relationship modeling, AI-powered discovery, and 43 integration connectors.
+<h1 align="center">ConfigBuddy</h1>
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
-[![Node](https://img.shields.io/badge/Node.js-20.x-green.svg)](https://nodejs.org/)
+<p align="center">
+  Open-source Configuration Management Database (CMDB) with graph-based relationship modeling, AI-powered discovery, and 43 integration connectors.
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License" /></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.3-blue.svg" alt="TypeScript" /></a>
+  <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node.js-20.x-green.svg" alt="Node.js" /></a>
+</p>
 
 ## What Is This
 
@@ -162,3 +170,15 @@ For deployment assistance, custom connectors, or commercial licensing inquiries,
 Copyright 2026 Happy Technologies LLC. Licensed under the [Apache License, Version 2.0](LICENSE).
 
 See [NOTICE](NOTICE) for third-party attribution and trademark notices.
+
+---
+
+<p align="center">
+  <a href="https://happy-tech.biz">
+    <img src=".github/assets/happy-technologies-logo.svg" alt="Happy Technologies LLC" width="280" />
+  </a>
+</p>
+
+<p align="center">
+  Built with care by <a href="https://happy-tech.biz">Happy Technologies LLC</a>
+</p>
